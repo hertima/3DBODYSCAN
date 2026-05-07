@@ -314,7 +314,17 @@ type ScanKind = "body" | "food";
 type ScanState = "idle" | "scanning" | "done";
 type PendingSource = "camera" | "gallery" | null;
 
-function ScanCTA({ kind, title, desc }: { kind: ScanKind; title: string; desc: string }) {
+function ScanCTA({
+  kind,
+  title,
+  desc,
+  onScanComplete,
+}: {
+  kind: ScanKind;
+  title: string;
+  desc: string;
+  onScanComplete?: (dataUrl: string) => void;
+}) {
   const cameraRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -345,15 +355,21 @@ function ScanCTA({ kind, title, desc }: { kind: ScanKind; title: string; desc: s
   const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (!f) return;
-    const url = URL.createObjectURL(f);
-    setPreview(url);
-    setState("scanning");
-    setTimeout(() => setState("done"), 1800);
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      setPreview(dataUrl);
+      setState("scanning");
+      setTimeout(() => {
+        setState("done");
+        onScanComplete?.(dataUrl);
+      }, 1800);
+    };
+    reader.readAsDataURL(f);
     e.target.value = "";
   };
 
   const reset = () => {
-    if (preview) URL.revokeObjectURL(preview);
     setPreview(null);
     setState("idle");
   };
