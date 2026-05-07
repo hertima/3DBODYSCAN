@@ -15,6 +15,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as OnboardingIndexRouteImport } from './routes/onboarding.index'
 import { Route as AppIndexRouteImport } from './routes/app.index'
 import { Route as OnboardingStepRouteImport } from './routes/onboarding.$step'
+import { Route as AppTreinosRouteImport } from './routes/app.treinos'
 import { Route as AppSocialRouteImport } from './routes/app.social'
 import { Route as AppPerfilRouteImport } from './routes/app.perfil'
 import { Route as AppExerciciosRouteImport } from './routes/app.exercicios'
@@ -51,6 +52,11 @@ const OnboardingStepRoute = OnboardingStepRouteImport.update({
   id: '/$step',
   path: '/$step',
   getParentRoute: () => OnboardingRoute,
+} as any)
+const AppTreinosRoute = AppTreinosRouteImport.update({
+  id: '/treinos',
+  path: '/treinos',
+  getParentRoute: () => AppRoute,
 } as any)
 const AppSocialRoute = AppSocialRouteImport.update({
   id: '/social',
@@ -91,6 +97,7 @@ export interface FileRoutesByFullPath {
   '/app/exercicios': typeof AppExerciciosRoute
   '/app/perfil': typeof AppPerfilRoute
   '/app/social': typeof AppSocialRoute
+  '/app/treinos': typeof AppTreinosRoute
   '/onboarding/$step': typeof OnboardingStepRoute
   '/app/': typeof AppIndexRoute
   '/onboarding/': typeof OnboardingIndexRoute
@@ -103,6 +110,7 @@ export interface FileRoutesByTo {
   '/app/exercicios': typeof AppExerciciosRoute
   '/app/perfil': typeof AppPerfilRoute
   '/app/social': typeof AppSocialRoute
+  '/app/treinos': typeof AppTreinosRoute
   '/onboarding/$step': typeof OnboardingStepRoute
   '/app': typeof AppIndexRoute
   '/onboarding': typeof OnboardingIndexRoute
@@ -118,6 +126,7 @@ export interface FileRoutesById {
   '/app/exercicios': typeof AppExerciciosRoute
   '/app/perfil': typeof AppPerfilRoute
   '/app/social': typeof AppSocialRoute
+  '/app/treinos': typeof AppTreinosRoute
   '/onboarding/$step': typeof OnboardingStepRoute
   '/app/': typeof AppIndexRoute
   '/onboarding/': typeof OnboardingIndexRoute
@@ -134,6 +143,7 @@ export interface FileRouteTypes {
     | '/app/exercicios'
     | '/app/perfil'
     | '/app/social'
+    | '/app/treinos'
     | '/onboarding/$step'
     | '/app/'
     | '/onboarding/'
@@ -146,6 +156,7 @@ export interface FileRouteTypes {
     | '/app/exercicios'
     | '/app/perfil'
     | '/app/social'
+    | '/app/treinos'
     | '/onboarding/$step'
     | '/app'
     | '/onboarding'
@@ -160,6 +171,7 @@ export interface FileRouteTypes {
     | '/app/exercicios'
     | '/app/perfil'
     | '/app/social'
+    | '/app/treinos'
     | '/onboarding/$step'
     | '/app/'
     | '/onboarding/'
@@ -217,6 +229,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OnboardingStepRouteImport
       parentRoute: typeof OnboardingRoute
     }
+    '/app/treinos': {
+      id: '/app/treinos'
+      path: '/treinos'
+      fullPath: '/app/treinos'
+      preLoaderRoute: typeof AppTreinosRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/social': {
       id: '/app/social'
       path: '/social'
@@ -267,6 +286,7 @@ interface AppRouteChildren {
   AppExerciciosRoute: typeof AppExerciciosRoute
   AppPerfilRoute: typeof AppPerfilRoute
   AppSocialRoute: typeof AppSocialRoute
+  AppTreinosRoute: typeof AppTreinosRoute
   AppIndexRoute: typeof AppIndexRoute
   AppExercicioIdRoute: typeof AppExercicioIdRoute
   AppTreinoIdRoute: typeof AppTreinoIdRoute
@@ -277,6 +297,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppExerciciosRoute: AppExerciciosRoute,
   AppPerfilRoute: AppPerfilRoute,
   AppSocialRoute: AppSocialRoute,
+  AppTreinosRoute: AppTreinosRoute,
   AppIndexRoute: AppIndexRoute,
   AppExercicioIdRoute: AppExercicioIdRoute,
   AppTreinoIdRoute: AppTreinoIdRoute,
@@ -306,3 +327,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
