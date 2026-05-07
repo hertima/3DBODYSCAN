@@ -61,19 +61,40 @@ function TabBtn({ active, onClick, children }: { active: boolean; onClick: () =>
 /* ----------------------------- MEDIDAS ----------------------------- */
 
 function MedidasTab() {
+  const [lastPhoto, setLastPhoto] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    return localStorage.getItem("zyrox.lastBodyPhoto");
+  });
+
   return (
     <div className="space-y-4">
       <ScanCTA
         kind="body"
         title="Scan corporal"
         desc="Tire uma foto de corpo inteiro ou envie da galeria — a IA mede automaticamente."
+        onScanComplete={(url) => {
+          localStorage.setItem("zyrox.lastBodyPhoto", url);
+          setLastPhoto(url);
+        }}
       />
-      {/* Silhueta + medidas */}
+      {/* Foto do scan + medidas */}
       <Card>
-        <CardHeader title="Silhueta corporal" subtitle="leitura mais recente · hoje" />
+        <CardHeader
+          title="Última leitura"
+          subtitle={lastPhoto ? "sua foto · hoje" : "nenhum scan ainda"}
+        />
         <div className="mt-3 flex gap-3">
-          <div className="relative h-72 w-1/2 shrink-0 rounded-xl border border-border bg-elevated/40 p-2">
-            <MuscleSilhouette muscle="Full Body" variant="dark" />
+          <div className="relative h-72 w-1/2 shrink-0 overflow-hidden rounded-xl border border-border bg-elevated/40">
+            {lastPhoto ? (
+              <img src={lastPhoto} alt="Último scan corporal" className="h-full w-full object-cover" />
+            ) : (
+              <div className="flex h-full flex-col items-center justify-center gap-2 p-3 text-center">
+                <Camera className="h-6 w-6 text-muted-foreground" />
+                <p className="text-[10px] leading-tight text-muted-foreground">
+                  Faça seu primeiro scan para ver sua foto aqui
+                </p>
+              </div>
+            )}
           </div>
           <div className="flex w-1/2 flex-col justify-between gap-1.5 py-1">
             {bodyMeasures.map((m) => (
@@ -293,7 +314,17 @@ type ScanKind = "body" | "food";
 type ScanState = "idle" | "scanning" | "done";
 type PendingSource = "camera" | "gallery" | null;
 
-function ScanCTA({ kind, title, desc }: { kind: ScanKind; title: string; desc: string }) {
+function ScanCTA({
+  kind,
+  title,
+  desc,
+  onScanComplete,
+}: {
+  kind: ScanKind;
+  title: string;
+  desc: string;
+  onScanComplete?: (dataUrl: string) => void;
+}) {
   const cameraRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -324,15 +355,21 @@ function ScanCTA({ kind, title, desc }: { kind: ScanKind; title: string; desc: s
   const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (!f) return;
-    const url = URL.createObjectURL(f);
-    setPreview(url);
-    setState("scanning");
-    setTimeout(() => setState("done"), 1800);
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      setPreview(dataUrl);
+      setState("scanning");
+      setTimeout(() => {
+        setState("done");
+        onScanComplete?.(dataUrl);
+      }, 1800);
+    };
+    reader.readAsDataURL(f);
     e.target.value = "";
   };
 
   const reset = () => {
-    if (preview) URL.revokeObjectURL(preview);
     setPreview(null);
     setState("idle");
   };
