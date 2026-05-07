@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { Search } from "lucide-react";
+import { Search, Star } from "lucide-react";
 import { exercises } from "@/data/library";
+import { ExerciseMedia } from "@/components/ExerciseMedia";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/app/exercicios")({
