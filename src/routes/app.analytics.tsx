@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, RadarChart, PolarGrid, PolarAngleAxis, Radar, BarChart, Bar, RadialBarChart, RadialBar } from "recharts";
-import { volumeTrend, muscleRadar, consistencyHeatmap, personalRecords } from "@/data/social";
-import { Trophy } from "lucide-react";
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, RadarChart, PolarGrid, PolarAngleAxis, Radar, BarChart, Bar, RadialBarChart, RadialBar, LineChart, Line, CartesianGrid } from "recharts";
+import { volumeTrend, muscleRadar, consistencyHeatmap, progressionData, workoutHistory } from "@/data/social";
+import { Dumbbell, Trophy } from "lucide-react";
 
 export const Route = createFileRoute("/app/analytics")({
   head: () => ({ meta: [{ title: "Analytics · ZYROX" }, { name: "description", content: "Volume, recovery, PRs e tendências cinematográficas." }] }),
