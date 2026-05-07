@@ -472,15 +472,54 @@ function ScanCTA({
         </button>
       </div>
 
-      <input
-        ref={cameraRef}
-        type="file"
-        accept="image/*"
-        capture={kind === "body" ? "user" : "environment"}
-        className="hidden"
-        onChange={onFile}
-      />
+      <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={onFile} />
       <input ref={galleryRef} type="file" accept="image/*" className="hidden" onChange={onFile} />
+
+      {/* Live camera (getUserMedia) */}
+      {liveOpen && (
+        <div className="fixed inset-0 z-50 flex flex-col bg-black">
+          <div className="flex items-center justify-between border-b border-border bg-background/80 px-4 py-3 backdrop-blur">
+            <div className="font-display text-sm font-bold">{title}</div>
+            <button onClick={closeLive} className="grid h-8 w-8 place-items-center rounded-full border border-border bg-surface">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <div className="relative flex-1 overflow-hidden">
+            {liveError ? (
+              <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
+                <Camera className="h-8 w-8 text-muted-foreground" />
+                <p className="text-sm text-muted-foreground">{liveError}</p>
+                <button
+                  onClick={() => {
+                    closeLive();
+                    galleryRef.current?.click();
+                  }}
+                  className="rounded-xl bg-gradient-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-elegant"
+                >
+                  Usar galeria
+                </button>
+              </div>
+            ) : (
+              <>
+                <video ref={videoRef} autoPlay playsInline muted className="h-full w-full object-cover" />
+                {kind === "body" && (
+                  <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                    <div className="h-[80%] w-[55%] rounded-[40%] border-2 border-dashed border-primary/70" />
+                  </div>
+                )}
+                <div className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-4 bg-gradient-to-t from-black/80 to-transparent px-4 py-6">
+                  <button
+                    onClick={captureFromVideo}
+                    className="grid h-16 w-16 place-items-center rounded-full border-4 border-white bg-gradient-primary shadow-glow-primary active:scale-95"
+                  >
+                    <Camera className="h-6 w-6 text-primary-foreground" />
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Guia de captura + calibragem (apenas body) */}
       {guideOpen && kind === "body" && (
