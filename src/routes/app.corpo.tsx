@@ -61,19 +61,40 @@ function TabBtn({ active, onClick, children }: { active: boolean; onClick: () =>
 /* ----------------------------- MEDIDAS ----------------------------- */
 
 function MedidasTab() {
+  const [lastPhoto, setLastPhoto] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    return localStorage.getItem("zyrox.lastBodyPhoto");
+  });
+
   return (
     <div className="space-y-4">
       <ScanCTA
         kind="body"
         title="Scan corporal"
         desc="Tire uma foto de corpo inteiro ou envie da galeria — a IA mede automaticamente."
+        onScanComplete={(url) => {
+          localStorage.setItem("zyrox.lastBodyPhoto", url);
+          setLastPhoto(url);
+        }}
       />
-      {/* Silhueta + medidas */}
+      {/* Foto do scan + medidas */}
       <Card>
-        <CardHeader title="Silhueta corporal" subtitle="leitura mais recente · hoje" />
+        <CardHeader
+          title="Última leitura"
+          subtitle={lastPhoto ? "sua foto · hoje" : "nenhum scan ainda"}
+        />
         <div className="mt-3 flex gap-3">
-          <div className="relative h-72 w-1/2 shrink-0 rounded-xl border border-border bg-elevated/40 p-2">
-            <MuscleSilhouette muscle="Full Body" variant="dark" />
+          <div className="relative h-72 w-1/2 shrink-0 overflow-hidden rounded-xl border border-border bg-elevated/40">
+            {lastPhoto ? (
+              <img src={lastPhoto} alt="Último scan corporal" className="h-full w-full object-cover" />
+            ) : (
+              <div className="flex h-full flex-col items-center justify-center gap-2 p-3 text-center">
+                <Camera className="h-6 w-6 text-muted-foreground" />
+                <p className="text-[10px] leading-tight text-muted-foreground">
+                  Faça seu primeiro scan para ver sua foto aqui
+                </p>
+              </div>
+            )}
           </div>
           <div className="flex w-1/2 flex-col justify-between gap-1.5 py-1">
             {bodyMeasures.map((m) => (
