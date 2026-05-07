@@ -178,3 +178,8 @@
   background-size: 200% 100%;
   animation: shimmer 1.8s linear infinite;
 }
+
+@keyframes scan {
+  0% { transform: translateY(-10%); }
+  100% { transform: translateY(260%); }
+}
