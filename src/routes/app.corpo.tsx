@@ -339,6 +339,7 @@ function ScanCTA({
   const [guideStep, setGuideStep] = useState<0 | 1>(0); // 0 = guia, 1 = calibragem
   const [pending, setPending] = useState<PendingSource>(null);
   const [height, setHeight] = useState("178");
+  const [weight, setWeight] = useState("78");
   const [outfit, setOutfit] = useState<"justa" | "normal" | "larga">("normal");
 
   const stopStream = () => {
