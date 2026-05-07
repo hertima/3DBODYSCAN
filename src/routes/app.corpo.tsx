@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
-import { Sparkles, Plus, TrendingUp, TrendingDown, Droplets, Zap, Target, Flame } from "lucide-react";
+import { useRef, useState } from "react";
+import { Sparkles, Plus, TrendingUp, TrendingDown, Droplets, Zap, Target, Flame, Camera, Image as ImageIcon, ScanLine, X, Loader2, Check } from "lucide-react";
 import { RadialBarChart, RadialBar, PolarAngleAxis } from "recharts";
 import { MuscleSilhouette } from "@/components/MuscleSilhouette";
 import { AIInsightCard } from "@/components/AIInsightCard";
@@ -62,6 +62,11 @@ function TabBtn({ active, onClick, children }: { active: boolean; onClick: () =>
 function MedidasTab() {
   return (
     <div className="space-y-4">
+      <ScanCTA
+        kind="body"
+        title="Scan corporal"
+        desc="Tire uma foto de corpo inteiro ou envie da galeria — a IA mede automaticamente."
+      />
       {/* Silhueta + medidas */}
       <Card>
         <CardHeader title="Silhueta corporal" subtitle="leitura mais recente · hoje" />
@@ -163,6 +168,11 @@ function NutricaoTab() {
 
   return (
     <div className="space-y-4">
+      <ScanCTA
+        kind="food"
+        title="Scan da alimentação"
+        desc="Aponte para o prato ou envie da galeria — a IA estima calorias e macros."
+      />
       <Card>
         <CardHeader title="Resumo de hoje" subtitle="metas calóricas e macros" />
         <div className="mt-3 flex items-center gap-3">
@@ -268,6 +278,129 @@ function CardHeader({ title, subtitle }: { title: string; subtitle?: string }) {
     <div>
       <div className="font-display text-base font-bold">{title}</div>
       {subtitle && <div className="text-xs text-muted-foreground">{subtitle}</div>}
+    </div>
+  );
+}
+
+/* ----------------------------- SCAN ----------------------------- */
+
+type ScanKind = "body" | "food";
+type ScanState = "idle" | "scanning" | "done";
+
+function ScanCTA({ kind, title, desc }: { kind: ScanKind; title: string; desc: string }) {
+  const cameraRef = useRef<HTMLInputElement>(null);
+  const galleryRef = useRef<HTMLInputElement>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [state, setState] = useState<ScanState>("idle");
+
+  const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    const url = URL.createObjectURL(f);
+    setPreview(url);
+    setState("scanning");
+    setTimeout(() => setState("done"), 1800);
+    e.target.value = "";
+  };
+
+  const reset = () => {
+    if (preview) URL.revokeObjectURL(preview);
+    setPreview(null);
+    setState("idle");
+  };
+
+  const result =
+    kind === "body"
+      ? [
+          { k: "Peito", v: "102 cm" },
+          { k: "Cintura", v: "78 cm" },
+          { k: "% Gordura", v: "14.2%" },
+        ]
+      : [
+          { k: "Calorias", v: "~520 kcal" },
+          { k: "Proteína", v: "32 g" },
+          { k: "Carbo", v: "48 g" },
+        ];
+
+  return (
+    <div className="relative overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-surface to-elevated/40 p-4">
+      <div className="flex items-start gap-3">
+        <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-gradient-primary text-primary-foreground shadow-glow-primary">
+          <ScanLine className="h-5 w-5" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="font-display text-base font-bold">{title}</div>
+          <div className="text-xs leading-relaxed text-muted-foreground">{desc}</div>
+        </div>
+      </div>
+
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        <button
+          onClick={() => cameraRef.current?.click()}
+          className="flex items-center justify-center gap-2 rounded-xl bg-gradient-primary px-3 py-2.5 text-sm font-semibold text-primary-foreground shadow-elegant active:scale-[0.98]"
+        >
+          <Camera className="h-4 w-4" /> Câmera
+        </button>
+        <button
+          onClick={() => galleryRef.current?.click()}
+          className="flex items-center justify-center gap-2 rounded-xl border border-border bg-surface px-3 py-2.5 text-sm font-semibold text-foreground active:scale-[0.98]"
+        >
+          <ImageIcon className="h-4 w-4" /> Galeria
+        </button>
+      </div>
+
+      <input
+        ref={cameraRef}
+        type="file"
+        accept="image/*"
+        capture={kind === "body" ? "user" : "environment"}
+        className="hidden"
+        onChange={onFile}
+      />
+      <input ref={galleryRef} type="file" accept="image/*" className="hidden" onChange={onFile} />
+
+      {preview && (
+        <div className="fixed inset-0 z-50 flex flex-col bg-background/95 backdrop-blur">
+          <div className="flex items-center justify-between border-b border-border px-4 py-3">
+            <div className="font-display text-sm font-bold">{title}</div>
+            <button onClick={reset} className="grid h-8 w-8 place-items-center rounded-full border border-border bg-surface">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <div className="relative flex-1 overflow-hidden">
+            <img src={preview} alt="scan" className="h-full w-full object-contain" />
+            {state === "scanning" && (
+              <>
+                <div className="pointer-events-none absolute inset-x-0 top-0 h-1 animate-[scan_1.8s_linear_infinite] bg-gradient-to-b from-primary via-primary/60 to-transparent shadow-glow-primary" style={{ height: "40%" }} />
+                <div className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-2 bg-background/80 py-3 text-sm font-semibold text-primary backdrop-blur">
+                  <Loader2 className="h-4 w-4 animate-spin" /> IA analisando imagem…
+                </div>
+              </>
+            )}
+            {state === "done" && (
+              <div className="absolute inset-x-3 bottom-3 rounded-2xl border border-border bg-surface/95 p-4 backdrop-blur">
+                <div className="flex items-center gap-2 text-sm font-semibold text-primary">
+                  <Check className="h-4 w-4" /> Análise concluída
+                </div>
+                <div className="mt-3 grid grid-cols-3 gap-2">
+                  {result.map((r) => (
+                    <div key={r.k} className="rounded-xl border border-border bg-elevated/40 p-2 text-center">
+                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{r.k}</div>
+                      <div className="font-display text-sm font-bold">{r.v}</div>
+                    </div>
+                  ))}
+                </div>
+                <button
+                  onClick={reset}
+                  className="mt-3 w-full rounded-xl bg-gradient-primary py-2.5 text-sm font-semibold text-primary-foreground shadow-elegant"
+                >
+                  Salvar e fechar
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
