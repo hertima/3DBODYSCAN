@@ -248,6 +248,8 @@ function NutricaoTab() {
           })}
         </div>
       </Card>
+
+      <ScanHistory kind="food" />
     </div>
   );
 }
