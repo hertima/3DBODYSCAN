@@ -25,13 +25,13 @@ function Library() {
   ), [q, type, muscle]);
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-end justify-between">
-        <div>
-          <h1 className="font-display text-3xl font-bold">Biblioteca</h1>
-          <p className="text-sm text-muted-foreground">{filtered.length} exercícios · biomecânica e técnica</p>
+    <div className="w-full max-w-full space-y-3 overflow-x-hidden">
+      <div className="flex min-w-0 items-end justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="truncate font-display text-2xl font-bold">Biblioteca</h1>
+          <p className="truncate text-xs text-muted-foreground">{filtered.length} exercícios · biomecânica e técnica</p>
         </div>
-        <button className="grid h-10 w-10 place-items-center rounded-full border border-border bg-surface text-muted-foreground hover:text-primary">
+        <button className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-border bg-surface text-muted-foreground hover:text-primary">
           <SlidersHorizontal className="h-4 w-4" />
         </button>
       </div>
@@ -41,23 +41,23 @@ function Library() {
         <input
           value={q} onChange={(e) => setQ(e.target.value)}
           placeholder="Buscar exercício..."
-          className="w-full rounded-2xl border border-border bg-surface py-3 pl-11 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary/40 focus:outline-none"
+          className="w-full rounded-xl border border-border bg-surface py-2.5 pl-10 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary/40 focus:outline-none"
         />
       </div>
 
-      <div className="grid grid-cols-3 gap-1 rounded-full border border-border bg-surface p-1">
+      <div className="grid w-full min-w-0 grid-cols-3 gap-1 rounded-xl border border-border bg-surface p-1">
         {types.map((t) => (
           <button key={t} onClick={() => setType(t)} className={cn(
-            "rounded-full py-1.5 text-xs font-semibold transition",
+            "min-w-0 truncate rounded-lg px-1 py-1.5 text-[11px] font-semibold transition",
             type === t ? "bg-gradient-primary text-primary-foreground shadow-glow-primary" : "text-muted-foreground",
           )}>{t}</button>
         ))}
       </div>
 
-      <div className="flex flex-wrap gap-1.5">
+      <div className="grid grid-cols-3 gap-1.5">
         {muscles.map((m) => (
           <button key={m} onClick={() => setMuscle(m)} className={cn(
-            "rounded-full border px-2.5 py-1 text-[11px] font-semibold transition",
+            "min-w-0 truncate rounded-lg border px-1.5 py-1 text-[10px] font-semibold transition",
             muscle === m ? "border-cyan/60 bg-cyan/15 text-cyan" : "border-border bg-surface text-muted-foreground",
           )}>{m}</button>
         ))}
