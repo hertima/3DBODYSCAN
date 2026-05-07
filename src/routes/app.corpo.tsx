@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
-import { Sparkles, Plus, TrendingUp, TrendingDown, Droplets, Zap, Target, Flame } from "lucide-react";
+import { useRef, useState } from "react";
+import { Sparkles, Plus, TrendingUp, TrendingDown, Droplets, Zap, Target, Flame, Camera, Image as ImageIcon, ScanLine, X, Loader2, Check } from "lucide-react";
 import { RadialBarChart, RadialBar, PolarAngleAxis } from "recharts";
 import { MuscleSilhouette } from "@/components/MuscleSilhouette";
 import { AIInsightCard } from "@/components/AIInsightCard";
