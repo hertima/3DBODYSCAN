@@ -9,38 +9,186 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as OnboardingRouteImport } from './routes/onboarding'
+import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as OnboardingIndexRouteImport } from './routes/onboarding.index'
+import { Route as AppIndexRouteImport } from './routes/app.index'
+import { Route as OnboardingStepRouteImport } from './routes/onboarding.$step'
+import { Route as AppSocialRouteImport } from './routes/app.social'
+import { Route as AppPerfilRouteImport } from './routes/app.perfil'
+import { Route as AppExerciciosRouteImport } from './routes/app.exercicios'
+import { Route as AppAnalyticsRouteImport } from './routes/app.analytics'
+import { Route as AppTreinoIdRouteImport } from './routes/app.treino.$id'
+import { Route as AppExercicioIdRouteImport } from './routes/app.exercicio.$id'
 
+const OnboardingRoute = OnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppRoute = AppRouteImport.update({
+  id: '/app',
+  path: '/app',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OnboardingIndexRoute = OnboardingIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => OnboardingRoute,
+} as any)
+const AppIndexRoute = AppIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppRoute,
+} as any)
+const OnboardingStepRoute = OnboardingStepRouteImport.update({
+  id: '/$step',
+  path: '/$step',
+  getParentRoute: () => OnboardingRoute,
+} as any)
+const AppSocialRoute = AppSocialRouteImport.update({
+  id: '/social',
+  path: '/social',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPerfilRoute = AppPerfilRouteImport.update({
+  id: '/perfil',
+  path: '/perfil',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppExerciciosRoute = AppExerciciosRouteImport.update({
+  id: '/exercicios',
+  path: '/exercicios',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAnalyticsRoute = AppAnalyticsRouteImport.update({
+  id: '/analytics',
+  path: '/analytics',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppTreinoIdRoute = AppTreinoIdRouteImport.update({
+  id: '/treino/$id',
+  path: '/treino/$id',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppExercicioIdRoute = AppExercicioIdRouteImport.update({
+  id: '/exercicio/$id',
+  path: '/exercicio/$id',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/app': typeof AppRouteWithChildren
+  '/onboarding': typeof OnboardingRouteWithChildren
+  '/app/analytics': typeof AppAnalyticsRoute
+  '/app/exercicios': typeof AppExerciciosRoute
+  '/app/perfil': typeof AppPerfilRoute
+  '/app/social': typeof AppSocialRoute
+  '/onboarding/$step': typeof OnboardingStepRoute
+  '/app/': typeof AppIndexRoute
+  '/onboarding/': typeof OnboardingIndexRoute
+  '/app/exercicio/$id': typeof AppExercicioIdRoute
+  '/app/treino/$id': typeof AppTreinoIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/app/analytics': typeof AppAnalyticsRoute
+  '/app/exercicios': typeof AppExerciciosRoute
+  '/app/perfil': typeof AppPerfilRoute
+  '/app/social': typeof AppSocialRoute
+  '/onboarding/$step': typeof OnboardingStepRoute
+  '/app': typeof AppIndexRoute
+  '/onboarding': typeof OnboardingIndexRoute
+  '/app/exercicio/$id': typeof AppExercicioIdRoute
+  '/app/treino/$id': typeof AppTreinoIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/app': typeof AppRouteWithChildren
+  '/onboarding': typeof OnboardingRouteWithChildren
+  '/app/analytics': typeof AppAnalyticsRoute
+  '/app/exercicios': typeof AppExerciciosRoute
+  '/app/perfil': typeof AppPerfilRoute
+  '/app/social': typeof AppSocialRoute
+  '/onboarding/$step': typeof OnboardingStepRoute
+  '/app/': typeof AppIndexRoute
+  '/onboarding/': typeof OnboardingIndexRoute
+  '/app/exercicio/$id': typeof AppExercicioIdRoute
+  '/app/treino/$id': typeof AppTreinoIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/app'
+    | '/onboarding'
+    | '/app/analytics'
+    | '/app/exercicios'
+    | '/app/perfil'
+    | '/app/social'
+    | '/onboarding/$step'
+    | '/app/'
+    | '/onboarding/'
+    | '/app/exercicio/$id'
+    | '/app/treino/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/app/analytics'
+    | '/app/exercicios'
+    | '/app/perfil'
+    | '/app/social'
+    | '/onboarding/$step'
+    | '/app'
+    | '/onboarding'
+    | '/app/exercicio/$id'
+    | '/app/treino/$id'
+  id:
+    | '__root__'
+    | '/'
+    | '/app'
+    | '/onboarding'
+    | '/app/analytics'
+    | '/app/exercicios'
+    | '/app/perfil'
+    | '/app/social'
+    | '/onboarding/$step'
+    | '/app/'
+    | '/onboarding/'
+    | '/app/exercicio/$id'
+    | '/app/treino/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AppRoute: typeof AppRouteWithChildren
+  OnboardingRoute: typeof OnboardingRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/onboarding': {
+      id: '/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof OnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app': {
+      id: '/app'
+      path: '/app'
+      fullPath: '/app'
+      preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,22 +196,113 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/onboarding/': {
+      id: '/onboarding/'
+      path: '/'
+      fullPath: '/onboarding/'
+      preLoaderRoute: typeof OnboardingIndexRouteImport
+      parentRoute: typeof OnboardingRoute
+    }
+    '/app/': {
+      id: '/app/'
+      path: '/'
+      fullPath: '/app/'
+      preLoaderRoute: typeof AppIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/onboarding/$step': {
+      id: '/onboarding/$step'
+      path: '/$step'
+      fullPath: '/onboarding/$step'
+      preLoaderRoute: typeof OnboardingStepRouteImport
+      parentRoute: typeof OnboardingRoute
+    }
+    '/app/social': {
+      id: '/app/social'
+      path: '/social'
+      fullPath: '/app/social'
+      preLoaderRoute: typeof AppSocialRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/perfil': {
+      id: '/app/perfil'
+      path: '/perfil'
+      fullPath: '/app/perfil'
+      preLoaderRoute: typeof AppPerfilRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/exercicios': {
+      id: '/app/exercicios'
+      path: '/exercicios'
+      fullPath: '/app/exercicios'
+      preLoaderRoute: typeof AppExerciciosRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/analytics': {
+      id: '/app/analytics'
+      path: '/analytics'
+      fullPath: '/app/analytics'
+      preLoaderRoute: typeof AppAnalyticsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/treino/$id': {
+      id: '/app/treino/$id'
+      path: '/treino/$id'
+      fullPath: '/app/treino/$id'
+      preLoaderRoute: typeof AppTreinoIdRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/exercicio/$id': {
+      id: '/app/exercicio/$id'
+      path: '/exercicio/$id'
+      fullPath: '/app/exercicio/$id'
+      preLoaderRoute: typeof AppExercicioIdRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
+interface AppRouteChildren {
+  AppAnalyticsRoute: typeof AppAnalyticsRoute
+  AppExerciciosRoute: typeof AppExerciciosRoute
+  AppPerfilRoute: typeof AppPerfilRoute
+  AppSocialRoute: typeof AppSocialRoute
+  AppIndexRoute: typeof AppIndexRoute
+  AppExercicioIdRoute: typeof AppExercicioIdRoute
+  AppTreinoIdRoute: typeof AppTreinoIdRoute
+}
+
+const AppRouteChildren: AppRouteChildren = {
+  AppAnalyticsRoute: AppAnalyticsRoute,
+  AppExerciciosRoute: AppExerciciosRoute,
+  AppPerfilRoute: AppPerfilRoute,
+  AppSocialRoute: AppSocialRoute,
+  AppIndexRoute: AppIndexRoute,
+  AppExercicioIdRoute: AppExercicioIdRoute,
+  AppTreinoIdRoute: AppTreinoIdRoute,
+}
+
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+
+interface OnboardingRouteChildren {
+  OnboardingStepRoute: typeof OnboardingStepRoute
+  OnboardingIndexRoute: typeof OnboardingIndexRoute
+}
+
+const OnboardingRouteChildren: OnboardingRouteChildren = {
+  OnboardingStepRoute: OnboardingStepRoute,
+  OnboardingIndexRoute: OnboardingIndexRoute,
+}
+
+const OnboardingRouteWithChildren = OnboardingRoute._addFileChildren(
+  OnboardingRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AppRoute: AppRouteWithChildren,
+  OnboardingRoute: OnboardingRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
