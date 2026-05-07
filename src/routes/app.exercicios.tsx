@@ -63,33 +63,39 @@ function Library() {
         ))}
       </div>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+      <div className="flex flex-col gap-2">
         {filtered.map((e) => (
           <Link
             key={e.id}
             to="/app/exercicio/$id"
             params={{ id: e.id }}
-            className="group relative overflow-hidden rounded-2xl border border-border bg-surface transition hover:border-primary/40 hover:shadow-glow-primary/30"
+            className="group flex items-center gap-3 rounded-xl border border-border bg-surface p-2 transition hover:border-primary/40 active:scale-[0.99]"
           >
-            <ExerciseMedia exerciseId={e.id} size="card" />
+            <div className="h-14 w-14 shrink-0">
+              <ExerciseMedia exerciseId={e.id} size="thumb" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-sm font-semibold leading-tight">{e.name}</div>
+              <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                <span className="rounded-full bg-elevated px-1.5 py-0.5 font-semibold text-foreground/80">{e.muscle}</span>
+                <span>·</span>
+                <span className="truncate">{e.equipment}</span>
+              </div>
+            </div>
+            <span className="shrink-0 rounded-full border border-border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-cyan">
+              {e.type === "Musculação" ? "MUSC" : "CALIS"}
+            </span>
             <button
               type="button"
               onClick={(ev) => { ev.preventDefault(); }}
-              className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-full bg-background/70 text-muted-foreground backdrop-blur transition hover:text-primary"
+              className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-muted-foreground hover:text-primary"
               aria-label="Favoritar"
             >
               <Star className="h-3.5 w-3.5" />
             </button>
-            <div className="space-y-1 p-3">
-              <div className="line-clamp-2 text-sm font-semibold leading-tight">{e.name}</div>
-              <div className="flex items-center justify-between text-[10px]">
-                <span className="text-muted-foreground">{e.equipment}</span>
-                <span className="rounded-full border border-border px-1.5 py-0.5 font-bold uppercase tracking-wider text-cyan">{e.type === "Musculação" ? "MUSC" : "CALIS"}</span>
-              </div>
-            </div>
           </Link>
         ))}
-        {filtered.length === 0 && <div className="col-span-full text-center text-sm text-muted-foreground">Nenhum exercício encontrado.</div>}
+        {filtered.length === 0 && <div className="text-center text-sm text-muted-foreground">Nenhum exercício encontrado.</div>}
       </div>
     </div>
   );
