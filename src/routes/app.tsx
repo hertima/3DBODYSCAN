@@ -12,14 +12,15 @@ export const Route = createFileRoute("/app")({
   component: AppLayout,
 });
 
-const nav = [
+type NavItem = { to: string; label: string; icon: typeof Home; exact?: boolean };
+const nav: NavItem[] = [
   { to: "/app", label: "Início", icon: Home, exact: true },
   { to: "/app/treinos", label: "Treinos", icon: Dumbbell },
   { to: "/app/exercicios", label: "Biblioteca", icon: BookOpen },
   { to: "/app/analytics", label: "Analytics", icon: BarChart3 },
   { to: "/app/social", label: "Social", icon: Users },
   { to: "/app/perfil", label: "Perfil", icon: User },
-] as const;
+];
 
 function AppLayout() {
   const navigate = useNavigate();
