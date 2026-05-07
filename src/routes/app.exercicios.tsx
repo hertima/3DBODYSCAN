@@ -56,16 +56,29 @@ function Library() {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         {filtered.map((e) => (
-          <Link key={e.id} to="/app/exercicio/$id" params={{ id: e.id }}
-            className="group flex items-center gap-3 rounded-2xl border border-border bg-surface p-3 transition hover:border-primary/40 hover:bg-elevated"
+          <Link
+            key={e.id}
+            to="/app/exercicio/$id"
+            params={{ id: e.id }}
+            className="group relative overflow-hidden rounded-2xl border border-border bg-surface transition hover:border-primary/40"
           >
-            <div className="grid h-14 w-14 shrink-0 place-items-center rounded-xl bg-gradient-ai text-[10px] font-bold text-background/80">GIF</div>
-            <div className="min-w-0 flex-1">
-              <div className="truncate font-semibold">{e.name}</div>
-              <div className="truncate text-xs text-muted-foreground">{e.muscle} · {e.equipment}</div>
-              <span className="mt-1 inline-block rounded-full border border-border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-cyan">{e.type}</span>
+            <ExerciseMedia exerciseId={e.id} size="card" />
+            <button
+              type="button"
+              onClick={(ev) => { ev.preventDefault(); }}
+              className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-full bg-background/80 text-muted-foreground backdrop-blur hover:text-primary"
+              aria-label="Favoritar"
+            >
+              <Star className="h-3.5 w-3.5" />
+            </button>
+            <div className="space-y-1 p-3">
+              <div className="line-clamp-2 text-sm font-semibold leading-tight">{e.name}</div>
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] text-muted-foreground">{e.muscle}</span>
+                <span className="rounded-full border border-border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-cyan">{e.type}</span>
+              </div>
             </div>
           </Link>
         ))}
