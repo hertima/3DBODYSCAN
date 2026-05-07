@@ -62,6 +62,11 @@ function TabBtn({ active, onClick, children }: { active: boolean; onClick: () =>
 function MedidasTab() {
   return (
     <div className="space-y-4">
+      <ScanCTA
+        kind="body"
+        title="Scan corporal"
+        desc="Tire uma foto de corpo inteiro ou envie da galeria — a IA mede automaticamente."
+      />
       {/* Silhueta + medidas */}
       <Card>
         <CardHeader title="Silhueta corporal" subtitle="leitura mais recente · hoje" />
