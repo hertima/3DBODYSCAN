@@ -327,8 +327,12 @@ function ScanCTA({
 }) {
   const cameraRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [state, setState] = useState<ScanState>("idle");
+  const [liveOpen, setLiveOpen] = useState(false);
+  const [liveError, setLiveError] = useState<string | null>(null);
 
   // body-only guide flow
   const [guideOpen, setGuideOpen] = useState(false);
@@ -337,9 +341,43 @@ function ScanCTA({
   const [height, setHeight] = useState("178");
   const [outfit, setOutfit] = useState<"justa" | "normal" | "larga">("normal");
 
+  const stopStream = () => {
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+  };
+
+  const openLiveCamera = async () => {
+    setLiveError(null);
+    setLiveOpen(true);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: kind === "food" ? "environment" : "user" },
+        audio: false,
+      });
+      streamRef.current = stream;
+      // wait for the video element to mount
+      requestAnimationFrame(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          videoRef.current.play().catch(() => {});
+        }
+      });
+    } catch (err: any) {
+      const name = err?.name ?? "";
+      if (name === "NotAllowedError") setLiveError("Permissão negada. Habilite a câmera nas configurações do navegador.");
+      else if (name === "NotFoundError") setLiveError("Nenhuma câmera encontrada neste dispositivo.");
+      else if (name === "NotReadableError") setLiveError("Câmera em uso por outro aplicativo.");
+      else setLiveError("Não foi possível abrir a câmera. Use 'Galeria' como alternativa.");
+    }
+  };
+
   const triggerInput = (src: PendingSource) => {
-    if (src === "camera") cameraRef.current?.click();
-    else galleryRef.current?.click();
+    if (src === "camera") {
+      // Desktop-friendly: use getUserMedia (file input + capture só abre câmera no mobile)
+      openLiveCamera();
+    } else {
+      galleryRef.current?.click();
+    }
   };
 
   const handleClick = (src: "camera" | "gallery") => {
@@ -352,19 +390,39 @@ function ScanCTA({
     }
   };
 
+  const finishWithDataUrl = (dataUrl: string) => {
+    setPreview(dataUrl);
+    setState("scanning");
+    setTimeout(() => {
+      setState("done");
+      onScanComplete?.(dataUrl);
+    }, 1800);
+  };
+
+  const captureFromVideo = () => {
+    const v = videoRef.current;
+    if (!v) return;
+    const canvas = document.createElement("canvas");
+    canvas.width = v.videoWidth || 720;
+    canvas.height = v.videoHeight || 1280;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+    closeLive();
+    finishWithDataUrl(dataUrl);
+  };
+
+  const closeLive = () => {
+    stopStream();
+    setLiveOpen(false);
+  };
+
   const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (!f) return;
     const reader = new FileReader();
-    reader.onload = () => {
-      const dataUrl = reader.result as string;
-      setPreview(dataUrl);
-      setState("scanning");
-      setTimeout(() => {
-        setState("done");
-        onScanComplete?.(dataUrl);
-      }, 1800);
-    };
+    reader.onload = () => finishWithDataUrl(reader.result as string);
     reader.readAsDataURL(f);
     e.target.value = "";
   };
