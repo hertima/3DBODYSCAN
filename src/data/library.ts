@@ -9,11 +9,13 @@ export type Exercise = {
   name: string;
   type: ExerciseType;
   muscle: MuscleGroup;
+  muscleSecondary?: MuscleGroup[];
   equipment: string;
   biomechanics: string;
   instructions: string[];
   mistakes: string[];
   alternatives: string[];
+  gifUrl?: string;
 };
 
 export const exercises: Exercise[] = [
