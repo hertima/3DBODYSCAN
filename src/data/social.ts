@@ -138,3 +138,12 @@ export const workoutHistory: HistoryEntry[] = [
 ];
 
 export const getHistoryEntry = (id: string) => workoutHistory.find((w) => w.id === id);
+
+export const achievements = [
+  { id: "a1", title: "Primeira Semana", desc: "7 dias treinando", unlocked: true, icon: "🔥" },
+  { id: "a2", title: "Volume Lord", desc: "10.000 kg em uma sessão", unlocked: true, icon: "🏋️" },
+  { id: "a3", title: "Disciplina Cinza", desc: "21 dias consecutivos", unlocked: true, icon: "🎯" },
+  { id: "a4", title: "Skill Master", desc: "Front lever completo", unlocked: false, icon: "⚡" },
+  { id: "a5", title: "Maratona", desc: "100 treinos completos", unlocked: false, icon: "🏆" },
+  { id: "a6", title: "AI Adapted", desc: "30 dias com IA", unlocked: true, icon: "🧠" },
+];
