@@ -327,8 +327,12 @@ function ScanCTA({
 }) {
   const cameraRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [state, setState] = useState<ScanState>("idle");
+  const [liveOpen, setLiveOpen] = useState(false);
+  const [liveError, setLiveError] = useState<string | null>(null);
 
   // body-only guide flow
   const [guideOpen, setGuideOpen] = useState(false);
@@ -337,9 +341,43 @@ function ScanCTA({
   const [height, setHeight] = useState("178");
   const [outfit, setOutfit] = useState<"justa" | "normal" | "larga">("normal");
 
+  const stopStream = () => {
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+  };
+
+  const openLiveCamera = async () => {
+    setLiveError(null);
+    setLiveOpen(true);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: kind === "food" ? "environment" : "user" },
+        audio: false,
+      });
+      streamRef.current = stream;
+      // wait for the video element to mount
+      requestAnimationFrame(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          videoRef.current.play().catch(() => {});
+        }
+      });
+    } catch (err: any) {
+      const name = err?.name ?? "";
+      if (name === "NotAllowedError") setLiveError("Permissão negada. Habilite a câmera nas configurações do navegador.");
+      else if (name === "NotFoundError") setLiveError("Nenhuma câmera encontrada neste dispositivo.");
+      else if (name === "NotReadableError") setLiveError("Câmera em uso por outro aplicativo.");
+      else setLiveError("Não foi possível abrir a câmera. Use 'Galeria' como alternativa.");
+    }
+  };
+
   const triggerInput = (src: PendingSource) => {
-    if (src === "camera") cameraRef.current?.click();
-    else galleryRef.current?.click();
+    if (src === "camera") {
+      // Desktop-friendly: use getUserMedia (file input + capture só abre câmera no mobile)
+      openLiveCamera();
+    } else {
+      galleryRef.current?.click();
+    }
   };
 
   const handleClick = (src: "camera" | "gallery") => {
@@ -352,19 +390,39 @@ function ScanCTA({
     }
   };
 
+  const finishWithDataUrl = (dataUrl: string) => {
+    setPreview(dataUrl);
+    setState("scanning");
+    setTimeout(() => {
+      setState("done");
+      onScanComplete?.(dataUrl);
+    }, 1800);
+  };
+
+  const captureFromVideo = () => {
+    const v = videoRef.current;
+    if (!v) return;
+    const canvas = document.createElement("canvas");
+    canvas.width = v.videoWidth || 720;
+    canvas.height = v.videoHeight || 1280;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+    closeLive();
+    finishWithDataUrl(dataUrl);
+  };
+
+  const closeLive = () => {
+    stopStream();
+    setLiveOpen(false);
+  };
+
   const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (!f) return;
     const reader = new FileReader();
-    reader.onload = () => {
-      const dataUrl = reader.result as string;
-      setPreview(dataUrl);
-      setState("scanning");
-      setTimeout(() => {
-        setState("done");
-        onScanComplete?.(dataUrl);
-      }, 1800);
-    };
+    reader.onload = () => finishWithDataUrl(reader.result as string);
     reader.readAsDataURL(f);
     e.target.value = "";
   };
@@ -414,15 +472,54 @@ function ScanCTA({
         </button>
       </div>
 
-      <input
-        ref={cameraRef}
-        type="file"
-        accept="image/*"
-        capture={kind === "body" ? "user" : "environment"}
-        className="hidden"
-        onChange={onFile}
-      />
+      <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={onFile} />
       <input ref={galleryRef} type="file" accept="image/*" className="hidden" onChange={onFile} />
+
+      {/* Live camera (getUserMedia) */}
+      {liveOpen && (
+        <div className="fixed inset-0 z-50 flex flex-col bg-black">
+          <div className="flex items-center justify-between border-b border-border bg-background/80 px-4 py-3 backdrop-blur">
+            <div className="font-display text-sm font-bold">{title}</div>
+            <button onClick={closeLive} className="grid h-8 w-8 place-items-center rounded-full border border-border bg-surface">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <div className="relative flex-1 overflow-hidden">
+            {liveError ? (
+              <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
+                <Camera className="h-8 w-8 text-muted-foreground" />
+                <p className="text-sm text-muted-foreground">{liveError}</p>
+                <button
+                  onClick={() => {
+                    closeLive();
+                    galleryRef.current?.click();
+                  }}
+                  className="rounded-xl bg-gradient-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-elegant"
+                >
+                  Usar galeria
+                </button>
+              </div>
+            ) : (
+              <>
+                <video ref={videoRef} autoPlay playsInline muted className="h-full w-full object-cover" />
+                {kind === "body" && (
+                  <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                    <div className="h-[80%] w-[55%] rounded-[40%] border-2 border-dashed border-primary/70" />
+                  </div>
+                )}
+                <div className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-4 bg-gradient-to-t from-black/80 to-transparent px-4 py-6">
+                  <button
+                    onClick={captureFromVideo}
+                    className="grid h-16 w-16 place-items-center rounded-full border-4 border-white bg-gradient-primary shadow-glow-primary active:scale-95"
+                  >
+                    <Camera className="h-6 w-6 text-primary-foreground" />
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Guia de captura + calibragem (apenas body) */}
       {guideOpen && kind === "body" && (
