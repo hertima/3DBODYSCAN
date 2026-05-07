@@ -6,6 +6,7 @@ import { MuscleSilhouette } from "@/components/MuscleSilhouette";
 import { AIInsightCard } from "@/components/AIInsightCard";
 import { bodyMeasures, bodyComposition } from "@/data/body";
 import { nutritionToday, aiNutritionTips } from "@/data/nutrition";
+import { bodyScans, foodScans, formatScanDate, type BodyScan, type FoodScan } from "@/data/scans";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/app/corpo")({
