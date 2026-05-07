@@ -105,6 +105,8 @@ function MedidasTab() {
           <MeasureCard key={m.key} m={m} />
         ))}
       </div>
+
+      <ScanHistory kind="body" />
     </div>
   );
 }
