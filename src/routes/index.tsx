@@ -39,7 +39,7 @@ function Index() {
 
       <header className="relative z-10 mx-auto flex max-w-6xl items-center justify-between px-5 py-5">
         <Logo />
-        <Link to="/onboarding/$step" params={{ step: "1" }} className="text-sm font-medium text-muted-foreground hover:text-foreground">
+        <Link to="/login" className="text-sm font-medium text-muted-foreground hover:text-foreground">
           Entrar
         </Link>
       </header>
