@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { ArrowLeft, Check, Plus, Minus, Pause, Play, Timer } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getWorkout, getExercise } from "@/data/library";
+import { ExerciseMedia } from "@/components/ExerciseMedia";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/app/treino/$id")({
