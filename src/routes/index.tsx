@@ -1,116 +1,163 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useState, type FormEvent } from "react";
 import { motion } from "framer-motion";
-import { ArrowRight, Brain, Activity, Trophy, Watch, Sparkles, Dumbbell } from "lucide-react";
-import { Logo } from "@/components/Logo";
+import { Mail, Lock, Eye, EyeOff, Loader2, ArrowRight, Apple, Chrome } from "lucide-react";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import logo from "@/assets/zyrox-logo.png";
-import { isOnboarded } from "@/lib/onboarding";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "ZYROX — Built For Evolution" },
-      { name: "description", content: "Plataforma fitness AI-first. Motor inteligente, analytics premium, social fitness e calistenia + musculação." },
-      { property: "og:title", content: "ZYROX — Neo Athletic Intelligence" },
-      { property: "og:description", content: "IA adaptativa real, UX cinematográfico, evolução corporal." },
+      { title: "Entrar — ZYROX" },
+      { name: "description", content: "Acesse sua conta ZYROX e continue sua evolução." },
     ],
   }),
-  component: Index,
+  component: LoginPage,
 });
 
-const features = [
-  { icon: Brain, title: "IA Adaptativa", desc: "Progressão automática, deload e detecção de platô em tempo real." },
-  { icon: Activity, title: "Analytics Premium", desc: "Volume, recovery, PRs, heatmap muscular e tendências cinematográficas." },
-  { icon: Dumbbell, title: "Musculação + Calistenia", desc: "Biblioteca com 500+ exercícios, biomecânica e substituições." },
-  { icon: Trophy, title: "Gamificação", desc: "XP, streaks, conquistas, ranking e desafios viciantes." },
-  { icon: Watch, title: "Smartwatch", desc: "Apple Watch nativo: séries, BPM e timer no pulso." },
-  { icon: Sparkles, title: "Social Fitness", desc: "Feed, amigos, desafios e ranking elite." },
-];
-
-function Index() {
+function LoginPage() {
   const navigate = useNavigate();
-  const onboarded = typeof window !== "undefined" && isOnboarded();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPwd, setShowPwd] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const onSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setTimeout(() => navigate({ to: "/app" }), 900);
+  };
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-background text-foreground">
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-[600px] bg-gradient-hero" />
-      <div className="pointer-events-none absolute -left-32 top-40 h-72 w-72 rounded-full bg-cyan/10 blur-3xl" />
-      <div className="pointer-events-none absolute -right-20 top-96 h-80 w-80 rounded-full bg-primary/15 blur-3xl" />
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-5 py-10 text-foreground">
+      <div className="pointer-events-none absolute inset-0 bg-gradient-hero opacity-80" />
+      <div className="pointer-events-none absolute -left-32 top-20 h-80 w-80 rounded-full bg-cyan/15 blur-3xl" />
+      <div className="pointer-events-none absolute -right-24 bottom-10 h-96 w-96 rounded-full bg-primary/20 blur-3xl" />
 
-      <header className="relative z-10 mx-auto flex max-w-6xl items-center justify-between px-5 py-5">
-        <Logo />
-        <Link to="/login" className="text-sm font-medium text-muted-foreground hover:text-foreground">
-          Entrar
-        </Link>
-      </header>
-
-      <main className="relative z-10 mx-auto max-w-6xl px-5">
-        <section className="flex flex-col items-center pb-16 pt-10 text-center md:pt-20">
-          <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.6 }} className="mb-6">
-            <img src={logo} alt="" className="h-24 w-24 rounded-2xl shadow-glow-primary" />
-          </motion.div>
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="mb-4 inline-flex items-center gap-2 rounded-full border border-cyan/30 bg-surface/60 px-3 py-1 text-xs font-medium text-cyan"
-          >
-            <span className="h-1.5 w-1.5 rounded-full bg-cyan shadow-glow-cyan" />
-            AI MOTOR V2.4 ACTIVE
-          </motion.div>
-          <h1 className="font-display text-4xl font-bold leading-[1.05] md:text-6xl">
-            Neo Athletic
-            <br />
-            <span className="text-gradient-primary">Intelligence</span>
-          </h1>
-          <p className="mt-5 max-w-xl text-base text-muted-foreground md:text-lg">
-            ZYROX combina IA adaptativa, analytics corporais e experiência cinematográfica para transformar
-            seu treino em uma plataforma de evolução real.
-          </p>
-          <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row">
-            <PrimaryButton
-              size="lg"
-              onClick={() =>
-                onboarded
-                  ? navigate({ to: "/app" })
-                  : navigate({ to: "/onboarding/$step", params: { step: "1" } })
-              }
-            >
-              {onboarded ? "Abrir meu app" : "Começar agora"}
-              <ArrowRight className="h-4 w-4" />
-            </PrimaryButton>
-            <Link to="/app" className="text-sm font-medium text-muted-foreground hover:text-foreground">
-              Explorar dashboard →
-            </Link>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="relative z-10 w-full max-w-sm"
+      >
+        <div className="rounded-3xl border border-border/80 bg-surface/80 p-6 shadow-2xl backdrop-blur-xl">
+          <div className="mb-6 flex flex-col items-center text-center">
+            <motion.img
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.1, duration: 0.4 }}
+              src={logo}
+              alt="ZYROX"
+              className="mb-4 h-16 w-16 rounded-2xl shadow-glow-primary"
+            />
+            <h1 className="font-display text-2xl font-bold tracking-tight">
+              Bem-vindo de volta
+            </h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Entre para continuar sua evolução
+            </p>
           </div>
-          <div className="mt-10 flex items-center gap-6 text-xs uppercase tracking-widest text-muted-foreground">
-            <span>Built For Evolution.</span>
-          </div>
-        </section>
 
-        <section className="grid grid-cols-1 gap-3 pb-20 sm:grid-cols-2 lg:grid-cols-3">
-          {features.map((f, i) => (
-            <motion.div
-              key={f.title}
-              initial={{ opacity: 0, y: 12 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.05 }}
-              className="rounded-2xl border border-border bg-gradient-surface p-5 shadow-elevated"
+          <div className="grid grid-cols-2 gap-2.5">
+            <button
+              type="button"
+              onClick={() => navigate({ to: "/app" })}
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-elevated/60 px-3 py-2.5 text-sm font-medium transition hover:bg-elevated"
             >
-              <div className="mb-3 grid h-11 w-11 place-items-center rounded-xl bg-elevated text-cyan">
-                <f.icon className="h-5 w-5" />
+              <Chrome className="h-4 w-4" /> Google
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate({ to: "/app" })}
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-elevated/60 px-3 py-2.5 text-sm font-medium transition hover:bg-elevated"
+            >
+              <Apple className="h-4 w-4" /> Apple
+            </button>
+          </div>
+
+          <div className="my-5 flex items-center gap-3 text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+            <div className="h-px flex-1 bg-border" />
+            ou com email
+            <div className="h-px flex-1 bg-border" />
+          </div>
+
+          <form onSubmit={onSubmit} className="space-y-3">
+            <label className="block">
+              <span className="mb-1.5 block text-xs font-medium text-muted-foreground">
+                Email
+              </span>
+              <div className="relative">
+                <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="voce@zyrox.app"
+                  className="w-full rounded-xl border border-border bg-elevated/60 py-2.5 pl-9 pr-3 text-sm outline-none transition focus:border-primary/60 focus:bg-elevated"
+                />
               </div>
-              <h3 className="font-display text-lg font-semibold">{f.title}</h3>
-              <p className="mt-1 text-sm text-muted-foreground">{f.desc}</p>
-            </motion.div>
-          ))}
-        </section>
-      </main>
+            </label>
 
-      <footer className="relative z-10 mx-auto max-w-6xl px-5 pb-10 text-center text-xs text-muted-foreground">
-        © {new Date().getFullYear()} ZYROX · Neo Athletic Intelligence
-      </footer>
+            <label className="block">
+              <span className="mb-1.5 block text-xs font-medium text-muted-foreground">
+                Senha
+              </span>
+              <div className="relative">
+                <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  type={showPwd ? "text" : "password"}
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full rounded-xl border border-border bg-elevated/60 py-2.5 pl-9 pr-10 text-sm outline-none transition focus:border-primary/60 focus:bg-elevated"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPwd((v) => !v)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-muted-foreground hover:text-foreground"
+                >
+                  {showPwd ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </label>
+
+            <div className="flex items-center justify-between pt-1 text-xs">
+              <label className="inline-flex items-center gap-2 text-muted-foreground">
+                <input type="checkbox" className="h-3.5 w-3.5 rounded border-border bg-elevated accent-primary" />
+                Lembrar de mim
+              </label>
+              <button type="button" className="font-medium text-cyan hover:underline">
+                Esqueci a senha
+              </button>
+            </div>
+
+            <PrimaryButton type="submit" size="lg" className="mt-2 w-full" disabled={loading}>
+              {loading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" /> Entrando...
+                </>
+              ) : (
+                <>
+                  Entrar <ArrowRight className="h-4 w-4" />
+                </>
+              )}
+            </PrimaryButton>
+          </form>
+
+          <p className="mt-5 text-center text-xs text-muted-foreground">
+            Novo no ZYROX?{" "}
+            <Link to="/onboarding/$step" params={{ step: "1" }} className="font-semibold text-foreground hover:text-primary">
+              Criar conta
+            </Link>
+          </p>
+        </div>
+
+        <p className="mt-4 text-center text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+          Built for evolution · ZYROX
+        </p>
+      </motion.div>
     </div>
   );
 }
