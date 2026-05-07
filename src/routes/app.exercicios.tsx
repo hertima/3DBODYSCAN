@@ -45,19 +45,19 @@ function Library() {
         />
       </div>
 
-      <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [&::-webkit-scrollbar]:hidden">
+      <div className="grid grid-cols-3 gap-1 rounded-full border border-border bg-surface p-1">
         {types.map((t) => (
           <button key={t} onClick={() => setType(t)} className={cn(
-            "shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-semibold transition",
-            type === t ? "border-primary/60 bg-gradient-primary text-primary-foreground shadow-glow-primary" : "border-border bg-surface text-muted-foreground",
+            "rounded-full py-1.5 text-xs font-semibold transition",
+            type === t ? "bg-gradient-primary text-primary-foreground shadow-glow-primary" : "text-muted-foreground",
           )}>{t}</button>
         ))}
       </div>
 
-      <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [&::-webkit-scrollbar]:hidden">
+      <div className="flex flex-wrap gap-1.5">
         {muscles.map((m) => (
           <button key={m} onClick={() => setMuscle(m)} className={cn(
-            "shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-semibold transition",
+            "rounded-full border px-2.5 py-1 text-[11px] font-semibold transition",
             muscle === m ? "border-cyan/60 bg-cyan/15 text-cyan" : "border-border bg-surface text-muted-foreground",
           )}>{m}</button>
         ))}
