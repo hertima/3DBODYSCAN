@@ -21,6 +21,7 @@ import { Route as AppPerfilRouteImport } from './routes/app.perfil'
 import { Route as AppExerciciosRouteImport } from './routes/app.exercicios'
 import { Route as AppAnalyticsRouteImport } from './routes/app.analytics'
 import { Route as AppTreinoIdRouteImport } from './routes/app.treino.$id'
+import { Route as AppHistoricoIdRouteImport } from './routes/app.historico.$id'
 import { Route as AppExercicioIdRouteImport } from './routes/app.exercicio.$id'
 
 const OnboardingRoute = OnboardingRouteImport.update({
@@ -83,6 +84,11 @@ const AppTreinoIdRoute = AppTreinoIdRouteImport.update({
   path: '/treino/$id',
   getParentRoute: () => AppRoute,
 } as any)
+const AppHistoricoIdRoute = AppHistoricoIdRouteImport.update({
+  id: '/historico/$id',
+  path: '/historico/$id',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppExercicioIdRoute = AppExercicioIdRouteImport.update({
   id: '/exercicio/$id',
   path: '/exercicio/$id',
@@ -102,6 +108,7 @@ export interface FileRoutesByFullPath {
   '/app/': typeof AppIndexRoute
   '/onboarding/': typeof OnboardingIndexRoute
   '/app/exercicio/$id': typeof AppExercicioIdRoute
+  '/app/historico/$id': typeof AppHistoricoIdRoute
   '/app/treino/$id': typeof AppTreinoIdRoute
 }
 export interface FileRoutesByTo {
@@ -115,6 +122,7 @@ export interface FileRoutesByTo {
   '/app': typeof AppIndexRoute
   '/onboarding': typeof OnboardingIndexRoute
   '/app/exercicio/$id': typeof AppExercicioIdRoute
+  '/app/historico/$id': typeof AppHistoricoIdRoute
   '/app/treino/$id': typeof AppTreinoIdRoute
 }
 export interface FileRoutesById {
@@ -131,6 +139,7 @@ export interface FileRoutesById {
   '/app/': typeof AppIndexRoute
   '/onboarding/': typeof OnboardingIndexRoute
   '/app/exercicio/$id': typeof AppExercicioIdRoute
+  '/app/historico/$id': typeof AppHistoricoIdRoute
   '/app/treino/$id': typeof AppTreinoIdRoute
 }
 export interface FileRouteTypes {
@@ -148,6 +157,7 @@ export interface FileRouteTypes {
     | '/app/'
     | '/onboarding/'
     | '/app/exercicio/$id'
+    | '/app/historico/$id'
     | '/app/treino/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -161,6 +171,7 @@ export interface FileRouteTypes {
     | '/app'
     | '/onboarding'
     | '/app/exercicio/$id'
+    | '/app/historico/$id'
     | '/app/treino/$id'
   id:
     | '__root__'
@@ -176,6 +187,7 @@ export interface FileRouteTypes {
     | '/app/'
     | '/onboarding/'
     | '/app/exercicio/$id'
+    | '/app/historico/$id'
     | '/app/treino/$id'
   fileRoutesById: FileRoutesById
 }
@@ -271,6 +283,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppTreinoIdRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/historico/$id': {
+      id: '/app/historico/$id'
+      path: '/historico/$id'
+      fullPath: '/app/historico/$id'
+      preLoaderRoute: typeof AppHistoricoIdRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/exercicio/$id': {
       id: '/app/exercicio/$id'
       path: '/exercicio/$id'
@@ -289,6 +308,7 @@ interface AppRouteChildren {
   AppTreinosRoute: typeof AppTreinosRoute
   AppIndexRoute: typeof AppIndexRoute
   AppExercicioIdRoute: typeof AppExercicioIdRoute
+  AppHistoricoIdRoute: typeof AppHistoricoIdRoute
   AppTreinoIdRoute: typeof AppTreinoIdRoute
 }
 
@@ -300,6 +320,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppTreinosRoute: AppTreinosRoute,
   AppIndexRoute: AppIndexRoute,
   AppExercicioIdRoute: AppExercicioIdRoute,
+  AppHistoricoIdRoute: AppHistoricoIdRoute,
   AppTreinoIdRoute: AppTreinoIdRoute,
 }
 

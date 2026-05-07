@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, RadarChart, PolarGrid, PolarAngleAxis, Radar, BarChart, Bar, RadialBarChart, RadialBar, LineChart, Line, CartesianGrid } from "recharts";
 import { volumeTrend, muscleRadar, consistencyHeatmap, progressionData, workoutHistory } from "@/data/social";
 import { Dumbbell, Trophy } from "lucide-react";
@@ -117,7 +117,12 @@ function Analytics() {
       <Card title="Histórico" subtitle="últimos treinos">
         <div className="space-y-2">
           {workoutHistory.map((w) => (
-            <div key={w.id} className="flex items-center gap-3 rounded-xl border border-border bg-elevated/40 p-3">
+            <Link
+              key={w.id}
+              to="/app/historico/$id"
+              params={{ id: w.id }}
+              className="flex items-center gap-3 rounded-xl border border-border bg-elevated/40 p-3 transition hover:border-primary/40 hover:bg-elevated/60"
+            >
               <div className="grid h-9 w-9 place-items-center rounded-lg bg-surface">
                 <Dumbbell className="h-4 w-4 text-primary" />
               </div>
@@ -136,7 +141,7 @@ function Analytics() {
                   )}
                 </div>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       </Card>

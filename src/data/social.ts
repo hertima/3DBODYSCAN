@@ -91,11 +91,120 @@ export const progressionData = [
   { week: "S12", supino: 90, agachamento: 122, terra: 150 },
 ];
 
-export const workoutHistory = [
-  { id: "w1", name: "Push · Peito & Ombros", date: "Hoje", duration: 62, volume: 8420, sets: 22, prs: 1 },
-  { id: "w2", name: "Pull · Costas & Bíceps", date: "Ontem", duration: 58, volume: 7890, sets: 20, prs: 0 },
-  { id: "w3", name: "Legs · Quadríceps", date: "3 dias", duration: 71, volume: 11240, sets: 24, prs: 2 },
-  { id: "w4", name: "Push · Tríceps Focus", date: "5 dias", duration: 54, volume: 7120, sets: 19, prs: 0 },
-  { id: "w5", name: "Pull · Deadlift Day", date: "1 semana", duration: 68, volume: 10880, sets: 21, prs: 1 },
-  { id: "w6", name: "Full Body · Mobilidade", date: "10 dias", duration: 45, volume: 5230, sets: 16, prs: 0 },
+export type HistorySet = { reps: number; weight: number; pr?: boolean };
+export type HistoryExercise = { name: string; muscle: string; sets: HistorySet[] };
+export type HistoryEntry = {
+  id: string;
+  name: string;
+  date: string;
+  duration: number;
+  volume: number;
+  sets: number;
+  prs: number;
+  exercises: HistoryExercise[];
+};
+
+export const workoutHistory: HistoryEntry[] = [
+  {
+    id: "w1", name: "Push · Peito & Ombros", date: "Hoje", duration: 62, volume: 8420, sets: 22, prs: 1,
+    exercises: [
+      { name: "Supino Reto", muscle: "Peito", sets: [
+        { reps: 10, weight: 60 }, { reps: 8, weight: 75 }, { reps: 6, weight: 85 }, { reps: 5, weight: 90, pr: true },
+      ]},
+      { name: "Supino Inclinado Halteres", muscle: "Peito", sets: [
+        { reps: 12, weight: 24 }, { reps: 10, weight: 28 }, { reps: 8, weight: 30 },
+      ]},
+      { name: "Desenvolvimento Militar", muscle: "Ombro", sets: [
+        { reps: 10, weight: 40 }, { reps: 8, weight: 45 }, { reps: 6, weight: 50 },
+      ]},
+      { name: "Elevação Lateral", muscle: "Ombro", sets: [
+        { reps: 15, weight: 10 }, { reps: 12, weight: 12 }, { reps: 10, weight: 14 },
+      ]},
+      { name: "Tríceps Corda", muscle: "Tríceps", sets: [
+        { reps: 15, weight: 25 }, { reps: 12, weight: 30 }, { reps: 10, weight: 35 },
+      ]},
+    ],
+  },
+  {
+    id: "w2", name: "Pull · Costas & Bíceps", date: "Ontem", duration: 58, volume: 7890, sets: 20, prs: 0,
+    exercises: [
+      { name: "Barra Fixa", muscle: "Costas", sets: [
+        { reps: 10, weight: 0 }, { reps: 8, weight: 0 }, { reps: 6, weight: 10 }, { reps: 5, weight: 15 },
+      ]},
+      { name: "Remada Curvada", muscle: "Costas", sets: [
+        { reps: 10, weight: 60 }, { reps: 8, weight: 70 }, { reps: 6, weight: 80 },
+      ]},
+      { name: "Puxada Frontal", muscle: "Costas", sets: [
+        { reps: 12, weight: 50 }, { reps: 10, weight: 55 }, { reps: 8, weight: 60 },
+      ]},
+      { name: "Rosca Direta", muscle: "Bíceps", sets: [
+        { reps: 12, weight: 25 }, { reps: 10, weight: 28 }, { reps: 8, weight: 30 },
+      ]},
+    ],
+  },
+  {
+    id: "w3", name: "Legs · Quadríceps", date: "3 dias", duration: 71, volume: 11240, sets: 24, prs: 2,
+    exercises: [
+      { name: "Agachamento Livre", muscle: "Quadríceps", sets: [
+        { reps: 10, weight: 80 }, { reps: 8, weight: 100 }, { reps: 6, weight: 115 }, { reps: 5, weight: 122, pr: true },
+      ]},
+      { name: "Leg Press 45°", muscle: "Quadríceps", sets: [
+        { reps: 12, weight: 180 }, { reps: 10, weight: 220 }, { reps: 8, weight: 250 },
+      ]},
+      { name: "Cadeira Extensora", muscle: "Quadríceps", sets: [
+        { reps: 15, weight: 50 }, { reps: 12, weight: 60 }, { reps: 10, weight: 70 },
+      ]},
+      { name: "Stiff", muscle: "Posterior", sets: [
+        { reps: 10, weight: 70 }, { reps: 8, weight: 80 }, { reps: 6, weight: 90, pr: true },
+      ]},
+      { name: "Panturrilha em Pé", muscle: "Panturrilha", sets: [
+        { reps: 20, weight: 80 }, { reps: 15, weight: 100 }, { reps: 12, weight: 120 },
+      ]},
+    ],
+  },
+  {
+    id: "w4", name: "Push · Tríceps Focus", date: "5 dias", duration: 54, volume: 7120, sets: 19, prs: 0,
+    exercises: [
+      { name: "Supino Fechado", muscle: "Tríceps", sets: [
+        { reps: 10, weight: 50 }, { reps: 8, weight: 60 }, { reps: 6, weight: 70 },
+      ]},
+      { name: "Tríceps Testa", muscle: "Tríceps", sets: [
+        { reps: 12, weight: 25 }, { reps: 10, weight: 30 }, { reps: 8, weight: 35 },
+      ]},
+      { name: "Mergulho Paralelas", muscle: "Tríceps", sets: [
+        { reps: 12, weight: 0 }, { reps: 10, weight: 10 }, { reps: 8, weight: 15 },
+      ]},
+    ],
+  },
+  {
+    id: "w5", name: "Pull · Deadlift Day", date: "1 semana", duration: 68, volume: 10880, sets: 21, prs: 1,
+    exercises: [
+      { name: "Levantamento Terra", muscle: "Posterior", sets: [
+        { reps: 8, weight: 100 }, { reps: 5, weight: 130 }, { reps: 3, weight: 145 }, { reps: 3, weight: 150, pr: true },
+      ]},
+      { name: "Remada Cavalinho", muscle: "Costas", sets: [
+        { reps: 10, weight: 60 }, { reps: 8, weight: 70 }, { reps: 6, weight: 80 },
+      ]},
+      { name: "Pulldown", muscle: "Costas", sets: [
+        { reps: 12, weight: 55 }, { reps: 10, weight: 60 }, { reps: 8, weight: 65 },
+      ]},
+    ],
+  },
+  {
+    id: "w6", name: "Full Body · Mobilidade", date: "10 dias", duration: 45, volume: 5230, sets: 16, prs: 0,
+    exercises: [
+      { name: "Goblet Squat", muscle: "Quadríceps", sets: [
+        { reps: 12, weight: 20 }, { reps: 10, weight: 24 }, { reps: 8, weight: 28 },
+      ]},
+      { name: "Push-up", muscle: "Peito", sets: [
+        { reps: 15, weight: 0 }, { reps: 12, weight: 0 }, { reps: 10, weight: 0 },
+      ]},
+      { name: "Remada Invertida", muscle: "Costas", sets: [
+        { reps: 12, weight: 0 }, { reps: 10, weight: 0 }, { reps: 8, weight: 0 },
+      ]},
+    ],
+  },
 ];
+
+export const getHistoryEntry = (id: string) => workoutHistory.find((w) => w.id === id);
+
