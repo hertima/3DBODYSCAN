@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet, Link, useLocation, useNavigate } from "@tanstack/react-router";
-import { Home, Dumbbell, BookOpen, BarChart3, Users, User, Flame } from "lucide-react";
+import { Home, Dumbbell, BookOpen, BarChart3, HeartPulse, User, Flame } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Logo } from "@/components/Logo";
 import { isOnboarded } from "@/lib/onboarding";
@@ -18,7 +18,7 @@ const nav: NavItem[] = [
   { to: "/app/treinos", label: "Treinos", icon: Dumbbell },
   { to: "/app/exercicios", label: "Biblioteca", icon: BookOpen },
   { to: "/app/analytics", label: "Analytics", icon: BarChart3 },
-  { to: "/app/social", label: "Social", icon: Users },
+  { to: "/app/corpo", label: "Corpo", icon: HeartPulse },
   { to: "/app/perfil", label: "Perfil", icon: User },
 ];
 
