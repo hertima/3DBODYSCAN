@@ -1,104 +1,92 @@
+## Objetivo
 
-# ZYROX — Web App (Onboarding + Dashboard)
+Substituir os placeholders "GIF" por um sistema de mídia de exercício profissional, e adotar elementos de UX do Befit (tabs no detalhe, player de treino com linhas SET/REPS/PESO, grid 2 colunas na biblioteca) **mantendo a identidade ZYROX** (dark + laranja + cyan, Space Grotesk).
 
-Vou construir a versão web do ZYROX seguindo o PRD: identidade dark premium athletic, onboarding inteligente em 9 telas e dashboard com analytics, treinos e biblioteca. Tudo em **português (BR)**, **somente frontend** (dados mockados, estado em localStorage), pronto para receber backend depois.
+---
 
-## Identidade visual
+## 1. Componente `<ExerciseMedia/>`
 
-Aplicar paleta oficial em `src/styles.css` como tokens semânticos (oklch):
-- Background `#070B14`, Surface `#0F172A`, Elevated `#131D31`
-- Primary Orange `#FF8A1F` + Soft `#FFB86B` (gradiente do botão principal)
-- Cyan `#38BDF8`, Accent Blue `#3B82F6`
-- Texts: `#F8FAFC` / `#94A3B8` / `#64748B`
-- Success `#4ADE80`, Error `#F43F5E`
+Novo arquivo `src/components/ExerciseMedia.tsx`. Centraliza toda renderização de mídia de exercício — quando os GIFs reais existirem, basta plugar a URL aqui.
 
-Tokens extras: `--gradient-primary`, `--gradient-ai` (cyan→blue), `--shadow-elevated`, `--glow-primary`, `--glow-cyan`. Border-radius 20–24px. Tipografia: **Space Grotesk** (headlines) + **Inter** (body/label) via Google Fonts.
+**Comportamento:**
+- Recebe `exerciseId`, `size` (`thumb` | `card` | `hero`) e `muscle`.
+- Tenta carregar `/exercises/{id}.gif` (pasta `public/exercises/` — vazia por enquanto).
+- Fallback animado quando a imagem não existe:
+  - Fundo branco (variante `hero`/`card` — estilo Befit) ou superfície dark (variante `thumb`).
+  - Silhueta humana SVG genérica com o **músculo-alvo destacado em laranja** (mapeamento simples: peito, costas, ombros, braços, pernas, core, full body).
+  - Glow pulsante sutil + leve flutuação vertical (framer-motion).
+  - Watermark "ZYROX" discreto.
+- Schema do exercício ganha campo opcional `gifUrl?: string` em `src/data/library.ts` para sobrescrever o caminho padrão.
 
-Logo enviado copiado para `src/assets/zyrox-logo.png` e usado em header, splash e favicon (`public/`).
+**Silhuetas:** 1 SVG base + máscara de cor por grupo muscular. Sem dependências novas.
 
-## Estrutura de rotas (TanStack Start)
+---
 
-```
-src/routes/
-  __root.tsx              metadata global, fontes, dark theme
-  index.tsx               splash/landing → CTA "Começar"
-  onboarding.tsx          layout (header ZYROX + Skip + progress + Outlet)
-  onboarding.index.tsx    redirect → step 1
-  onboarding.$step.tsx    renderiza tela 1..9 dinamicamente
-  app.tsx                 layout autenticado (sidebar + bottom nav mobile)
-  app.index.tsx           Dashboard (home)
-  app.treinos.tsx         Lista de treinos + treino do dia
-  app.treino.$id.tsx      Execução de treino (registro de série em 2 toques)
-  app.exercicios.tsx      Biblioteca de exercícios (busca + filtros)
-  app.exercicio.$id.tsx   Detalhe (GIF, instruções, erros, substituições)
-  app.analytics.tsx       Volume, PRs, recovery, heatmap, radar
-  app.social.tsx          Feed + ranking + desafios (mock)
-  app.perfil.tsx          Perfil + gamificação (XP, streak, conquistas)
-```
+## 2. Tela de detalhe `app.exercicio.$id.tsx` (estilo Befit + ZYROX)
 
-Cada rota com `head()` próprio (title/description/og em PT-BR).
+- Hero card branco arredondado (24px) ocupando ~50% da tela com `<ExerciseMedia size="hero" />`.
+- Botão voltar circular flutuante (canto sup. esq.) + botão favorito (estrela) no canto sup. dir.
+- Abaixo, card escuro com:
+  - Badge laranja `COSTAS` (grupo muscular).
+  - Título grande Space Grotesk.
+  - **Tabs ZYROX** (4): `ALVO` · `INSTRUÇÕES` · `EQUIPAMENTO` · `ANÁLISE`.
+    - ALVO: silhueta com músculos primário/secundário coloridos.
+    - INSTRUÇÕES: lista numerada + erros comuns.
+    - EQUIPAMENTO: badge do equipamento + alternativas.
+    - ANÁLISE: histórico (mock — melhor peso, último volume).
 
-## Onboarding (9 telas, cinematográfico)
+Reaproveita `Section` que já existe; só reorganiza dentro de tabs (`@/components/ui/tabs`).
 
-Layout fixo: voltar ←, wordmark **ZYROX**, "Pular", barra de progresso laranja animada, footer com "Anterior" + botão **Continuar** com gradiente.
+---
 
-1. Objetivo fitness (Ganho de Massa, Força Funcional, Performance Híbrida, Evolução Atlética)
-2. Consistência (Ocasional / Regular / Atleta de Elite) + AI Insight card
-3. Experiência (Iniciante / Intermediário / Avançado)
-4. Local de treino (Academia / Casa / Híbrido / Outdoor)
-5. Equipamentos (multi-select com chips)
-6. Dias disponíveis na semana (S T Q Q S S D)
-7. Tempo por treino (slider 30–120 min)
-8. Resultado desejado (timeline visual)
-9. **Tela de IA** — "Analisando padrão...", "Calculando recuperação...", "Adaptando progressão...", "Criando plano ideal..." com glow cyan, partículas suaves, barras animadas → ao concluir, salva perfil em localStorage e redireciona para `/app`.
+## 3. Biblioteca `app.exercicios.tsx` (grid 2 colunas card grande)
 
-Estado persistido em `localStorage` (`zyrox.onboarding`). Animações com Framer Motion (já no stack shadcn) — spring nos selects, shimmer no loading IA, fade/slide entre steps.
+- Trocar lista compacta por **grid 2 colunas** (mobile) / 3-4 (desktop).
+- Cada card:
+  - `<ExerciseMedia size="card" />` quadrado no topo (fundo branco, silhueta com músculo destacado).
+  - Footer escuro com nome + chip pequeno do tipo (Musculação/Calistenia).
+  - Estrela de favorito no canto.
+- Filtros (chips) e busca permanecem como estão.
 
-Componentes: `OnboardingShell`, `ProgressBar`, `OptionCard` (ícone + título + subtítulo + radio com glow laranja quando ativo, igual aos mockups), `AIInsightCard` (borda cyan), `PrimaryButton` (gradiente + glow).
+---
 
-## Dashboard `/app`
+## 4. Player de treino `app.treino.$id.tsx` (linhas SET/REPS/PESO)
 
-- **Header**: saudação, streak 🔥, XP/nível, avatar
-- **Card "Treino de hoje"** (gradiente sutil, CTA Iniciar)
-- **Stats grid**: Volume semanal, Frequência, PRs, Recovery Score (com mini-charts)
-- **AI Recommendations**: 2–3 cards (deload sugerido, troca de exercício, etc.)
-- **Atividade recente** + músculos treinados (heatmap corporal SVG simples)
+- Header de stats que já existe (Duração / Calorias / Volume) — manter.
+- Para cada exercício:
+  - Linha topo: `<ExerciseMedia size="thumb" />` 56×56 (fundo branco arredondado) + nome + `1/4 registrado · 70kg` em laranja.
+  - **Tabela de séries** estilo Befit:
+    - Cabeçalho cinza pequeno: `SET` · `REPS` · `PESO (KG)`.
+    - Cada linha: número da série, input de reps, input de peso, **bolinha de check** (cinza → laranja preenchido quando registrado).
+    - Linha registrada ganha fundo levemente laranja translúcido.
+  - `+ ADICIONAR SÉRIE` no rodapé do bloco.
+- Timer de descanso flutuante já existe — manter, ajustar visual para combinar (pílula com botões −15 / +15 / PULAR).
 
-## Treinos
+---
 
-- Lista de treinos da semana (mock 6 treinos: Push, Pull, Legs, Upper, Lower, Full Calistenia)
-- **Execução**: cada exercício com GIF placeholder, séries em cards; tap no peso/reps abre numpad mobile; "✓" registra a série (2 toques). Timer de descanso flutuante. Suporta superset/dropset/rest-pause como tags.
+## 5. Detalhes técnicos
 
-## Biblioteca de exercícios
+- **Sem novas dependências.** Tudo com Tailwind + framer-motion + lucide já instalados.
+- Pasta `public/exercises/` criada vazia com um README explicando convenção `{id}.gif`.
+- Tokens existentes (`--primary`, `--cyan`, `--surface`, `--gradient-ai`) reutilizados; não inventar cores.
+- Acessibilidade: `<ExerciseMedia/>` recebe `alt` derivado do nome do exercício.
 
-~40 exercícios mockados cobrindo musculação + calistenia, com nome, grupo muscular, equipamento, biomecânica, instruções, erros comuns, substituições, GIF (placeholder animado). Busca + filtros por grupo/equipamento/tipo. Lista virtualizada.
+---
 
-## Analytics
+## Arquivos tocados
 
-Recharts (já compatível): linha de volume, radar muscular, barras de frequência semanal, anel de recovery, lista de PRs recentes, heatmap de consistência (estilo GitHub).
+- **novo** `src/components/ExerciseMedia.tsx`
+- **novo** `src/components/MuscleSilhouette.tsx` (SVG reutilizável)
+- **novo** `public/exercises/README.md`
+- **edit** `src/data/library.ts` (+ campo `gifUrl?` opcional, + `muscleSecondary?`)
+- **edit** `src/routes/app.exercicio.$id.tsx` (tabs + hero)
+- **edit** `src/routes/app.exercicios.tsx` (grid de cards)
+- **edit** `src/routes/app.treino.$id.tsx` (tabela de séries + thumb)
 
-## Social, Perfil, Gamificação
+---
 
-Versões mock leves (feed com 5 posts, ranking top 10, 3 desafios ativos, lista de conquistas com XP/streak/níveis) — suficiente para mostrar a percepção premium sem backend.
+## Fora de escopo (próximos passos opcionais)
 
-## Sistema de design / componentes-base
-
-- Reaproveitar shadcn (Button com variant `premium` gradiente + `ghost-glow`), Card, Tabs, Progress, Badge, Sheet, Drawer
-- `Glow` wrapper, `GradientText`, `StatCard`, `ChartCard`
-- Tudo via tokens semânticos — zero cores hardcoded em componentes
-
-## Fora de escopo (esta entrega)
-
-- Auth real, banco, IA real, Apple Watch, push, pagamentos premium
-- Backend (Lovable Cloud) — adicionar quando você pedir
-- Mobile nativo (React Native) — aqui é web responsiva (mobile-first, layout cinematográfico em desktop)
-
-## Detalhes técnicos
-
-- Framer Motion para transições (spring, shared layout, shimmer)
-- Mock data em `src/data/*.ts` (exercises, workouts, feed, achievements)
-- Hook `useOnboarding()` + `useUserProfile()` lendo localStorage
-- Rota `/app/*` checa se onboarding foi concluído; se não, redireciona para `/onboarding/1`
-- Favicon e meta og:image usando o logo ZYROX
-
-Resultado: experiência web completa, fluida e premium do ZYROX, mobile-first, pronta para evoluir com Lovable Cloud + IA quando você quiser.
+- Subir lote real de GIFs (basta dropar em `public/exercises/`).
+- Ativar Lovable Cloud Storage para gestão dinâmica.
+- Animação 3D real / Lottie por exercício.
