@@ -84,8 +84,8 @@ function TreinoExec() {
           return (
             <div key={ei} className="overflow-hidden rounded-2xl border border-border bg-surface">
               <div className="flex items-center gap-3 border-b border-border bg-elevated/40 p-4">
-                <div className="grid h-12 w-12 place-items-center rounded-xl bg-gradient-ai text-background opacity-80">
-                  <span className="text-xs font-bold">GIF</span>
+                <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl">
+                  <ExerciseMedia exerciseId={info.id} size="thumb" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <Link to="/app/exercicio/$id" params={{ id: info.id }} className="font-display text-lg font-semibold">
