@@ -6,6 +6,7 @@ import { MuscleSilhouette } from "@/components/MuscleSilhouette";
 import { AIInsightCard } from "@/components/AIInsightCard";
 import { bodyMeasures, bodyComposition } from "@/data/body";
 import { nutritionToday, aiNutritionTips } from "@/data/nutrition";
+import { bodyScans, foodScans, formatScanDate, type BodyScan, type FoodScan } from "@/data/scans";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/app/corpo")({
@@ -105,6 +106,8 @@ function MedidasTab() {
           <MeasureCard key={m.key} m={m} />
         ))}
       </div>
+
+      <ScanHistory kind="body" />
     </div>
   );
 }
@@ -246,6 +249,8 @@ function NutricaoTab() {
           })}
         </div>
       </Card>
+
+      <ScanHistory kind="food" />
     </div>
   );
 }
@@ -556,5 +561,118 @@ function GuideRow({ icon: Icon, title, desc }: { icon: typeof Ruler; title: stri
         <div className="text-xs leading-relaxed text-muted-foreground">{desc}</div>
       </div>
     </div>
+  );
+}
+
+/* ----------------------------- HISTÓRICO DE SCANS ----------------------------- */
+
+function ScanHistory({ kind }: { kind: ScanKind }) {
+  const items = kind === "body" ? bodyScans : foodScans;
+  const title = kind === "body" ? "Histórico de scans corporais" : "Histórico de scans de alimentação";
+
+  // build evolution series
+  const series =
+    kind === "body"
+      ? [...bodyScans].reverse().map((s) => ({ date: formatScanDate(s.date), value: s.estimates.waist, value2: s.estimates.chest }))
+      : [...foodScans].reverse().map((s) => ({ date: formatScanDate(s.date), value: s.estimates.kcal, value2: s.estimates.protein * 10 }));
+
+  const min = Math.min(...series.map((s) => s.value));
+  const max = Math.max(...series.map((s) => s.value));
+  const range = Math.max(0.1, max - min);
+  const min2 = Math.min(...series.map((s) => s.value2));
+  const max2 = Math.max(...series.map((s) => s.value2));
+  const range2 = Math.max(0.1, max2 - min2);
+
+  const path = (vals: number[], lo: number, rg: number) =>
+    vals
+      .map((v, i) => {
+        const x = (i / (vals.length - 1)) * 100;
+        const y = 100 - ((v - lo) / rg) * 90 - 5;
+        return `${i === 0 ? "M" : "L"}${x},${y}`;
+      })
+      .join(" ");
+
+  const labels =
+    kind === "body" ? { a: "Cintura (cm)", b: "Peito (cm)" } : { a: "Calorias (kcal)", b: "Proteína (g·10)" };
+
+  return (
+    <Card>
+      <CardHeader title={title} subtitle={`${items.length} registros · evolução`} />
+
+      {/* evolução — linha dupla */}
+      <div className="mt-3 rounded-xl border border-border bg-elevated/40 p-3">
+        <div className="mb-2 flex items-center gap-3 text-[10px] font-semibold uppercase tracking-wider">
+          <span className="flex items-center gap-1 text-primary">
+            <span className="h-1.5 w-3 rounded-full bg-primary" /> {labels.a}
+          </span>
+          <span className="flex items-center gap-1 text-cyan">
+            <span className="h-1.5 w-3 rounded-full bg-cyan" /> {labels.b}
+          </span>
+        </div>
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-24 w-full">
+          <path d={path(series.map((s) => s.value), min, range)} fill="none" stroke="var(--primary)" strokeWidth="2" vectorEffect="non-scaling-stroke" />
+          <path d={path(series.map((s) => s.value2), min2, range2)} fill="none" stroke="var(--cyan)" strokeWidth="2" vectorEffect="non-scaling-stroke" />
+        </svg>
+        <div className="mt-1 flex justify-between text-[9px] text-muted-foreground">
+          {series.map((s) => (
+            <span key={s.date}>{s.date}</span>
+          ))}
+        </div>
+      </div>
+
+      {/* lista com prévia */}
+      <div className="mt-3 space-y-2">
+        {items.map((s) => {
+          const isBody = "bodyFat" in s.estimates;
+          return (
+            <div key={s.id} className="flex items-center gap-3 rounded-xl border border-border bg-elevated/40 p-2">
+              <div
+                className="grid h-14 w-14 shrink-0 place-items-center rounded-xl border border-border"
+                style={{ background: s.thumb }}
+              >
+                {isBody ? (
+                  <ScanLine className="h-5 w-5 text-primary/70" />
+                ) : (
+                  <ImageIcon className="h-5 w-5 text-primary/70" />
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-baseline justify-between gap-2">
+                  <div className="text-sm font-semibold">
+                    {isBody ? "Scan corporal" : (s as FoodScan).meal}
+                  </div>
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                    {formatScanDate(s.date)}
+                  </div>
+                </div>
+                <div className="mt-1 flex flex-wrap gap-1.5">
+                  {isBody ? (
+                    <>
+                      <Chip label="Peito" value={`${(s as BodyScan).estimates.chest} cm`} />
+                      <Chip label="Cintura" value={`${(s as BodyScan).estimates.waist} cm`} />
+                      <Chip label="%G" value={`${(s as BodyScan).estimates.bodyFat}%`} />
+                    </>
+                  ) : (
+                    <>
+                      <Chip label="kcal" value={`${(s as FoodScan).estimates.kcal}`} />
+                      <Chip label="P" value={`${(s as FoodScan).estimates.protein}g`} />
+                      <Chip label="C" value={`${(s as FoodScan).estimates.carbs}g`} />
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </Card>
+  );
+}
+
+function Chip({ label, value }: { label: string; value: string }) {
+  return (
+    <span className="rounded-full border border-border bg-surface px-2 py-0.5 text-[10px] font-semibold">
+      <span className="text-muted-foreground">{label}</span> <span className="text-foreground">{value}</span>
+    </span>
   );
 }
