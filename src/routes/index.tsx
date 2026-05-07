@@ -22,10 +22,23 @@ function LoginPage() {
   const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  const [error, setError] = useState("");
+
+  const VALID_EMAIL = "herculesacademiarv@gmail.com";
+  const VALID_PASSWORD = "123456";
+
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
+    setError("");
     setLoading(true);
-    setTimeout(() => navigate({ to: "/app" }), 900);
+    setTimeout(() => {
+      if (email.trim().toLowerCase() === VALID_EMAIL && password === VALID_PASSWORD) {
+        navigate({ to: "/app" });
+      } else {
+        setLoading(false);
+        setError("Email ou senha incorretos.");
+      }
+    }, 700);
   };
 
   return (
