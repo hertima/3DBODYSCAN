@@ -168,6 +168,11 @@ function NutricaoTab() {
 
   return (
     <div className="space-y-4">
+      <ScanCTA
+        kind="food"
+        title="Scan da alimentação"
+        desc="Aponte para o prato ou envie da galeria — a IA estima calorias e macros."
+      />
       <Card>
         <CardHeader title="Resumo de hoje" subtitle="metas calóricas e macros" />
         <div className="mt-3 flex items-center gap-3">
