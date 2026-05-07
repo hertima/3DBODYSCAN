@@ -570,22 +570,37 @@ function ScanCTA({
               </div>
             ) : (
               <div className="space-y-4">
-                <div className="rounded-2xl border border-border bg-surface p-4">
-                  <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Sua altura</div>
-                  <div className="mt-2 flex items-center gap-2">
-                    <input
-                      type="number"
-                      inputMode="numeric"
-                      value={height}
-                      onChange={(e) => setHeight(e.target.value)}
-                      className="w-24 rounded-xl border border-border bg-elevated/40 px-3 py-2 text-center font-display text-2xl font-bold text-foreground focus:border-primary focus:outline-none"
-                    />
-                    <span className="text-sm text-muted-foreground">cm</span>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-2xl border border-border bg-surface p-4">
+                    <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Altura</div>
+                    <div className="mt-2 flex items-baseline gap-1.5">
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        value={height}
+                        onChange={(e) => setHeight(e.target.value)}
+                        className="w-16 rounded-xl border border-border bg-elevated/40 px-2 py-2 text-center font-display text-2xl font-bold text-foreground focus:border-primary focus:outline-none"
+                      />
+                      <span className="text-xs text-muted-foreground">cm</span>
+                    </div>
                   </div>
-                  <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
-                    Usado como referência de escala para calcular cm com precisão.
-                  </p>
+                  <div className="rounded-2xl border border-border bg-surface p-4">
+                    <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Peso</div>
+                    <div className="mt-2 flex items-baseline gap-1.5">
+                      <input
+                        type="number"
+                        inputMode="decimal"
+                        value={weight}
+                        onChange={(e) => setWeight(e.target.value)}
+                        className="w-16 rounded-xl border border-border bg-elevated/40 px-2 py-2 text-center font-display text-2xl font-bold text-foreground focus:border-primary focus:outline-none"
+                      />
+                      <span className="text-xs text-muted-foreground">kg</span>
+                    </div>
+                  </div>
                 </div>
+                <p className="-mt-2 px-1 text-[11px] leading-relaxed text-muted-foreground">
+                  Altura e peso são usados como referência de escala para calcular medidas em cm e estimar % de gordura com precisão.
+                </p>
 
                 <div className="rounded-2xl border border-border bg-surface p-4">
                   <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Vestimenta</div>
