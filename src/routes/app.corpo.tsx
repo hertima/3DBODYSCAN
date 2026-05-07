@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useRef, useState } from "react";
-import { Sparkles, Plus, TrendingUp, TrendingDown, Droplets, Zap, Target, Flame, Camera, Image as ImageIcon, ScanLine, X, Loader2, Check } from "lucide-react";
+import { Sparkles, Plus, TrendingUp, TrendingDown, Droplets, Zap, Target, Flame, Camera, Image as ImageIcon, ScanLine, X, Loader2, Check, Ruler, Sun, Maximize2, Smartphone, ArrowRight } from "lucide-react";
 import { RadialBarChart, RadialBar, PolarAngleAxis } from "recharts";
 import { MuscleSilhouette } from "@/components/MuscleSilhouette";
 import { AIInsightCard } from "@/components/AIInsightCard";
@@ -286,12 +286,35 @@ function CardHeader({ title, subtitle }: { title: string; subtitle?: string }) {
 
 type ScanKind = "body" | "food";
 type ScanState = "idle" | "scanning" | "done";
+type PendingSource = "camera" | "gallery" | null;
 
 function ScanCTA({ kind, title, desc }: { kind: ScanKind; title: string; desc: string }) {
   const cameraRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [state, setState] = useState<ScanState>("idle");
+
+  // body-only guide flow
+  const [guideOpen, setGuideOpen] = useState(false);
+  const [guideStep, setGuideStep] = useState<0 | 1>(0); // 0 = guia, 1 = calibragem
+  const [pending, setPending] = useState<PendingSource>(null);
+  const [height, setHeight] = useState("178");
+  const [outfit, setOutfit] = useState<"justa" | "normal" | "larga">("normal");
+
+  const triggerInput = (src: PendingSource) => {
+    if (src === "camera") cameraRef.current?.click();
+    else galleryRef.current?.click();
+  };
+
+  const handleClick = (src: "camera" | "gallery") => {
+    if (kind === "body") {
+      setPending(src);
+      setGuideStep(0);
+      setGuideOpen(true);
+    } else {
+      triggerInput(src);
+    }
+  };
 
   const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
@@ -336,13 +359,13 @@ function ScanCTA({ kind, title, desc }: { kind: ScanKind; title: string; desc: s
 
       <div className="mt-3 grid grid-cols-2 gap-2">
         <button
-          onClick={() => cameraRef.current?.click()}
+          onClick={() => handleClick("camera")}
           className="flex items-center justify-center gap-2 rounded-xl bg-gradient-primary px-3 py-2.5 text-sm font-semibold text-primary-foreground shadow-elegant active:scale-[0.98]"
         >
           <Camera className="h-4 w-4" /> Câmera
         </button>
         <button
-          onClick={() => galleryRef.current?.click()}
+          onClick={() => handleClick("gallery")}
           className="flex items-center justify-center gap-2 rounded-xl border border-border bg-surface px-3 py-2.5 text-sm font-semibold text-foreground active:scale-[0.98]"
         >
           <ImageIcon className="h-4 w-4" /> Galeria
@@ -358,6 +381,123 @@ function ScanCTA({ kind, title, desc }: { kind: ScanKind; title: string; desc: s
         onChange={onFile}
       />
       <input ref={galleryRef} type="file" accept="image/*" className="hidden" onChange={onFile} />
+
+      {/* Guia de captura + calibragem (apenas body) */}
+      {guideOpen && kind === "body" && (
+        <div className="fixed inset-0 z-50 flex flex-col bg-background/95 backdrop-blur animate-fade-in">
+          <div className="flex items-center justify-between border-b border-border px-4 py-3">
+            <div className="font-display text-sm font-bold">
+              {guideStep === 0 ? "Guia de captura" : "Calibragem rápida"}
+            </div>
+            <button
+              onClick={() => setGuideOpen(false)}
+              className="grid h-8 w-8 place-items-center rounded-full border border-border bg-surface"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto px-4 py-4">
+            {/* progress */}
+            <div className="mb-4 flex items-center gap-1.5">
+              <div className={cn("h-1 flex-1 rounded-full", guideStep >= 0 ? "bg-primary" : "bg-elevated")} />
+              <div className={cn("h-1 flex-1 rounded-full", guideStep >= 1 ? "bg-primary" : "bg-elevated")} />
+            </div>
+
+            {guideStep === 0 ? (
+              <div className="space-y-3">
+                {/* preview enquadramento */}
+                <div className="relative mx-auto h-48 w-32 rounded-2xl border-2 border-dashed border-primary/60 bg-elevated/40">
+                  <div className="absolute inset-x-0 top-2 text-center text-[9px] font-semibold uppercase tracking-wider text-primary">
+                    cabeça
+                  </div>
+                  <div className="absolute inset-x-0 bottom-2 text-center text-[9px] font-semibold uppercase tracking-wider text-primary">
+                    pés
+                  </div>
+                  <div className="absolute inset-0 m-auto h-24 w-10 rounded-full bg-primary/10" />
+                </div>
+                <GuideRow icon={Ruler} title="Distância" desc="Posicione o celular a ~2,5m de distância, na altura do quadril." />
+                <GuideRow icon={Sun} title="Iluminação" desc="Luz frontal e uniforme. Evite sombras fortes e contraluz." />
+                <GuideRow icon={Maximize2} title="Enquadramento" desc="Corpo inteiro, da cabeça aos pés, centralizado no quadro." />
+                <GuideRow icon={Smartphone} title="Postura" desc="Em pé, braços levemente afastados, roupa justa ou colada ao corpo." />
+
+                <button
+                  onClick={() => setGuideStep(1)}
+                  className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-primary py-3 text-sm font-semibold text-primary-foreground shadow-elegant active:scale-[0.98]"
+                >
+                  Continuar <ArrowRight className="h-4 w-4" />
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="rounded-2xl border border-border bg-surface p-4">
+                  <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Sua altura</div>
+                  <div className="mt-2 flex items-center gap-2">
+                    <input
+                      type="number"
+                      inputMode="numeric"
+                      value={height}
+                      onChange={(e) => setHeight(e.target.value)}
+                      className="w-24 rounded-xl border border-border bg-elevated/40 px-3 py-2 text-center font-display text-2xl font-bold text-foreground focus:border-primary focus:outline-none"
+                    />
+                    <span className="text-sm text-muted-foreground">cm</span>
+                  </div>
+                  <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
+                    Usado como referência de escala para calcular cm com precisão.
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-border bg-surface p-4">
+                  <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Vestimenta</div>
+                  <div className="mt-2 grid grid-cols-3 gap-2">
+                    {(["justa", "normal", "larga"] as const).map((o) => (
+                      <button
+                        key={o}
+                        onClick={() => setOutfit(o)}
+                        className={cn(
+                          "rounded-xl border px-2 py-2 text-xs font-semibold capitalize transition",
+                          outfit === o
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border bg-elevated/40 text-muted-foreground",
+                        )}
+                      >
+                        {o}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
+                    A IA compensa a folga da roupa para estimar contornos reais.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 rounded-xl border border-cyan/30 bg-cyan/5 p-3 text-[11px] text-cyan">
+                  <Check className="h-4 w-4 shrink-0" />
+                  Pronto. A precisão estimada é de ±1.5 cm com a calibragem aplicada.
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => setGuideStep(0)}
+                    className="rounded-xl border border-border bg-surface py-3 text-sm font-semibold text-foreground active:scale-[0.98]"
+                  >
+                    Voltar
+                  </button>
+                  <button
+                    onClick={() => {
+                      setGuideOpen(false);
+                      triggerInput(pending);
+                    }}
+                    className="flex items-center justify-center gap-2 rounded-xl bg-gradient-primary py-3 text-sm font-semibold text-primary-foreground shadow-elegant active:scale-[0.98]"
+                  >
+                    {pending === "camera" ? <Camera className="h-4 w-4" /> : <ImageIcon className="h-4 w-4" />}
+                    Iniciar scan
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {preview && (
         <div className="fixed inset-0 z-50 flex flex-col bg-background/95 backdrop-blur">
@@ -401,6 +541,20 @@ function ScanCTA({ kind, title, desc }: { kind: ScanKind; title: string; desc: s
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function GuideRow({ icon: Icon, title, desc }: { icon: typeof Ruler; title: string; desc: string }) {
+  return (
+    <div className="flex items-start gap-3 rounded-xl border border-border bg-surface p-3">
+      <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
+        <Icon className="h-4 w-4" />
+      </div>
+      <div className="min-w-0">
+        <div className="text-sm font-semibold">{title}</div>
+        <div className="text-xs leading-relaxed text-muted-foreground">{desc}</div>
+      </div>
     </div>
   );
 }
