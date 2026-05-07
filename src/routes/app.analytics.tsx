@@ -93,21 +93,63 @@ function Analytics() {
         </div>
       </Card>
 
-      <Card title="Personal Records" subtitle="seus PRs recentes">
+      <Card title="Progressão de cargas" subtitle="kg por semana · 3 levantamentos principais">
+        <div className="mb-3 flex flex-wrap gap-3 text-xs text-muted-foreground">
+          <LegendDot color="var(--primary)" label="Supino" />
+          <LegendDot color="var(--cyan)" label="Agachamento" />
+          <LegendDot color="var(--blue-accent)" label="Terra" />
+        </div>
+        <div className="h-56">
+          <ResponsiveContainer>
+            <LineChart data={progressionData} margin={{ top: 10, right: 8, bottom: 0, left: -20 }}>
+              <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="week" stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
+              <YAxis stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
+              <Tooltip contentStyle={tooltip} />
+              <Line type="monotone" dataKey="supino" stroke="var(--primary)" strokeWidth={2} dot={false} />
+              <Line type="monotone" dataKey="agachamento" stroke="var(--cyan)" strokeWidth={2} dot={false} />
+              <Line type="monotone" dataKey="terra" stroke="var(--blue-accent)" strokeWidth={2} dot={false} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </Card>
+
+      <Card title="Histórico" subtitle="últimos treinos">
         <div className="space-y-2">
-          {personalRecords.map((pr) => (
-            <div key={pr.exercise} className="flex items-center gap-3 rounded-xl border border-border bg-elevated/40 p-3">
-              <Trophy className="h-4 w-4 text-primary" />
-              <div className="flex-1">
-                <div className="text-sm font-semibold">{pr.exercise}</div>
-                <div className="text-xs text-muted-foreground">{pr.date}</div>
+          {workoutHistory.map((w) => (
+            <div key={w.id} className="flex items-center gap-3 rounded-xl border border-border bg-elevated/40 p-3">
+              <div className="grid h-9 w-9 place-items-center rounded-lg bg-surface">
+                <Dumbbell className="h-4 w-4 text-primary" />
               </div>
-              <div className="font-display text-base font-bold text-gradient-primary">{pr.value}</div>
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-sm font-semibold">{w.name}</div>
+                <div className="text-xs text-muted-foreground">{w.date} · {w.sets} séries</div>
+              </div>
+              <div className="flex flex-col items-end gap-1">
+                <div className="font-display text-sm font-bold text-gradient-primary">{(w.volume / 1000).toFixed(1)}t</div>
+                <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                  <span>{w.duration}min</span>
+                  {w.prs > 0 && (
+                    <span className="flex items-center gap-0.5 rounded-full bg-primary/15 px-1.5 py-0.5 font-semibold text-primary">
+                      <Trophy className="h-2.5 w-2.5" />+{w.prs} PR
+                    </span>
+                  )}
+                </div>
+              </div>
             </div>
           ))}
         </div>
       </Card>
     </div>
+  );
+}
+
+function LegendDot({ color, label }: { color: string; label: string }) {
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <span className="h-2 w-2 rounded-full" style={{ background: color }} />
+      {label}
+    </span>
   );
 }
 
