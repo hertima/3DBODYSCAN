@@ -16,9 +16,9 @@ import { Route as OnboardingIndexRouteImport } from './routes/onboarding.index'
 import { Route as AppIndexRouteImport } from './routes/app.index'
 import { Route as OnboardingStepRouteImport } from './routes/onboarding.$step'
 import { Route as AppTreinosRouteImport } from './routes/app.treinos'
-import { Route as AppSocialRouteImport } from './routes/app.social'
 import { Route as AppPerfilRouteImport } from './routes/app.perfil'
 import { Route as AppExerciciosRouteImport } from './routes/app.exercicios'
+import { Route as AppCorpoRouteImport } from './routes/app.corpo'
 import { Route as AppAnalyticsRouteImport } from './routes/app.analytics'
 import { Route as AppTreinoIdRouteImport } from './routes/app.treino.$id'
 import { Route as AppHistoricoIdRouteImport } from './routes/app.historico.$id'
@@ -59,11 +59,6 @@ const AppTreinosRoute = AppTreinosRouteImport.update({
   path: '/treinos',
   getParentRoute: () => AppRoute,
 } as any)
-const AppSocialRoute = AppSocialRouteImport.update({
-  id: '/social',
-  path: '/social',
-  getParentRoute: () => AppRoute,
-} as any)
 const AppPerfilRoute = AppPerfilRouteImport.update({
   id: '/perfil',
   path: '/perfil',
@@ -72,6 +67,11 @@ const AppPerfilRoute = AppPerfilRouteImport.update({
 const AppExerciciosRoute = AppExerciciosRouteImport.update({
   id: '/exercicios',
   path: '/exercicios',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCorpoRoute = AppCorpoRouteImport.update({
+  id: '/corpo',
+  path: '/corpo',
   getParentRoute: () => AppRoute,
 } as any)
 const AppAnalyticsRoute = AppAnalyticsRouteImport.update({
@@ -100,9 +100,9 @@ export interface FileRoutesByFullPath {
   '/app': typeof AppRouteWithChildren
   '/onboarding': typeof OnboardingRouteWithChildren
   '/app/analytics': typeof AppAnalyticsRoute
+  '/app/corpo': typeof AppCorpoRoute
   '/app/exercicios': typeof AppExerciciosRoute
   '/app/perfil': typeof AppPerfilRoute
-  '/app/social': typeof AppSocialRoute
   '/app/treinos': typeof AppTreinosRoute
   '/onboarding/$step': typeof OnboardingStepRoute
   '/app/': typeof AppIndexRoute
@@ -114,9 +114,9 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/app/analytics': typeof AppAnalyticsRoute
+  '/app/corpo': typeof AppCorpoRoute
   '/app/exercicios': typeof AppExerciciosRoute
   '/app/perfil': typeof AppPerfilRoute
-  '/app/social': typeof AppSocialRoute
   '/app/treinos': typeof AppTreinosRoute
   '/onboarding/$step': typeof OnboardingStepRoute
   '/app': typeof AppIndexRoute
@@ -131,9 +131,9 @@ export interface FileRoutesById {
   '/app': typeof AppRouteWithChildren
   '/onboarding': typeof OnboardingRouteWithChildren
   '/app/analytics': typeof AppAnalyticsRoute
+  '/app/corpo': typeof AppCorpoRoute
   '/app/exercicios': typeof AppExerciciosRoute
   '/app/perfil': typeof AppPerfilRoute
-  '/app/social': typeof AppSocialRoute
   '/app/treinos': typeof AppTreinosRoute
   '/onboarding/$step': typeof OnboardingStepRoute
   '/app/': typeof AppIndexRoute
@@ -149,9 +149,9 @@ export interface FileRouteTypes {
     | '/app'
     | '/onboarding'
     | '/app/analytics'
+    | '/app/corpo'
     | '/app/exercicios'
     | '/app/perfil'
-    | '/app/social'
     | '/app/treinos'
     | '/onboarding/$step'
     | '/app/'
@@ -163,9 +163,9 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/app/analytics'
+    | '/app/corpo'
     | '/app/exercicios'
     | '/app/perfil'
-    | '/app/social'
     | '/app/treinos'
     | '/onboarding/$step'
     | '/app'
@@ -179,9 +179,9 @@ export interface FileRouteTypes {
     | '/app'
     | '/onboarding'
     | '/app/analytics'
+    | '/app/corpo'
     | '/app/exercicios'
     | '/app/perfil'
-    | '/app/social'
     | '/app/treinos'
     | '/onboarding/$step'
     | '/app/'
@@ -248,13 +248,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppTreinosRouteImport
       parentRoute: typeof AppRoute
     }
-    '/app/social': {
-      id: '/app/social'
-      path: '/social'
-      fullPath: '/app/social'
-      preLoaderRoute: typeof AppSocialRouteImport
-      parentRoute: typeof AppRoute
-    }
     '/app/perfil': {
       id: '/app/perfil'
       path: '/perfil'
@@ -267,6 +260,13 @@ declare module '@tanstack/react-router' {
       path: '/exercicios'
       fullPath: '/app/exercicios'
       preLoaderRoute: typeof AppExerciciosRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/corpo': {
+      id: '/app/corpo'
+      path: '/corpo'
+      fullPath: '/app/corpo'
+      preLoaderRoute: typeof AppCorpoRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/analytics': {
@@ -302,9 +302,9 @@ declare module '@tanstack/react-router' {
 
 interface AppRouteChildren {
   AppAnalyticsRoute: typeof AppAnalyticsRoute
+  AppCorpoRoute: typeof AppCorpoRoute
   AppExerciciosRoute: typeof AppExerciciosRoute
   AppPerfilRoute: typeof AppPerfilRoute
-  AppSocialRoute: typeof AppSocialRoute
   AppTreinosRoute: typeof AppTreinosRoute
   AppIndexRoute: typeof AppIndexRoute
   AppExercicioIdRoute: typeof AppExercicioIdRoute
@@ -314,9 +314,9 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppAnalyticsRoute: AppAnalyticsRoute,
+  AppCorpoRoute: AppCorpoRoute,
   AppExerciciosRoute: AppExerciciosRoute,
   AppPerfilRoute: AppPerfilRoute,
-  AppSocialRoute: AppSocialRoute,
   AppTreinosRoute: AppTreinosRoute,
   AppIndexRoute: AppIndexRoute,
   AppExercicioIdRoute: AppExercicioIdRoute,
@@ -348,3 +348,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
