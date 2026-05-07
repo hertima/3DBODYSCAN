@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, RadarChart, PolarGrid, PolarAngleAxis, Radar, BarChart, Bar, RadialBarChart, RadialBar, LineChart, Line, CartesianGrid } from "recharts";
 import { volumeTrend, muscleRadar, consistencyHeatmap, progressionData, workoutHistory } from "@/data/social";
 import { Dumbbell, Trophy } from "lucide-react";
