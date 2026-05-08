@@ -338,8 +338,22 @@ function ScanCTA({
   const [guideOpen, setGuideOpen] = useState(false);
   const [guideStep, setGuideStep] = useState<0 | 1>(0); // 0 = guia, 1 = calibragem
   const [pending, setPending] = useState<PendingSource>(null);
-  const [height, setHeight] = useState("178");
-  const [weight, setWeight] = useState("78");
+  const [height, setHeight] = useState<string>(() => {
+    if (typeof window === "undefined") return "178";
+    return window.localStorage.getItem("zyrox.profile.height") ?? "178";
+  });
+  const [weight, setWeight] = useState<string>(() => {
+    if (typeof window === "undefined") return "78";
+    return window.localStorage.getItem("zyrox.profile.weight") ?? "78";
+  });
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (height) window.localStorage.setItem("zyrox.profile.height", height);
+  }, [height]);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (weight) window.localStorage.setItem("zyrox.profile.weight", weight);
+  }, [weight]);
   const [outfit, setOutfit] = useState<"justa" | "normal" | "larga">("normal");
 
   const stopStream = () => {
