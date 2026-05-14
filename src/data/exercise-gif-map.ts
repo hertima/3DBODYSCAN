@@ -121,7 +121,13 @@ function getAutoMatchedGif(exerciseId: string, exerciseName?: string) {
 }
 
 function resolveMappedFile(fileName: string) {
-  return gifCatalog.find((candidate) => candidate.endsWith(`/${fileName}`) || candidate === fileName) ?? null;
+  const target = fileName.toLowerCase();
+  return (
+    gifCatalog.find((candidate) => {
+      const lower = candidate.toLowerCase();
+      return lower.endsWith(`/${target}`) || lower === target;
+    }) ?? null
+  );
 }
 
 export function getExerciseGifUrl(exerciseId: string, exerciseName?: string) {
