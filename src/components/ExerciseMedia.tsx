@@ -140,7 +140,24 @@ export function ExerciseMedia({ exerciseId, size = "card", className, muscle, sr
             loop
             autoPlay
             playsInline
-            preload="metadata"
+            {...({ "webkit-playsinline": "true" } as Record<string, string>)}
+            disableRemotePlayback
+            disablePictureInPicture
+            controls={false}
+            preload="auto"
+            onLoadedMetadata={(e) => {
+              const v = e.currentTarget;
+              v.muted = true;
+              const p = v.play();
+              if (p && typeof p.catch === "function") p.catch(() => {});
+            }}
+            onCanPlay={(e) => {
+              const v = e.currentTarget;
+              if (v.paused) {
+                const p = v.play();
+                if (p && typeof p.catch === "function") p.catch(() => {});
+              }
+            }}
             onError={() => setFailed(true)}
             className="absolute inset-0 h-full w-full object-cover"
           />
