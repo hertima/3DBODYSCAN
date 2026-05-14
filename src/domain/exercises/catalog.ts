@@ -160,7 +160,7 @@ function resolveEquipment(exercise: Exercise): OfficialEquipment {
 function resolveGifSource(exercise: Exercise): "official" | "catalog" | "fallback" {
   if (!exercise.gifUrl) return "fallback";
   if (
-    exercise.gifUrl.includes("/gif-catalog/") ||
+    exercise.gifUrl.includes("/musculacao-media/") ||
     exercise.gifUrl.includes("/calistenia-pura/")
   ) {
     return "catalog";
