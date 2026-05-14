@@ -140,8 +140,7 @@ export function ExerciseMedia({ exerciseId, size = "card", className, muscle, sr
             loop
             autoPlay
             playsInline
-            // @ts-expect-error iOS legacy attribute
-            webkit-playsinline="true"
+            {...({ "webkit-playsinline": "true" } as Record<string, string>)}
             disableRemotePlayback
             disablePictureInPicture
             controls={false}
