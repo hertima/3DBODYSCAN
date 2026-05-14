@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import {
   Activity,
@@ -99,7 +99,31 @@ export function ExerciseMedia({ exerciseId, size = "card", className, muscle, sr
   const mappedMediaSrc = getExerciseGifUrl(exerciseId, exercise?.name);
   const mediaSrc = src ?? exercise?.gifUrl ?? mappedMediaSrc ?? `/exercises/${exerciseId}.gif`;
   const [failed, setFailed] = useState(false);
+  const [visible, setVisible] = useState(false);
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const isVideo = VIDEO_EXTENSIONS.some((extension) => mediaSrc.toLowerCase().endsWith(extension));
+
+  useEffect(() => {
+    const node = containerRef.current;
+    if (!node || typeof IntersectionObserver === "undefined") {
+      setVisible(true);
+      return;
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            setVisible(true);
+            io.disconnect();
+            break;
+          }
+        }
+      },
+      { rootMargin: "200px" },
+    );
+    io.observe(node);
+    return () => io.disconnect();
+  }, []);
 
   const radius = size === "thumb" ? "rounded-xl" : size === "card" ? "rounded-2xl" : "rounded-3xl";
   const aspect = size === "thumb" ? "aspect-square" : "aspect-[4/3]";
@@ -107,8 +131,8 @@ export function ExerciseMedia({ exerciseId, size = "card", className, muscle, sr
   const Icon = style.Icon;
 
   return (
-    <div className={cn("relative isolate overflow-hidden bg-elevated", radius, aspect, className)}>
-      {!failed &&
+    <div ref={containerRef} className={cn("relative isolate overflow-hidden bg-elevated", radius, aspect, className)}>
+      {visible && !failed &&
         (isVideo ? (
           <video
             src={mediaSrc}
@@ -125,6 +149,7 @@ export function ExerciseMedia({ exerciseId, size = "card", className, muscle, sr
             src={mediaSrc}
             alt={exercise?.name ?? "Exercicio"}
             loading="lazy"
+            decoding="async"
             onError={() => setFailed(true)}
             className="absolute inset-0 h-full w-full object-cover"
           />
