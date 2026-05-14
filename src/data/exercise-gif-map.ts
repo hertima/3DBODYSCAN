@@ -1,6 +1,6 @@
 import { gifCatalog } from "./gif-catalog";
 
-export const GIF_BASE_PATH = "/gif-catalog";
+export const GIF_BASE_PATH = "/musculacao-media";
 
 type ExerciseGifMap = Record<string, string>;
 
