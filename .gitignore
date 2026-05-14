@@ -31,7 +31,6 @@ dist-ssr
 *.sln
 *.sw?
 
-# GIFs/media grandes — hospedar em CDN
+# GIFs/media grandes — duplicatas excluídas
 public/Calistenia-GIFS/
-public/calistenia-pura/
 public/gif-catalog/
