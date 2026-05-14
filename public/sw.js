@@ -1,4 +1,4 @@
-const MEDIA_CACHE = "zyrox-media-v1";
+const MEDIA_CACHE = "zyrox-media-v2";
 const MEDIA_PATTERNS = [/\/musculacao-media\//, /\/calistenia-pura\//];
 
 self.addEventListener("install", (e) => {
@@ -20,6 +20,8 @@ self.addEventListener("fetch", (e) => {
 
   const isMedia = MEDIA_PATTERNS.some((p) => p.test(request.url));
   if (!isMedia) return;
+
+  if (request.headers.has("range")) return;
 
   e.respondWith(
     caches.open(MEDIA_CACHE).then(async (cache) => {
