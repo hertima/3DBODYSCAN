@@ -36,22 +36,24 @@ const appCopy = {
   },
 } as const;
 
-function getAppCopy(locale: AppLocale = getStoredLocale()) {
-  return (appCopy as Record<string, unknown>)[locale] ?? (appCopy as Record<string, unknown>)[defaultLocale];
+type AppCopy = (typeof appCopy)[keyof typeof appCopy];
+
+function getAppCopy(locale: AppLocale = getStoredLocale()): AppCopy {
+  return appCopy[locale] ?? appCopy[defaultLocale];
 }
 
 export function getAuthCopy(locale: AppLocale = getStoredLocale()) {
-  return (getAppCopy(locale) as { auth: unknown }).auth;
+  return getAppCopy(locale).auth;
 }
 
 export function getDashboardCopy(locale: AppLocale = getStoredLocale()) {
-  return (getAppCopy(locale) as { dashboard: unknown }).dashboard;
+  return getAppCopy(locale).dashboard;
 }
 
 export function getOnboardingCopy(locale: AppLocale = getStoredLocale()) {
-  return (getAppCopy(locale) as { onboarding: unknown }).onboarding;
+  return getAppCopy(locale).onboarding;
 }
 
 export function getSettingsCopy(locale: AppLocale = getStoredLocale()) {
-  return (getAppCopy(locale) as { settings: unknown }).settings;
+  return getAppCopy(locale).settings;
 }

@@ -47,6 +47,15 @@ function formatDisplayValue(value: string, kind: "text" | "type" = "text") {
   return kind === "type" ? getWorkoutTypeLabel(cleaned) : cleaned;
 }
 
+function normalizeText(value: string) {
+  return cleanLegacyText(value)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+}
+
 function WorkoutDetailPage() {
   const { id } = Route.useParams();
   const navigate = useNavigate();

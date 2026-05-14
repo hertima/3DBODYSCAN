@@ -49,13 +49,13 @@ const muscleStyle: Record<
     Icon: Wind,
     short: "OMBROS",
   },
-  Biceps: {
+  "Bíceps": {
     grad: "from-violet-500/30 via-fuchsia-500/20 to-transparent",
     ring: "ring-violet-400/40",
     Icon: Dumbbell,
     short: "BICEPS",
   },
-  Triceps: {
+  "Tríceps": {
     grad: "from-pink-500/30 via-rose-500/20 to-transparent",
     ring: "ring-pink-400/40",
     Icon: Zap,
@@ -67,7 +67,7 @@ const muscleStyle: Record<
     Icon: Activity,
     short: "PERNAS",
   },
-  Gluteos: {
+  "Glúteos": {
     grad: "from-fuchsia-500/30 via-pink-500/20 to-transparent",
     ring: "ring-fuchsia-400/40",
     Icon: Hexagon,
@@ -79,7 +79,7 @@ const muscleStyle: Record<
     Icon: Target,
     short: "CORE",
   },
-  Antebraco: {
+  "Antebraço": {
     grad: "from-sky-500/30 via-cyan-500/20 to-transparent",
     ring: "ring-sky-400/40",
     Icon: Anchor,
