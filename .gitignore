@@ -30,3 +30,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# GIFs/media grandes — hospedar em CDN
+public/Calistenia-GIFS/
+public/calistenia-pura/
+public/gif-catalog/
