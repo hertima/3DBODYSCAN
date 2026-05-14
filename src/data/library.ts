@@ -737,7 +737,7 @@ musculacaoPrincipalCatalog.forEach((path) => {
     instructions: ["Abra o exercício para visualizar o GIF completo e usar este item como referência visual."],
     mistakes: ["Este item veio do catálogo automático e ainda não tem observações técnicas manuais."],
     alternatives: [],
-    gifUrl: encodeURI(`/gif-catalog/${path}`),
+    gifUrl: encodeURI(`/musculacao-media/${path}`),
   });
 });
 
