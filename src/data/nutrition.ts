@@ -1,8 +1,10 @@
 export type Macro = { eaten: number; goal: number };
 export type Meal = { id: string; name: string; time: string; kcal: number; goal: number };
+export type Hydration = { eatenMl: number; goalMl: number };
 
 export const nutritionToday = {
   kcal: { eaten: 1300, goal: 2400 },
+  hydration: { eatenMl: 1400, goalMl: 2500 } as Hydration,
   macros: {
     protein: { eaten: 80, goal: 200 } as Macro,
     fat: { eaten: 88, goal: 136 } as Macro,

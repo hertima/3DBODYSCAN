@@ -81,7 +81,7 @@
   --gradient-primary: linear-gradient(180deg, oklch(0.78 0.16 60) 0%, oklch(0.74 0.17 53) 100%);
   --gradient-ai: linear-gradient(135deg, oklch(0.78 0.14 220) 0%, oklch(0.66 0.17 255) 100%);
   --gradient-surface: linear-gradient(180deg, oklch(0.22 0.04 262) 0%, oklch(0.18 0.03 261) 100%);
-  --gradient-hero: radial-gradient(120% 60% at 50% 0%, oklch(0.74 0.17 53 / 0.20) 0%, transparent 60%);
+  --gradient-hero: radial-gradient(80% 50% at 15% 30%, oklch(0.78 0.14 220 / 0.18) 0%, transparent 60%), radial-gradient(70% 50% at 85% 70%, oklch(0.74 0.17 53 / 0.18) 0%, transparent 60%);
 
   --shadow-elevated: 0 8px 30px rgba(0, 0, 0, 0.35);
   --shadow-glow-primary: 0 0 40px oklch(0.74 0.17 53 / 0.35);
@@ -145,6 +145,15 @@
   .shadow-elevated { box-shadow: var(--shadow-elevated); }
   .shadow-glow-primary { box-shadow: var(--shadow-glow-primary); }
   .shadow-glow-cyan { box-shadow: var(--shadow-glow-cyan); }
+  .text-gradient-brand {
+    background: linear-gradient(90deg, #22d3ee 0%, #ffffff 45%, #fb923c 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .border-gradient-brand {
+    border-image: linear-gradient(135deg, rgba(34,211,238,0.4), rgba(255,255,255,0.05), rgba(251,146,60,0.4)) 1;
+  }
   .text-gradient-primary {
     background: var(--gradient-primary);
     -webkit-background-clip: text;

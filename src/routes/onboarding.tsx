@@ -6,14 +6,14 @@ import { ProgressBar } from "@/components/ProgressBar";
 export const Route = createFileRoute("/onboarding")({
   head: () => ({
     meta: [
-      { title: "Onboarding · ZYROX" },
-      { name: "description", content: "Configuração inteligente do seu plano fitness ZYROX." },
+      { title: "Onboarding · 3D Body Scan" },
+      { name: "description", content: "Configuração inteligente do seu plano fitness 3D Body Scan." },
     ],
   }),
   component: OnboardingLayout,
 });
 
-const TOTAL = 9;
+const TOTAL = 11;
 
 function OnboardingLayout() {
   const navigate = useNavigate();
@@ -27,13 +27,16 @@ function OnboardingLayout() {
   };
 
   return (
-    <div className="relative flex min-h-screen flex-col bg-background text-foreground">
+    <div className="relative flex min-h-screen flex-col bg-background text-foreground overflow-x-hidden">
+      {/* Brand glows */}
+      <div className="pointer-events-none fixed left-0 top-0 h-[500px] w-[400px] -translate-x-1/2 -translate-y-1/4 rounded-full blur-[120px] opacity-25" style={{ background: "radial-gradient(circle,rgba(34,211,238,0.3) 0%,transparent 70%)" }} />
+      <div className="pointer-events-none fixed bottom-0 right-0 h-[500px] w-[400px] translate-x-1/2 translate-y-1/4 rounded-full blur-[120px] opacity-20" style={{ background: "radial-gradient(circle,rgba(251,146,60,0.3) 0%,transparent 70%)" }} />
       <header className="sticky top-0 z-20 border-b border-border bg-background/80 backdrop-blur">
         <div className="mx-auto flex max-w-xl items-center justify-between px-4 py-4">
           <button onClick={goBack} aria-label="Voltar" className="rounded-full p-2 text-primary hover:bg-elevated">
             <ArrowLeft className="h-5 w-5" />
           </button>
-          <Logo withText size={24} />
+          <Logo withText size={36} />
           <Link to="/app" className="text-sm font-medium text-muted-foreground hover:text-foreground">
             Pular
           </Link>
@@ -47,7 +50,7 @@ function OnboardingLayout() {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-xl flex-1 px-4 py-6 pb-32">
+      <main className="mx-auto w-full max-w-xl flex-1 overflow-hidden px-4 py-6 pb-36">
         <Outlet />
       </main>
     </div>

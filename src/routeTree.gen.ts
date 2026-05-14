@@ -9,7 +9,10 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as RecuperarSenhaRouteImport } from './routes/recuperar-senha'
+import { Route as PaywallRouteImport } from './routes/paywall'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
+import { Route as CriarContaRouteImport } from './routes/criar-conta'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as OnboardingIndexRouteImport } from './routes/onboarding.index'
@@ -19,14 +22,30 @@ import { Route as AppTreinosRouteImport } from './routes/app.treinos'
 import { Route as AppPerfilRouteImport } from './routes/app.perfil'
 import { Route as AppExerciciosRouteImport } from './routes/app.exercicios'
 import { Route as AppCorpoRouteImport } from './routes/app.corpo'
+import { Route as AppConfiguracoesRouteImport } from './routes/app.configuracoes'
 import { Route as AppAnalyticsRouteImport } from './routes/app.analytics'
 import { Route as AppTreinoIdRouteImport } from './routes/app.treino.$id'
 import { Route as AppHistoricoIdRouteImport } from './routes/app.historico.$id'
 import { Route as AppExercicioIdRouteImport } from './routes/app.exercicio.$id'
 
+const RecuperarSenhaRoute = RecuperarSenhaRouteImport.update({
+  id: '/recuperar-senha',
+  path: '/recuperar-senha',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PaywallRoute = PaywallRouteImport.update({
+  id: '/paywall',
+  path: '/paywall',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OnboardingRoute = OnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CriarContaRoute = CriarContaRouteImport.update({
+  id: '/criar-conta',
+  path: '/criar-conta',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppRoute = AppRouteImport.update({
@@ -74,6 +93,11 @@ const AppCorpoRoute = AppCorpoRouteImport.update({
   path: '/corpo',
   getParentRoute: () => AppRoute,
 } as any)
+const AppConfiguracoesRoute = AppConfiguracoesRouteImport.update({
+  id: '/configuracoes',
+  path: '/configuracoes',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppAnalyticsRoute = AppAnalyticsRouteImport.update({
   id: '/analytics',
   path: '/analytics',
@@ -98,8 +122,12 @@ const AppExercicioIdRoute = AppExercicioIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
+  '/criar-conta': typeof CriarContaRoute
   '/onboarding': typeof OnboardingRouteWithChildren
+  '/paywall': typeof PaywallRoute
+  '/recuperar-senha': typeof RecuperarSenhaRoute
   '/app/analytics': typeof AppAnalyticsRoute
+  '/app/configuracoes': typeof AppConfiguracoesRoute
   '/app/corpo': typeof AppCorpoRoute
   '/app/exercicios': typeof AppExerciciosRoute
   '/app/perfil': typeof AppPerfilRoute
@@ -113,7 +141,11 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/criar-conta': typeof CriarContaRoute
+  '/paywall': typeof PaywallRoute
+  '/recuperar-senha': typeof RecuperarSenhaRoute
   '/app/analytics': typeof AppAnalyticsRoute
+  '/app/configuracoes': typeof AppConfiguracoesRoute
   '/app/corpo': typeof AppCorpoRoute
   '/app/exercicios': typeof AppExerciciosRoute
   '/app/perfil': typeof AppPerfilRoute
@@ -129,8 +161,12 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
+  '/criar-conta': typeof CriarContaRoute
   '/onboarding': typeof OnboardingRouteWithChildren
+  '/paywall': typeof PaywallRoute
+  '/recuperar-senha': typeof RecuperarSenhaRoute
   '/app/analytics': typeof AppAnalyticsRoute
+  '/app/configuracoes': typeof AppConfiguracoesRoute
   '/app/corpo': typeof AppCorpoRoute
   '/app/exercicios': typeof AppExerciciosRoute
   '/app/perfil': typeof AppPerfilRoute
@@ -147,8 +183,12 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/app'
+    | '/criar-conta'
     | '/onboarding'
+    | '/paywall'
+    | '/recuperar-senha'
     | '/app/analytics'
+    | '/app/configuracoes'
     | '/app/corpo'
     | '/app/exercicios'
     | '/app/perfil'
@@ -162,7 +202,11 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/criar-conta'
+    | '/paywall'
+    | '/recuperar-senha'
     | '/app/analytics'
+    | '/app/configuracoes'
     | '/app/corpo'
     | '/app/exercicios'
     | '/app/perfil'
@@ -177,8 +221,12 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/app'
+    | '/criar-conta'
     | '/onboarding'
+    | '/paywall'
+    | '/recuperar-senha'
     | '/app/analytics'
+    | '/app/configuracoes'
     | '/app/corpo'
     | '/app/exercicios'
     | '/app/perfil'
@@ -194,16 +242,40 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
+  CriarContaRoute: typeof CriarContaRoute
   OnboardingRoute: typeof OnboardingRouteWithChildren
+  PaywallRoute: typeof PaywallRoute
+  RecuperarSenhaRoute: typeof RecuperarSenhaRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/recuperar-senha': {
+      id: '/recuperar-senha'
+      path: '/recuperar-senha'
+      fullPath: '/recuperar-senha'
+      preLoaderRoute: typeof RecuperarSenhaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/paywall': {
+      id: '/paywall'
+      path: '/paywall'
+      fullPath: '/paywall'
+      preLoaderRoute: typeof PaywallRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/onboarding': {
       id: '/onboarding'
       path: '/onboarding'
       fullPath: '/onboarding'
       preLoaderRoute: typeof OnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/criar-conta': {
+      id: '/criar-conta'
+      path: '/criar-conta'
+      fullPath: '/criar-conta'
+      preLoaderRoute: typeof CriarContaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/app': {
@@ -269,6 +341,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCorpoRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/configuracoes': {
+      id: '/app/configuracoes'
+      path: '/configuracoes'
+      fullPath: '/app/configuracoes'
+      preLoaderRoute: typeof AppConfiguracoesRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/analytics': {
       id: '/app/analytics'
       path: '/analytics'
@@ -302,6 +381,7 @@ declare module '@tanstack/react-router' {
 
 interface AppRouteChildren {
   AppAnalyticsRoute: typeof AppAnalyticsRoute
+  AppConfiguracoesRoute: typeof AppConfiguracoesRoute
   AppCorpoRoute: typeof AppCorpoRoute
   AppExerciciosRoute: typeof AppExerciciosRoute
   AppPerfilRoute: typeof AppPerfilRoute
@@ -314,6 +394,7 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppAnalyticsRoute: AppAnalyticsRoute,
+  AppConfiguracoesRoute: AppConfiguracoesRoute,
   AppCorpoRoute: AppCorpoRoute,
   AppExerciciosRoute: AppExerciciosRoute,
   AppPerfilRoute: AppPerfilRoute,
@@ -343,8 +424,21 @@ const OnboardingRouteWithChildren = OnboardingRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
+  CriarContaRoute: CriarContaRoute,
   OnboardingRoute: OnboardingRouteWithChildren,
+  PaywallRoute: PaywallRoute,
+  RecuperarSenhaRoute: RecuperarSenhaRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
