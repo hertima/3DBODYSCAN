@@ -113,6 +113,21 @@ function ConfiguracoesPage() {
         <div className="space-y-3">
           <FirebaseStatusRow icon={KeyRound} label="Authentication" status={auth_status} />
           <FirebaseStatusRow icon={Database} label="Firestore" status={firestore_status} />
+          <div className="flex items-center gap-3 rounded-2xl border border-border bg-elevated/45 p-4">
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-cyan/10 text-cyan">
+              <Shield className="h-4 w-4" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="text-sm font-semibold">Security Rules</h3>
+                <span className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] ${firestore_status === "ok" ? "bg-emerald-400/10 text-emerald-400" : "bg-yellow-400/10 text-yellow-400"}`}>
+                  {firestore_status === "ok" ? <CheckCircle2 className="h-3 w-3" /> : <Loader2 className="h-3 w-3 animate-spin" />}
+                  {firestore_status === "ok" ? "Ativas" : "Verificando"}
+                </span>
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">v2 · 2026-05-18 · Acesso restrito por usuário</p>
+            </div>
+          </div>
         </div>
       </section>
 

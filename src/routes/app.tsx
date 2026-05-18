@@ -11,6 +11,7 @@ import { loadProfileFromFirestore } from "@/lib/firestore-profile";
 import {
   restoreLocalStateFromFirestore,
   startLocalStateAutosync,
+  startRealtimeSync,
 } from "@/lib/firestore-local-state";
 import { useTrainingState } from "@/hooks/use-training-state";
 import { useGamification } from "@/hooks/use-gamification";
@@ -61,6 +62,7 @@ function AppLayout() {
 
     let cancelled = false;
     let stopAutosync: (() => void) | null = null;
+    let stopRealtimeSync: (() => void) | null = null;
 
     const applyIdentity = (user: NonNullable<Parameters<Parameters<typeof onAuth>[0]>[0]>) => {
       const current = loadOnboarding();
@@ -77,11 +79,19 @@ function AppLayout() {
           return;
         }
 
+        const onRemoteChange = () => {
+          if (cancelled) return;
+          applyIdentity(user);
+          setTrainingRefresh((value) => value + 1);
+        };
+
         if (isOnboarded()) {
           applyIdentity(user);
           setReady(true);
           stopAutosync?.();
+          stopRealtimeSync?.();
           stopAutosync = startLocalStateAutosync(user.uid);
+          stopRealtimeSync = startRealtimeSync(user.uid, onRemoteChange);
           void restoreLocalStateFromFirestore(user.uid).then(() => {
             if (cancelled) return;
             applyIdentity(user);
@@ -101,7 +111,9 @@ function AppLayout() {
         }
 
         stopAutosync?.();
+        stopRealtimeSync?.();
         stopAutosync = startLocalStateAutosync(user.uid);
+        stopRealtimeSync = startRealtimeSync(user.uid, onRemoteChange);
         applyIdentity(user);
         setReady(true);
         void restoreLocalStateFromFirestore(user.uid).then(() => {
@@ -115,6 +127,7 @@ function AppLayout() {
     return () => {
       cancelled = true;
       stopAutosync?.();
+      stopRealtimeSync?.();
       unsub();
     };
   }, [navigate]);

@@ -3,6 +3,7 @@ import {
   deleteDoc,
   doc,
   getDocs,
+  onSnapshot,
   serverTimestamp,
   setDoc,
 } from "firebase/firestore";
@@ -221,4 +222,23 @@ export function startLocalStateAutosync(uid: string) {
   return () => {
     if (autosyncUid === uid) autosyncUid = null;
   };
+}
+
+export function startRealtimeSync(uid: string, onRemoteChange: () => void): () => void {
+  let initialized = false;
+  const manifestRef = doc(db, "users", uid, "data", MANIFEST_DOC);
+
+  const unsub = onSnapshot(manifestRef, (snap) => {
+    if (!initialized) {
+      initialized = true;
+      return;
+    }
+    if (!snap.exists() || restoreInProgress) return;
+
+    void restoreLocalStateFromFirestore(uid, { replaceLocal: true })
+      .then(() => onRemoteChange())
+      .catch(() => {});
+  });
+
+  return unsub;
 }

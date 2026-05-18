@@ -1,3 +1,6 @@
+// ZYROX Firestore Security Rules
+// version: 2
+// updated: 2026-05-18
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
