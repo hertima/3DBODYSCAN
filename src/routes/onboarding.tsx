@@ -57,7 +57,7 @@ function OnboardingLayout() {
         style={{ transform: "translateX(45%)" }}
       >
         <img
-          src="/MASCOTE SEM FUNDO.png"
+          src="/mascote-sem-fundo.png"
           alt=""
           style={{
             width: 420,

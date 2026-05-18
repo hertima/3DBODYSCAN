@@ -144,7 +144,7 @@ function Dashboard() {
           <h1 className="font-display text-3xl font-bold text-gradient-brand">{dc.headline}</h1>
         </div>
         <img
-          src="/NASCOSTE 04.png"
+          src="/mascote.png"
           alt="Mascote 3D Body Scan"
           className="h-32 w-32 object-contain"
           style={{ filter: "drop-shadow(0 0 20px rgba(34,211,238,0.5)) drop-shadow(0 0 10px rgba(251,146,60,0.4))" }}
@@ -267,7 +267,7 @@ function Dashboard() {
             <span className="text-sm font-semibold text-primary">{dc.streakDays}</span>
             {gamification.streakDays > 0 && (
               <img
-                src="/NASCOSTE 04.png"
+                src="/mascote.png"
                 alt=""
                 className="h-16 w-16 object-contain"
                 style={{ filter: "drop-shadow(0 0 14px rgba(251,146,60,0.7))" }}

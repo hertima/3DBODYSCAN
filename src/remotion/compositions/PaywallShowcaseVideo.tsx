@@ -31,7 +31,7 @@ export function PaywallShowcaseVideo({ planName = "Pro" }: PaywallShowcaseVideoP
       <div style={{ position: "absolute", top: 145, left: 0, right: 0, display: "flex", flexDirection: "column", alignItems: "center" }}>
         <div style={{ transform: `scale(${logoScale})`, marginBottom: 12 }}>
           <img
-            src="/MASCOTE 05.png"
+            src="/mascote-05.png"
             style={{
               width: 380, height: 380, objectFit: "contain",
               filter: "drop-shadow(0 0 60px rgba(34,211,238,0.5)) drop-shadow(0 0 30px rgba(251,146,60,0.4))",
