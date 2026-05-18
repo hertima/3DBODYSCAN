@@ -3,13 +3,13 @@ import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyA60DM5kX0Fj8bpmk5HVbMW-wHWSqjpai4",
-  authDomain: "d-body-scan.firebaseapp.com",
-  projectId: "d-body-scan",
-  storageBucket: "d-body-scan.firebasestorage.app",
-  messagingSenderId: "395247947865",
-  appId: "1:395247947865:web:facf2e2b767f03725a2148",
-  measurementId: "G-YSGVF9Z56B",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
 
 const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);

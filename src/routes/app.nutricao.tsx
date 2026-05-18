@@ -9,6 +9,7 @@ import { loadMealPlan, saveMealPlan, clearMealPlan, type MealPlan, type WeekPlan
 import { loadOnboarding } from "@/lib/onboarding";
 import { getNutritionCopy } from "@/lib/app-copy";
 import { getStoredLocale } from "@/lib/locale";
+import { auth } from "@/lib/firebase";
 
 export const Route = createFileRoute("/app/nutricao")({
   head: () => ({
@@ -414,9 +415,13 @@ function NutricaoPage() {
     setError(null);
 
     try {
+      const token = await auth.currentUser?.getIdToken();
       const res = await fetch("/api/meal-plan", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({
           locale,
           regenerationId: `${Date.now()}-${Math.random().toString(36).slice(2)}`,

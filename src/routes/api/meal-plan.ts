@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type { WeekPlan } from "@/lib/meal-plan";
+import { verifyFirebaseToken } from "@/lib/server-auth";
 
 type ProfileInput = {
   goal: string;
@@ -35,6 +36,9 @@ export const Route = createFileRoute("/api/meal-plan")({
   server: {
     handlers: {
       POST: async ({ request }) => {
+    const uid = await verifyFirebaseToken(request.headers.get("Authorization"));
+    if (!uid) return new Response("Unauthorized", { status: 401 });
+
     const { profile, locale = "pt", regenerationId, avoidFoods = [] } = (await request.json()) as MealPlanRequest;
     const key = process.env.OPENAI_API_KEY;
 

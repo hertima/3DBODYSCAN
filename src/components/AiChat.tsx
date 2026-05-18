@@ -6,6 +6,7 @@ import { buildAthleteMemory, serializeMemoryForAI } from "@/lib/athlete-memory";
 import { loadOnboarding } from "@/lib/onboarding";
 import { getStoredLocale } from "@/lib/locale";
 import { cn } from "@/lib/utils";
+import { auth } from "@/lib/firebase";
 
 // ── Perguntas rápidas por idioma ─────────────────────────────────
 const QUICK: Record<AILocale, string[]> = {
@@ -124,9 +125,13 @@ export function AiChat() {
     setError(null);
 
     try {
+      const token = await auth.currentUser?.getIdToken();
       const res = await fetch("/api/chat-stream", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({ messages: next, userContext, locale, athleteMemory }),
       });
 

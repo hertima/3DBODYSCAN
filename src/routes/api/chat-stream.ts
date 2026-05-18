@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { verifyFirebaseToken } from "@/lib/server-auth";
 
 const LANGUAGE_NAME: Record<string, string> = {
   pt: "português brasileiro",
@@ -12,6 +13,9 @@ export const Route = createFileRoute("/api/chat-stream")({
   server: {
     handlers: {
       POST: async ({ request }) => {
+    const uid = await verifyFirebaseToken(request.headers.get("Authorization"));
+    if (!uid) return new Response("Unauthorized", { status: 401 });
+
     const key = process.env.OPENAI_API_KEY;
     if (!key) return new Response("API key not configured", { status: 500 });
 
