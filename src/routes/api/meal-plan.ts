@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type { WeekPlan } from "@/lib/meal-plan";
 import { verifyFirebaseToken } from "@/lib/server-auth";
+import { OPENAI_MODEL } from "@/lib/openai-config";
 
 type ProfileInput = {
   goal: string;
@@ -137,7 +138,7 @@ Gere as 12 semanas completas. Se couber, em cada semana, "days" deve ter exatame
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "gpt-4.1-mini",
+          model: OPENAI_MODEL,
           messages: [
             {
               role: "system",

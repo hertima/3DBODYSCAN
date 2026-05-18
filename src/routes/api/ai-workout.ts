@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type { AIWorkoutCandidate } from "@/domain/training/engine";
 import { verifyFirebaseToken } from "@/lib/server-auth";
+import { OPENAI_MODEL } from "@/lib/openai-config";
 
 const LANGUAGE_NAME: Record<string, string> = {
   pt: "português brasileiro",
@@ -87,38 +88,44 @@ export const Route = createFileRoute("/api/ai-workout")({
       { regenerationId, avoidExerciseIds },
     );
 
-    const res = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${key}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "gpt-4.1-mini",
-        messages: [
-          {
-            role: "system",
-            content: `You are ZYROX AI Coach — elite certified personal trainer and sports scientist. You create hyper-personalized training programs. CRITICAL: Respond in ${lang}. Return ONLY valid JSON, no markdown, no explanation.`,
-          },
-          { role: "user", content: prompt },
-        ],
-        max_tokens: 1800,
-        temperature: regenerationId ? 0.9 : 0.7,
-        response_format: { type: "json_object" },
-      }),
-    });
+    try {
+      const res = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${key}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: OPENAI_MODEL,
+          messages: [
+            {
+              role: "system",
+              content: `You are ZYROX AI Coach — elite certified personal trainer and sports scientist. You create hyper-personalized training programs. CRITICAL: Respond in ${lang}. Return ONLY valid JSON, no markdown, no explanation.`,
+            },
+            { role: "user", content: prompt },
+          ],
+          max_tokens: 1800,
+          temperature: regenerationId ? 0.9 : 0.7,
+          response_format: { type: "json_object" },
+        }),
+      });
 
-    if (!res.ok) {
-      const err = await res.text();
-      return new Response(err, { status: res.status });
+      if (!res.ok) {
+        const err = await res.text();
+        return new Response(err, { status: res.status });
+      }
+
+      const json = (await res.json()) as { choices: [{ message: { content: string } }] };
+      const content = json.choices[0]?.message?.content;
+      if (!content) return new Response("Invalid AI response", { status: 502 });
+
+      return new Response(content, {
+        headers: { "Content-Type": "application/json" },
+      });
+    } catch (err) {
+      console.error("[ai-workout]", err);
+      return new Response("Internal Server Error", { status: 500 });
     }
-
-    const json = (await res.json()) as { choices: [{ message: { content: string } }] };
-    const content = json.choices[0].message.content;
-
-    return new Response(content, {
-      headers: { "Content-Type": "application/json" },
-    });
   },
     },
   },

@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { OPENAI_MODEL } from "@/lib/openai-config";
 
 export type ChatMessage = { role: "user" | "assistant"; content: string };
 export type AILocale = "pt" | "es" | "en" | "fr" | "de";
@@ -126,7 +127,7 @@ Use visible body proportions and calibration data. Estimates must be realistic.`
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "gpt-4.1-mini",
+        model: OPENAI_MODEL,
         messages: [
           { role: "system", content: `${systemContent}\n\n${data.userContext}` },
           {
@@ -171,7 +172,7 @@ async function callOpenAI(
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "gpt-4.1-mini",
+      model: OPENAI_MODEL,
       messages,
       max_tokens: maxTokens,
       temperature: 0.75,

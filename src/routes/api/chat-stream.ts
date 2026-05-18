@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { verifyFirebaseToken } from "@/lib/server-auth";
+import { OPENAI_MODEL } from "@/lib/openai-config";
 
 const LANGUAGE_NAME: Record<string, string> = {
   pt: "português brasileiro",
@@ -28,35 +29,40 @@ export const Route = createFileRoute("/api/chat-stream")({
 
     const lang = LANGUAGE_NAME[locale] ?? LANGUAGE_NAME.pt;
 
-    const res = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${key}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "gpt-4.1-mini",
-        messages: [
-          { role: "system", content: buildCoachPrompt(userContext, lang, athleteMemory) },
-          ...messages,
-        ],
-        max_tokens: 500,
-        temperature: 0.75,
-        stream: true,
-      }),
-    });
+    try {
+      const res = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${key}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: OPENAI_MODEL,
+          messages: [
+            { role: "system", content: buildCoachPrompt(userContext, lang, athleteMemory) },
+            ...messages,
+          ],
+          max_tokens: 500,
+          temperature: 0.75,
+          stream: true,
+        }),
+      });
 
-    if (!res.ok) {
-      return new Response(await res.text(), { status: res.status });
+      if (!res.ok) {
+        return new Response(await res.text(), { status: res.status });
+      }
+
+      return new Response(res.body, {
+        headers: {
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache",
+          "X-Accel-Buffering": "no",
+        },
+      });
+    } catch (err) {
+      console.error("[chat-stream]", err);
+      return new Response("Internal Server Error", { status: 500 });
     }
-
-    return new Response(res.body, {
-      headers: {
-        "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache",
-        "X-Accel-Buffering": "no",
-      },
-    });
   },
     },
   },
