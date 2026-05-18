@@ -34,6 +34,9 @@ jobs:
           VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
+      - name: Patch worker name
+        run: node -e "const fs=require('fs');const p='dist/server/wrangler.json';const c=JSON.parse(fs.readFileSync(p,'utf8'));c.name='3dbodyscan';fs.writeFileSync(p,JSON.stringify(c,null,2))"
+
       - name: Deploy
         uses: cloudflare/wrangler-action@v3
         with:
