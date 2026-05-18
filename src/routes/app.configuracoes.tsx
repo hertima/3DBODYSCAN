@@ -1,9 +1,40 @@
 ﻿import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, Bell, Camera, Shield, SlidersHorizontal, Sparkles } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ArrowLeft, Bell, Camera, CheckCircle2, Database, KeyRound, Loader2, Shield, SlidersHorizontal, Sparkles, XCircle } from "lucide-react";
+import { onAuthStateChanged } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
+import { auth, db } from "@/lib/firebase";
 import { LocaleSwitcher } from "@/components/LocaleSwitcher";
 import { getSettingsCopy } from "@/lib/app-copy";
 import { SUPPORTED_LOCALES, getStoredLocale, setStoredLocale } from "@/lib/locale";
 import { loadOnboarding } from "@/lib/onboarding";
+
+type ConnStatus = "checking" | "ok" | "error";
+
+function useFirebaseStatus() {
+  const [auth_status, setAuthStatus] = useState<ConnStatus>("checking");
+  const [firestore_status, setFirestoreStatus] = useState<ConnStatus>("checking");
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(
+      auth,
+      () => setAuthStatus("ok"),
+      () => setAuthStatus("error"),
+    );
+    return unsub;
+  }, []);
+
+  useEffect(() => {
+    getDoc(doc(db, "_ping", "probe"))
+      .then(() => setFirestoreStatus("ok"))
+      .catch((err: { code?: string }) => {
+        // permission-denied = Firestore reached but access blocked (expected)
+        setFirestoreStatus(err.code === "permission-denied" ? "ok" : "error");
+      });
+  }, []);
+
+  return { auth_status, firestore_status };
+}
 
 export const Route = createFileRoute("/app/configuracoes")({
   head: () => ({
@@ -21,6 +52,7 @@ function ConfiguracoesPage() {
   const hasCameraSetup = Boolean(profile.height || profile.weight);
   const currentLocale = getStoredLocale();
   const copy = getSettingsCopy();
+  const { auth_status, firestore_status } = useFirebaseStatus();
 
   const handleLocaleChange = (nextLocale: string) => {
     if (!SUPPORTED_LOCALES.some((item) => item.code === nextLocale)) return;
@@ -74,6 +106,17 @@ function ConfiguracoesPage() {
       </section>
 
       <section className="rounded-3xl border border-border bg-surface p-4">
+        <div className="mb-4">
+          <h2 className="font-display text-lg font-semibold">Firebase</h2>
+          <p className="text-xs text-muted-foreground">Status da conexão com os serviços</p>
+        </div>
+        <div className="space-y-3">
+          <FirebaseStatusRow icon={KeyRound} label="Authentication" status={auth_status} />
+          <FirebaseStatusRow icon={Database} label="Firestore" status={firestore_status} />
+        </div>
+      </section>
+
+      <section className="rounded-3xl border border-border bg-surface p-4">
         <div className="flex items-start gap-3 rounded-2xl border border-border bg-elevated/45 p-4">
           <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-cyan/10 text-cyan">
             <Sparkles className="h-5 w-5" />
@@ -86,6 +129,31 @@ function ConfiguracoesPage() {
           </div>
         </div>
       </section>
+    </div>
+  );
+}
+
+function FirebaseStatusRow({ icon: Icon, label, status }: { icon: typeof Database; label: string; status: ConnStatus }) {
+  const map = {
+    checking: { text: "Verificando…", color: "text-yellow-400", bg: "bg-yellow-400/10", Icon: Loader2, spin: true },
+    ok:       { text: "Conectado",    color: "text-emerald-400", bg: "bg-emerald-400/10", Icon: CheckCircle2, spin: false },
+    error:    { text: "Erro",         color: "text-red-400",     bg: "bg-red-400/10",     Icon: XCircle, spin: false },
+  } as const;
+  const s = map[status];
+  return (
+    <div className="flex items-center gap-3 rounded-2xl border border-border bg-elevated/45 p-4">
+      <div className={`grid h-10 w-10 shrink-0 place-items-center rounded-2xl ${s.bg} ${s.color}`}>
+        <Icon className="h-4 w-4" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="text-sm font-semibold">{label}</h3>
+          <div className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] ${s.bg} ${s.color}`}>
+            <s.Icon className={`h-3 w-3 ${s.spin ? "animate-spin" : ""}`} />
+            {s.text}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
