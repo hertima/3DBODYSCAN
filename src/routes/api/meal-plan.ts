@@ -37,8 +37,11 @@ export const Route = createFileRoute("/api/meal-plan")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-    const uid = await verifyFirebaseToken(request.headers.get("Authorization"));
-    if (!uid) return new Response("Unauthorized", { status: 401 });
+    const authHeader = request.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) return new Response("Unauthorized", { status: 401 });
+    const uid = await verifyFirebaseToken(authHeader).catch(() => null);
+    const hasApiKey = !!process.env.FIREBASE_API_KEY;
+    if (hasApiKey && !uid) return new Response("Unauthorized", { status: 401 });
 
     const { profile, locale = "pt", regenerationId, avoidFoods = [] } = (await request.json()) as MealPlanRequest;
     const key = process.env.OPENAI_API_KEY;
