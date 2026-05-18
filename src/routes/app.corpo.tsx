@@ -30,7 +30,8 @@ import { buildAthleteProfile } from "@/domain/athlete/profile";
 import { evaluateNutritionState } from "@/domain/nutrition/analysis";
 import { getStoredLocale } from "@/lib/locale";
 import { loadOnboarding } from "@/lib/onboarding";
-import { analyzeImage, buildUserContext, type AILocale } from "@/lib/ai-service";
+import { buildUserContext, type AILocale, type DetectedMeasurements } from "@/lib/ai-service";
+import { auth } from "@/lib/firebase";
 import { ShareVideoButton, CorpoEvolutionVideo } from "@/remotion";
 import { cn } from "@/lib/utils";
 
@@ -1308,16 +1309,24 @@ function ScanCTA({
     const locale = getStoredLocale() as AILocale;
 
     try {
-      const result = await analyzeImage({
-        data: {
+      const token = await auth.currentUser?.getIdToken();
+      const res = await fetch("/api/analyze-image", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
           imageBase64: base64,
           userContext,
           locale,
           kind,
           height: parseFloat(height) || undefined,
           weight: parseFloat(weight) || undefined,
-        },
+        }),
       });
+      if (!res.ok) throw new Error(`${res.status}`);
+      const result = (await res.json()) as { analysis: string; measurements: DetectedMeasurements | null };
       setAiAnalysis(result.analysis);
 
       if (kind === "body" && result.measurements) {
