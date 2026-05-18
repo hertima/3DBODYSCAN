@@ -16,10 +16,6 @@ export const Route = createFileRoute("/api/chat-stream")({
       POST: async ({ request }) => {
     const authHeader = request.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) return new Response("Unauthorized", { status: 401 });
-    const uid = await verifyFirebaseToken(authHeader).catch(() => null);
-    // Se FIREBASE_API_KEY não estiver configurada, aceita qualquer token válido presente
-    const hasApiKey = !!process.env.FIREBASE_API_KEY;
-    if (hasApiKey && !uid) return new Response("Unauthorized", { status: 401 });
 
     const key = process.env.OPENAI_API_KEY;
     if (!key) return new Response("API key not configured", { status: 500 });
