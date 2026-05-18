@@ -461,7 +461,7 @@ export default defineConfig({
     server: {
       host: "0.0.0.0",
       strictPort: false,
-      allowedHosts: "all",
+      allowedHosts: true,
     },
   },
   tanstackStart: {

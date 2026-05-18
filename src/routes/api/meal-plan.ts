@@ -563,13 +563,13 @@ function normalizeMealPlanWeeks(
 ): WeekPlan[] | null {
   if (!Array.isArray(weeks) || weeks.length !== 12) return null;
 
-  return weeks.map((week, index) => {
+  return weeks.map((week, index): WeekPlan | null => {
     if (!isBaseWeekPlan(week, index)) return null;
     const completed = completeProfessionalFields(week, profile);
     return {
       ...completed,
       days: hasValidDays(completed) ? completed.days : buildFallbackDays(completed, profile, seedText),
-    };
+    } as WeekPlan;
   }).filter((week): week is WeekPlan => week !== null);
 }
 

@@ -522,7 +522,7 @@ function MedidasTab({ copy }: { copy: (typeof COPY)[keyof typeof COPY] }) {
         {measures.map((m) => <MeasureCard key={m.key} m={m} />)}
       </div>
 
-      <ScanHistory kind="body" />
+      <ScanHistory kind="body" copy={copy} />
     </div>
   );
 }
@@ -1129,7 +1129,7 @@ function NutricaoTab({ copy }: { copy: (typeof COPY)[keyof typeof COPY] }) {
         </div>
       </Card>
 
-      <ScanHistory kind="food" />
+      <ScanHistory kind="food" copy={copy} />
     </div>
   );
 }
