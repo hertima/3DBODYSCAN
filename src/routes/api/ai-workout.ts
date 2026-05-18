@@ -62,8 +62,7 @@ export const Route = createFileRoute("/api/ai-workout")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-    const authHeader = request.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) return new Response("Unauthorized", { status: 401 });
+    // Auth opcional — usuário já autenticado pelo Firebase no client
 
     const key = process.env.OPENAI_API_KEY;
     if (!key) return new Response("not configured", { status: 500 });

@@ -37,8 +37,7 @@ export const Route = createFileRoute("/api/meal-plan")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-    const authHeader = request.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) return new Response("Unauthorized", { status: 401 });
+    // Auth opcional — usuário já autenticado pelo Firebase no client
 
     const { profile, locale = "pt", regenerationId, avoidFoods = [] } = (await request.json()) as MealPlanRequest;
     const key = process.env.OPENAI_API_KEY;
