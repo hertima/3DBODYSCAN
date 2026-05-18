@@ -1,13 +1,16 @@
 ﻿import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState, type FormEvent } from "react";
+import { useState, useEffect, useRef, type FormEvent } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, ArrowRight, Eye, EyeOff, Lock, Mail, User, Loader2 } from "lucide-react";
 import { LocaleSwitcher } from "@/components/LocaleSwitcher";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import logo from "@/assets/zyrox-logo.png";
 import { getStoredLocale, setStoredLocale } from "@/lib/locale";
-import { clearOnboarding, loadOnboarding, saveOnboarding } from "@/lib/onboarding";
+import { isOnboarded, loadOnboarding, saveOnboarding } from "@/lib/onboarding";
+import { signUp, onAuth } from "@/lib/auth";
 import { getAuthCopy } from "@/lib/app-copy";
+import { saveProfileToFirestore } from "@/lib/firestore-profile";
+import { saveLocalStateToFirestore } from "@/lib/firestore-local-state";
 
 export const Route = createFileRoute("/criar-conta")({
   head: () => ({
@@ -31,8 +34,39 @@ function SignUpPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const signingUpRef = useRef(false);
 
-  const handleSubmit = (event: FormEvent) => {
+  function getPasswordStrength(pwd: string): { level: number; label: string; color: string } {
+    if (pwd.length === 0) return { level: 0, label: "", color: "" };
+    if (pwd.length < 6) return { level: 1, label: "Fraca", color: "#ef4444" };
+    const hasUpper = /[A-Z]/.test(pwd);
+    const hasNumber = /[0-9]/.test(pwd);
+    const hasSpecial = /[^A-Za-z0-9]/.test(pwd);
+    const extras = [hasUpper, hasNumber, hasSpecial].filter(Boolean).length;
+    if (pwd.length >= 10 && extras >= 2) return { level: 4, label: "Muito forte", color: "#4ade80" };
+    if (pwd.length >= 8 && extras >= 1) return { level: 3, label: "Forte", color: "#22d3ee" };
+    return { level: 2, label: "Média", color: "#fb923c" };
+  }
+
+  const pwdStrength = getPasswordStrength(password);
+
+  // Redireciona se já estiver autenticado ao abrir a página (não durante o cadastro)
+  useEffect(() => {
+    const unsub = onAuth((user) => {
+      if (signingUpRef.current) return;
+      if (user) {
+        if (isOnboarded()) {
+          navigate({ to: "/app" });
+        } else {
+          navigate({ to: "/onboarding/$step", params: { step: "1" } });
+        }
+      }
+    });
+    return unsub;
+  }, [navigate]);
+
+  const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     setError("");
 
@@ -60,19 +94,32 @@ function SignUpPage() {
     }
 
     setLoading(true);
-
-    const current = loadOnboarding();
-    clearOnboarding();
-    saveOnboarding({
-      ...current,
-      email: trimmedEmail,
-      name: trimmedName,
-      avatarUrl: current.avatarUrl,
-    });
-
-    setTimeout(() => {
-      navigate({ to: "/onboarding/$step", params: { step: "1" } });
-    }, 400);
+    signingUpRef.current = true;
+    try {
+      // Salva onboarding ANTES do signUp para que o onAuth já veja isOnboarded() correto
+      const existing = loadOnboarding();
+      const mergedProfile = { ...existing, email: trimmedEmail, name: trimmedName };
+      saveOnboarding(mergedProfile);
+      const cred = await signUp(trimmedEmail, password);
+      saveProfileToFirestore(cred.user.uid, mergedProfile).catch(() => {});
+      saveLocalStateToFirestore(cred.user.uid).catch(() => {});
+      if (isOnboarded()) {
+        navigate({ to: "/app" });
+      } else {
+        navigate({ to: "/onboarding/$step", params: { step: "1" } });
+      }
+    } catch (err: unknown) {
+      signingUpRef.current = false;
+      setLoading(false);
+      const code = (err as { code?: string }).code ?? "";
+      if (code === "auth/email-already-in-use") {
+        setError("Este e-mail já está em uso.");
+      } else if (code === "auth/invalid-email") {
+        setError(authCopy.invalidEmail);
+      } else {
+        setError("Erro ao criar conta. Tente novamente.");
+      }
+    }
   };
 
   const handleLocaleChange = (nextLocale: string) => {
@@ -143,7 +190,7 @@ function SignUpPage() {
                     value={name}
                     onChange={(event) => setName(event.target.value)}
                     placeholder={authCopy.namePlaceholder}
-                    className="w-full rounded-xl py-2.5 pl-9 pr-3 text-sm text-white outline-none transition"
+                    className="w-full rounded-xl py-3 pl-9 pr-3 text-sm text-white outline-none transition"
                     style={{ border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.05)" }}
                     onFocus={(e) => (e.currentTarget.style.borderColor = "rgba(34,211,238,0.5)")}
                     onBlur={(e) => (e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)")}
@@ -161,7 +208,7 @@ function SignUpPage() {
                     value={email}
                     onChange={(event) => setEmail(event.target.value)}
                     placeholder={authCopy.emailPlaceholder}
-                    className="w-full rounded-xl py-2.5 pl-9 pr-3 text-sm text-white outline-none transition"
+                    className="w-full rounded-xl py-3 pl-9 pr-3 text-sm text-white outline-none transition"
                     style={{ border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.05)" }}
                     onFocus={(e) => (e.currentTarget.style.borderColor = "rgba(34,211,238,0.5)")}
                     onBlur={(e) => (e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)")}
@@ -179,7 +226,7 @@ function SignUpPage() {
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}
                     placeholder={authCopy.passwordHint}
-                    className="w-full rounded-xl py-2.5 pl-9 pr-10 text-sm text-white outline-none transition"
+                    className="w-full rounded-xl py-3 pl-9 pr-10 text-sm text-white outline-none transition"
                     style={{ border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.05)" }}
                     onFocus={(e) => (e.currentTarget.style.borderColor = "rgba(251,146,60,0.5)")}
                     onBlur={(e) => (e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)")}
@@ -195,6 +242,23 @@ function SignUpPage() {
                 </div>
               </label>
 
+              {pwdStrength.level > 0 && (
+                <div className="mt-1 space-y-1">
+                  <div className="flex gap-1">
+                    {[1, 2, 3, 4].map((level) => (
+                      <div
+                        key={level}
+                        className="h-1 flex-1 rounded-full transition-all duration-300"
+                        style={{ background: level <= pwdStrength.level ? pwdStrength.color : "rgba(255,255,255,0.08)" }}
+                      />
+                    ))}
+                  </div>
+                  <div className="text-[10px] font-semibold" style={{ color: pwdStrength.color }}>
+                    {pwdStrength.label}
+                  </div>
+                </div>
+              )}
+
               <label className="block">
                 <span className="mb-1.5 block text-xs font-medium" style={{ color: "#94a3b8" }}>{authCopy.confirmPasswordLabel}</span>
                 <div className="relative">
@@ -205,7 +269,7 @@ function SignUpPage() {
                     value={confirmPassword}
                     onChange={(event) => setConfirmPassword(event.target.value)}
                     placeholder={authCopy.confirmPasswordPlaceholder}
-                    className="w-full rounded-xl py-2.5 pl-9 pr-10 text-sm text-white outline-none transition"
+                    className="w-full rounded-xl py-3 pl-9 pr-10 text-sm text-white outline-none transition"
                     style={{ border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.05)" }}
                     onFocus={(e) => (e.currentTarget.style.borderColor = "rgba(251,146,60,0.5)")}
                     onBlur={(e) => (e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)")}
@@ -220,6 +284,12 @@ function SignUpPage() {
                   </button>
                 </div>
               </label>
+
+              {confirmPassword && password !== confirmPassword && (
+                <p className="text-[11px] font-medium" style={{ color: "#f87171" }}>
+                  As senhas não coincidem
+                </p>
+              )}
 
               {error && (
                 <p className="rounded-lg px-3 py-2 text-xs font-medium" style={{ border: "1px solid rgba(239,68,68,0.3)", background: "rgba(239,68,68,0.08)", color: "#f87171" }}>

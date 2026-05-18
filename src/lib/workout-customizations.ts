@@ -39,10 +39,22 @@ export function saveWorkoutCustomization(customization: WorkoutCustomizationStat
   const store = readStore();
   store[customization.workoutId] = customization;
   writeStore(store);
+  import("./firestore-customizations").then(({ saveCustomizationToFirestore }) =>
+    import("./firebase").then(({ auth }) => {
+      const user = auth.currentUser;
+      if (user) saveCustomizationToFirestore(user.uid, customization).catch(() => {});
+    }),
+  );
 }
 
 export function clearWorkoutCustomization(workoutId: string) {
   const store = readStore();
   delete store[workoutId];
   writeStore(store);
+  import("./firestore-customizations").then(({ deleteCustomizationFromFirestore }) =>
+    import("./firebase").then(({ auth }) => {
+      const user = auth.currentUser;
+      if (user) deleteCustomizationFromFirestore(user.uid, workoutId).catch(() => {});
+    }),
+  );
 }

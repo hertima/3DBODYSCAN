@@ -1,5 +1,6 @@
 import { type GeneratedTrainingState } from "@/domain/training/engine";
 import { buildGamificationState, type GamificationMission } from "@/domain/gamification/engine";
+import { getGamificationCopy } from "@/lib/app-copy";
 
 export type DopamineLoopState = {
   headline: string;
@@ -17,16 +18,22 @@ function getTopMission(state: ReturnType<typeof buildGamificationState>) {
   );
 }
 
-function getMomentumLabel(trainingState: GeneratedTrainingState, streakDays: number) {
-  if (streakDays >= 21) return "ritmo elite";
-  if (trainingState.nutrition.hydrationStatus === "baixa") return "ajuste de hidratação";
-  if (trainingState.nutrition.readinessLevel === "alta") return "pronto para subir";
-  if (trainingState.body.priorityLevel === "alta") return "foco corporal ativo";
-  return "consistência em construção";
+function getMomentumLabel(
+  trainingState: GeneratedTrainingState,
+  streakDays: number,
+  momentum: ReturnType<typeof getGamificationCopy>["loop"]["momentum"],
+) {
+  if (streakDays >= 21) return momentum.elite;
+  if (trainingState.nutrition.hydrationStatus === "baixa") return momentum.hydration;
+  if (trainingState.nutrition.readinessLevel === "alta") return momentum.ready;
+  if (trainingState.body.priorityLevel === "alta") return momentum.bodyFocus;
+  return momentum.building;
 }
 
-export function buildDopamineLoop(trainingState: GeneratedTrainingState): DopamineLoopState {
-  const gamification = buildGamificationState(trainingState);
+export function buildDopamineLoop(trainingState: GeneratedTrainingState, locale?: string): DopamineLoopState {
+  const copy = getGamificationCopy(locale as Parameters<typeof getGamificationCopy>[0]);
+  const l = copy.loop;
+  const gamification = buildGamificationState(trainingState, locale);
   const highlightedMission = getTopMission(gamification);
   const missionPct = Math.min(
     100,
@@ -37,19 +44,19 @@ export function buildDopamineLoop(trainingState: GeneratedTrainingState): Dopami
   return {
     headline:
       missionPct >= 100
-        ? "Missão concluída"
+        ? l.missionDone
         : missionPct >= 70
-          ? "Você está perto do próximo marco"
-          : "Seu progresso já está em movimento",
+          ? l.nearMilestone
+          : l.inProgress,
     message:
       missionPct >= 100
-        ? `A missão ${highlightedMission.title.toLowerCase()} foi fechada. Hora de empilhar a próxima sem perder o ritmo.`
-        : `A missão ${highlightedMission.title.toLowerCase()} está em ${missionPct}%. Mantenha o plano para consolidar esse ganho.`,
-    momentumLabel: getMomentumLabel(trainingState, gamification.streakDays),
+        ? `${highlightedMission.title.toLowerCase()} ${l.missionClosedMsg}`
+        : `${highlightedMission.title.toLowerCase()} ${missionPct}%. ${l.missionPctMsg}`,
+    momentumLabel: getMomentumLabel(trainingState, gamification.streakDays, l.momentum),
     nextUnlock:
       remainingXp > 0
-        ? `Faltam ${remainingXp} XP para o nível ${gamification.level + 1}.`
-        : `Nível ${gamification.level} consolidado. Prepare o próximo salto.`,
+        ? `${l.xpRemaining} ${remainingXp} ${l.xpToLevel} ${gamification.level + 1}.`
+        : `${l.levelConsolidated}`,
     highlightedMission,
   };
 }

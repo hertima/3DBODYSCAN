@@ -184,11 +184,44 @@ export function mapExerciseToCatalogRecord(exercise: Exercise): ExerciseCatalogR
     sourceGroup: exercise.sourceGroup ?? null,
     gifPath: exercise.gifUrl ?? null,
     gifSource: resolveGifSource(exercise),
-    status: exercise.id.startsWith("catalog-") ? "review" : "active",
+    status: "active",
   };
+}
+
+export function isFunctionalExerciseRecord(record: ExerciseCatalogRecord) {
+  const movement = normalize(
+    [record.name.pt, record.movementPattern.pt, record.sourceGroup ?? ""].join(" "),
+  );
+  if (record.trainingType === "calistenia") return true;
+
+  const functionalEquipment = [
+    "peso_corporal",
+    "parede",
+    "trx",
+    "bola",
+    "elastico",
+  ];
+
+  return (
+    functionalEquipment.includes(record.equipment) ||
+    [
+      "agach",
+      "afundo",
+      "unilateral",
+      "core",
+      "prancha",
+      "plank",
+      "estabil",
+      "isometr",
+      "mobilidade",
+      "potencia",
+      "salto",
+      "controle",
+      "condicionamento",
+    ].some((token) => movement.includes(token))
+  );
 }
 
 export function buildExerciseCatalog(exercises: Exercise[] = libraryExercises) {
   return exercises.map(mapExerciseToCatalogRecord);
 }
-

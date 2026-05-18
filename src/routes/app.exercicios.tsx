@@ -1,21 +1,33 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
+import { VideoPreviewCard, ProfileEvolutionVideo } from "@/remotion";
+import { loadOnboarding } from "@/lib/onboarding";
 import {
   BookOpen,
-  MapPin,
+  Activity,
+  Dumbbell,
+  Globe2,
   Search,
-  SlidersHorizontal,
   Sparkles,
   Star,
-  Target,
   Zap,
 } from "lucide-react";
 import { ExerciseMedia } from "@/components/ExerciseMedia";
 import { libraryExercises, type Exercise } from "@/data/library";
 import { useExerciseCatalog } from "@/hooks/use-exercise-catalog";
-import { useTrainingState } from "@/hooks/use-training-state";
 import { cleanLegacyText, normalizeText } from "@/lib/formatting";
-import { getStoredLocale } from "@/lib/locale";
+import { getStoredLocale, type AppLocale } from "@/lib/locale";
+import {
+  getExerciseBiomechanics,
+  getEquipmentLabel,
+  getExerciseName,
+  getMuscleGroupLabel,
+} from "@/lib/exercise-i18n";
+import { getCategoryLabel, getWorkoutTypeLabel } from "@/lib/training-i18n";
+import {
+  isFunctionalExerciseRecord,
+  type OfficialMuscleCategory,
+} from "@/domain/exercises/catalog";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/app/exercicios")({
@@ -31,7 +43,8 @@ export const Route = createFileRoute("/app/exercicios")({
   component: Library,
 });
 
-const types = ["Musculacao", "Calistenia", "Hibrido"] as const;
+const modes = ["Musculacao", "Funcional", "Calistenia"] as const;
+type ModeFilter = (typeof modes)[number];
 const strengthMuscles = [
   "Abdomen Core",
   "Biceps E Antebraco",
@@ -42,51 +55,47 @@ const strengthMuscles = [
   "Peitoral",
   "Triceps",
 ] as const;
+const allMuscle = "Todos" as const;
 const muscleOrder = strengthMuscles;
+type MuscleFilter = typeof allMuscle | (typeof muscleOrder)[number];
 
 const COPY = {
-  pt: { engine: "Exercise Engine", title: "Biblioteca 3D Body Scan", subtitle: "Explore movimentos por grupo muscular, equipamento e estilo de treino com uma navegação mais visual.", exercises: "Exercícios", keyGroups: "Grupos-chave", search: "Buscar exercício, padrão de movimento ou foco...", organized: "Biblioteca organizada", noResults: "Nenhum exercício encontrado", adjustFilters: "Ajuste a busca ou troque os filtros para ampliar a biblioteca exibida.", cataloged: "exercícios catalogados", thisGroup: "neste grupo" },
-  es: { engine: "Exercise Engine", title: "Biblioteca 3D Body Scan", subtitle: "Explora movimientos por grupo muscular, equipamiento y estilo de entrenamiento con una navegacion mas visual.", exercises: "Ejercicios", keyGroups: "Grupos clave", search: "Buscar ejercicio, patron de movimiento o enfoque...", organized: "Biblioteca organizada", noResults: "No se encontraron ejercicios", adjustFilters: "Ajusta la busqueda o cambia los filtros para ampliar la biblioteca mostrada.", cataloged: "ejercicios catalogados", thisGroup: "en este grupo" },
-  en: { engine: "Exercise Engine", title: "3D Body Scan Library", subtitle: "Explore movements by muscle group, equipment, and training style with a more visual navigation flow.", exercises: "Exercises", keyGroups: "Key groups", search: "Search exercise, movement pattern, or focus...", organized: "Organized library", noResults: "No exercises found", adjustFilters: "Adjust your search or change filters to widen the displayed library.", cataloged: "cataloged exercises", thisGroup: "in this group" },
-  fr: { engine: "Exercise Engine", title: "Bibliotheque 3D Body Scan", subtitle: "Explorez les mouvements par groupe musculaire, equipement et style d'entrainement avec une navigation plus visuelle.", exercises: "Exercices", keyGroups: "Groupes cles", search: "Rechercher un exercice, un schema de mouvement ou un focus...", organized: "Bibliotheque organisee", noResults: "Aucun exercice trouve", adjustFilters: "Ajustez la recherche ou modifiez les filtres pour elargir la bibliotheque affichee.", cataloged: "exercices catalogues", thisGroup: "dans ce groupe" },
-  de: { engine: "Exercise Engine", title: "3D Body Scan Bibliothek", subtitle: "Erkunde Bewegungen nach Muskelgruppe, Equipment und Trainingsstil mit einer visuelleren Navigation.", exercises: "Ubungen", keyGroups: "Schlusselgruppen", search: "Suche nach Ubung, Bewegungsmuster oder Fokus...", organized: "Organisierte Bibliothek", noResults: "Keine Ubungen gefunden", adjustFilters: "Passe die Suche an oder wechsle die Filter, um die angezeigte Bibliothek zu erweitern.", cataloged: "katalogisierte Ubungen", thisGroup: "in dieser Gruppe" },
+  pt: { engine: "Biblioteca global", title: "Biblioteca Global 500+ GIFs", subtitle: "Exercícios organizados para montar treinos de musculação, funcional e calistenia.", exercises: "Exercícios", search: "Buscar exercício, equipamento ou movimento...", organized: "Exercícios por modalidade", noResults: "Nenhum exercício encontrado", adjustFilters: "Troque a modalidade, o grupo muscular ou refine a busca.", cataloged: "exercícios disponíveis", thisGroup: "neste grupo", all: "Todos", showing: "exibindo", global: "Para alunos no mundo inteiro", strength: "Musculação", functional: "Funcional", calisthenics: "Calistenia" },
+  es: { engine: "Biblioteca global", title: "Biblioteca Global 500+ GIFs", subtitle: "Ejercicios organizados para crear entrenamientos de musculación, funcional y calistenia.", exercises: "Ejercicios", search: "Buscar ejercicio, equipamiento o movimiento...", organized: "Ejercicios por modalidad", noResults: "No se encontraron ejercicios", adjustFilters: "Cambia la modalidad, el grupo muscular o ajusta la búsqueda.", cataloged: "ejercicios disponibles", thisGroup: "en este grupo", all: "Todos", showing: "mostrando", global: "Para alumnos de todo el mundo", strength: "Musculación", functional: "Funcional", calisthenics: "Calistenia" },
+  en: { engine: "Global library", title: "Global 500+ GIF Library", subtitle: "Exercises organized for strength, functional, and calisthenics workout generation.", exercises: "Exercises", search: "Search exercise, equipment, or movement...", organized: "Exercises by modality", noResults: "No exercises found", adjustFilters: "Change the modality, muscle group, or refine the search.", cataloged: "available exercises", thisGroup: "in this group", all: "All", showing: "showing", global: "For students worldwide", strength: "Strength", functional: "Functional", calisthenics: "Calisthenics" },
+  fr: { engine: "Bibliotheque globale", title: "Bibliotheque Globale 500+ GIFs", subtitle: "Exercices organises pour generer des seances de musculation, fonctionnel et callisthenie.", exercises: "Exercices", search: "Rechercher exercice, equipement ou mouvement...", organized: "Exercices par modalite", noResults: "Aucun exercice trouve", adjustFilters: "Changez la modalite, le groupe musculaire ou affinez la recherche.", cataloged: "exercices disponibles", thisGroup: "dans ce groupe", all: "Tous", showing: "affichage", global: "Pour des eleves dans le monde entier", strength: "Musculation", functional: "Fonctionnel", calisthenics: "Callisthenie" },
+  de: { engine: "Globale Bibliothek", title: "Globale 500+ GIF Bibliothek", subtitle: "Ubungen fur Trainingsplane in Krafttraining, funktionellem Training und Calisthenics.", exercises: "Ubungen", search: "Suche nach Ubung, Equipment oder Bewegung...", organized: "Ubungen nach Modalitat", noResults: "Keine Ubungen gefunden", adjustFilters: "Wechsle Modalitat, Muskelgruppe oder verfeinere die Suche.", cataloged: "verfugbare Ubungen", thisGroup: "in dieser Gruppe", all: "Alle", showing: "anzeige", global: "Fur Schuler weltweit", strength: "Krafttraining", functional: "Funktionell", calisthenics: "Calisthenics" },
 } as const;
 
 const normalize = (value: string) => normalizeText(value);
 const displayValue = (value: string) => cleanLegacyText(value);
 
-const getTypeKey = (value: string) =>
-  normalize(value).includes("calisten") ? "calistenia" : "musculacao";
+function getModeLabel(mode: ModeFilter | string, locale: AppLocale): string {
+  const labels: Record<ModeFilter, Partial<Record<AppLocale, string>>> = {
+    Musculacao: {
+      pt: "Musculação",
+      es: "Musculación",
+      en: "Strength",
+      fr: "Musculation",
+      de: "Krafttraining",
+    },
+    Calistenia: {
+      pt: "Calistenia",
+      es: "Calistenia",
+      en: "Calisthenics",
+      fr: "Callisthénie",
+      de: "Calisthenics",
+    },
+    Funcional: {
+      pt: "Funcional",
+      es: "Funcional",
+      en: "Functional",
+      fr: "Fonctionnel",
+      de: "Funktionell",
+    },
+  };
 
-const getTypeLabel = (value: string) =>
-  getTypeKey(value) === "calistenia" ? "Calistenia" : "Musculacao";
-
-function formatMuscleLabel(value: string) {
-  const normalized = normalize(displayValue(value));
-
-  if (normalized.includes("core")) return "Abdomen Core";
-  if (normalized.includes("biceps") || normalized.includes("antebraco")) {
-    return "Biceps E Antebraco";
-  }
-  if (normalized.includes("triceps")) return "Triceps";
-  if (normalized.includes("costas")) return "Costas E Trapezio";
-  if (normalized.includes("ombros")) return "Deltoides";
-  if (normalized.includes("peito")) return "Peitoral";
-  if (normalized.includes("panturrilha")) return "Panturrilha";
-  if (normalized.includes("pernas") || normalized.includes("gluteos")) {
-    return "Membros Inferiores E Gluteos";
-  }
-
-  return displayValue(value);
-}
-
-function formatEquipmentLabel(value: string) {
-  const formatted = displayValue(value);
-  const normalized = normalize(formatted);
-
-  if (normalized === "barra fixa") return "Barra Fixa";
-
-  return formatted;
+  return labels[mode as ModeFilter]?.[locale] ?? labels[mode as ModeFilter]?.pt ?? mode;
 }
 
 function getCatalogMuscleLabel(category: string): (typeof strengthMuscles)[number] {
@@ -100,79 +109,58 @@ function getCatalogMuscleLabel(category: string): (typeof strengthMuscles)[numbe
   return "Triceps";
 }
 
-function supportsEnvironment(
-  equipment: string,
-  trainingType: "musculacao" | "calistenia",
-  location: "academia" | "casa" | "hibrido" | "outdoor",
-) {
-  if (location === "outdoor") {
-    return (
-      trainingType === "calistenia" &&
-      ["peso_corporal", "barra_fixa", "paralelas", "parede", "trx"].includes(equipment)
-    );
-  }
+const muscleGroupKeyMap: Record<string, OfficialMuscleCategory> = {
+  "Abdomen Core": "abdomen_core",
+  "Biceps E Antebraco": "biceps_antebraco",
+  "Costas E Trapezio": "costas_trapezio",
+  "Deltoides": "deltoides",
+  "Membros Inferiores E Gluteos": "membros_inferiores_gluteos",
+  "Panturrilha": "panturrilha",
+  "Peitoral": "peitoral",
+  "Triceps": "triceps",
+};
 
-  if (location === "casa") {
-    return equipment !== "maquina" && equipment !== "cabos";
-  }
-
-  return true;
-}
-
-function getDefaultType(location: "academia" | "casa" | "hibrido" | "outdoor") {
-  if (location === "outdoor") return "Calistenia";
-  if (location === "hibrido") return "Hibrido";
-  return "Musculacao";
+function getMuscleGroupSectionLabel(muscle: string, locale: AppLocale): string {
+  const category = muscleGroupKeyMap[muscle];
+  if (!category) return muscle;
+  return getCategoryLabel(category, locale);
 }
 
 function Library() {
-  const copy = COPY[getStoredLocale()] ?? COPY.pt;
-  const trainingState = useTrainingState();
+  const locale = getStoredLocale();
+  const copy = COPY[locale] ?? COPY.pt;
   const catalog = useExerciseCatalog();
   const catalogById = useMemo(
     () => new Map(catalog.map((record) => [record.id, record])),
     [catalog],
   );
   const [q, setQ] = useState("");
-  const [type, setType] = useState<(typeof types)[number]>(
-    getDefaultType(trainingState.environment.location),
-  );
-  const [muscle, setMuscle] = useState<(typeof muscleOrder)[number]>("Peitoral");
+  const [mode, setMode] = useState<ModeFilter>("Musculacao");
+  const [muscle, setMuscle] = useState<MuscleFilter>(allMuscle);
   const muscles = strengthMuscles;
 
   useEffect(() => {
-    setType(getDefaultType(trainingState.environment.location));
-  }, [trainingState.environment.location]);
-
-  useEffect(() => {
-    if (!muscles.includes(muscle as never)) {
-      setMuscle(muscles[0]);
+    if (muscle !== allMuscle && !muscles.includes(muscle as never)) {
+      setMuscle(allMuscle);
     }
   }, [muscle, muscles]);
 
   const stats = useMemo(() => {
-    const visibleCatalog = catalog.filter((record) =>
-      supportsEnvironment(
-        record.equipment,
-        record.trainingType,
-        trainingState.environment.location,
-      ),
-    );
-    const strengthCount = visibleCatalog.filter(
+    const strengthCount = catalog.filter(
       (record) => record.trainingType === "musculacao",
     ).length;
-    const calisthenicsCount = visibleCatalog.filter(
+    const calisthenicsCount = catalog.filter(
       (record) => record.trainingType === "calistenia",
     ).length;
-    const mainGroups = new Set(visibleCatalog.map((record) => record.category)).size;
+    const functionalCount = catalog.filter(isFunctionalExerciseRecord).length;
 
     return {
-      total: visibleCatalog.length,
+      total: catalog.length,
       strengthCount,
+      functionalCount,
       calisthenicsCount,
-      mainGroups,
     };
-  }, [catalog, trainingState.environment.location]);
+  }, [catalog]);
 
   const filtered = useMemo(
     () =>
@@ -180,40 +168,52 @@ function Library() {
         const record = catalogById.get(exercise.id);
         if (!record) return false;
 
-        const normalizedName = normalize(exercise.name);
         const normalizedQuery = normalize(q);
-        const typeMatches = type === "Hibrido" ? true : record.trainingType === normalize(type);
-        const muscleMatches = getCatalogMuscleLabel(record.category) === muscle;
-        const environmentMatches = supportsEnvironment(
+        const modeMatches =
+          mode === "Funcional"
+            ? isFunctionalExerciseRecord(record)
+            : record.trainingType === normalize(mode);
+        const muscleMatches =
+          muscle === allMuscle || getCatalogMuscleLabel(record.category) === muscle;
+        const haystack = [
+          exercise.name,
+          exercise.equipment,
+          exercise.biomechanics,
+          exercise.sourceGroup ?? "",
+          record.name.pt,
+          record.aliases.join(" "),
+          record.movementPattern.pt,
           record.equipment,
-          record.trainingType,
-          trainingState.environment.location,
-        );
+          record.category,
+          getCatalogMuscleLabel(record.category),
+        ].map(normalize).join(" ");
 
         return (
-          typeMatches &&
+          modeMatches &&
           muscleMatches &&
-          environmentMatches &&
-          (q === "" || normalizedName.includes(normalizedQuery))
+          (q === "" || haystack.includes(normalizedQuery))
         );
       }),
-    [q, type, muscle, catalogById, trainingState.environment.location],
+    [q, mode, muscle, catalogById],
   );
 
   const groupedSections = useMemo(() => {
-    const typeSections = type === "Hibrido" ? ["Musculacao", "Calistenia"] : [type];
+    const modeSections = [mode];
 
-    return typeSections
-      .map((sectionType) => {
-        const itemsForType = filtered.filter((exercise) => {
-          const record = catalogById.get(exercise.id);
-          return record ? record.trainingType === normalize(sectionType) : false;
-        });
+    return modeSections
+      .map((sectionMode) => {
+        const itemsForMode =
+          sectionMode === "Funcional"
+            ? filtered
+            : filtered.filter((exercise) => {
+                const record = catalogById.get(exercise.id);
+                return record ? record.trainingType === normalize(sectionMode) : false;
+              });
 
         const groups = muscles
           .map((currentMuscle) => ({
             muscle: currentMuscle,
-            items: itemsForType.filter((exercise) => {
+            items: itemsForMode.filter((exercise) => {
               const record = catalogById.get(exercise.id);
               return record ? getCatalogMuscleLabel(record.category) === currentMuscle : false;
             }),
@@ -221,13 +221,13 @@ function Library() {
           .filter((group) => group.items.length > 0);
 
         return {
-          type: sectionType,
-          total: itemsForType.length,
+          type: sectionMode,
+          total: itemsForMode.length,
           groups,
         };
       })
       .filter((section) => section.total > 0);
-  }, [filtered, muscles, type, catalogById]);
+  }, [filtered, muscles, mode, catalogById]);
 
   return (
     <div className="space-y-5 pb-6">
@@ -247,14 +247,10 @@ function Library() {
                 {copy.subtitle}
               </p>
               <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-border bg-background/35 px-3 py-1.5 text-[11px] font-medium text-muted-foreground">
-                <MapPin className="h-3.5 w-3.5 text-cyan" />
-                {[trainingState.environment.location, type].join(" | ")}
+                <Globe2 className="h-3.5 w-3.5 text-cyan" />
+                {[copy.global, getModeLabel(mode, locale)].join(" | ")}
               </div>
             </div>
-
-            <button className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-border bg-background/45 text-muted-foreground backdrop-blur transition hover:text-primary">
-              <SlidersHorizontal className="h-4 w-4" />
-            </button>
           </div>
 
           <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -265,26 +261,49 @@ function Library() {
               accent="text-primary"
             />
             <TopStat
-              icon={Target}
-              value={`${stats.mainGroups}`}
-              label={copy.keyGroups}
-              accent="text-cyan"
+              icon={Dumbbell}
+              value={`${stats.strengthCount}`}
+              label={copy.strength}
+              accent="text-success"
             />
             <TopStat
-              icon={Zap}
-              value={`${stats.strengthCount}`}
-              label="Musculação"
-              accent="text-success"
+              icon={Activity}
+              value={`${stats.functionalCount}`}
+              label={copy.functional}
+              accent="text-cyan"
             />
             <TopStat
               icon={Sparkles}
               value={`${stats.calisthenicsCount}`}
-              label="Calistenia"
+              label={copy.calisthenics}
               accent="text-primary"
             />
           </div>
         </div>
       </section>
+
+      {/* VideoPreviewCard — perfil do atleta compartilhável */}
+      {(() => {
+        const profile = loadOnboarding();
+        return (
+          <div className="flex items-center gap-4 rounded-2xl border p-4" style={{ borderColor: "rgba(251,146,60,0.2)", background: "rgba(251,146,60,0.04)" }}>
+            <div style={{ width: 88, flexShrink: 0 }}>
+              <VideoPreviewCard
+                composition={ProfileEvolutionVideo as never}
+                inputProps={{ name: profile.name ?? "Atleta", goal: profile.goal ?? "wellness", avatarUrl: profile.avatarUrl ?? undefined }}
+                durationInFrames={360}
+                title="Compartilhar perfil"
+                previewFrame={60}
+              />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-sm font-bold text-foreground">Mostre sua evolução</div>
+              <div className="mt-0.5 text-xs text-muted-foreground">Gere um story com seu perfil de atleta e compartilhe</div>
+              <div className="mt-2 text-[10px] font-semibold uppercase tracking-widest" style={{ color: "#fb923c" }}>Story 9:16 · Instagram / WhatsApp</div>
+            </div>
+          </div>
+        );
+      })()}
 
       <section className="rounded-3xl border border-border bg-surface p-4">
         <div className="flex flex-col gap-3">
@@ -299,24 +318,24 @@ function Library() {
           </div>
 
           <div className="grid grid-cols-3 gap-1 rounded-2xl border border-border bg-elevated/35 p-1">
-            {types.map((currentType) => (
+            {modes.map((currentMode) => (
               <button
-                key={currentType}
-                onClick={() => setType(currentType)}
+                key={currentMode}
+                onClick={() => setMode(currentMode)}
                 className={cn(
                   "rounded-xl px-2 py-2 text-xs font-semibold transition",
-                  type === currentType
+                  mode === currentMode
                     ? "bg-gradient-primary text-primary-foreground shadow-glow-primary"
                     : "text-muted-foreground hover:text-foreground",
                 )}
               >
-                {currentType}
+                {getModeLabel(currentMode, locale)}
               </button>
             ))}
           </div>
 
           <div className="flex flex-wrap gap-2">
-            {muscles.map((currentMuscle) => (
+            {[allMuscle, ...muscles].map((currentMuscle) => (
               <button
                 key={currentMuscle}
                 onClick={() => setMuscle(currentMuscle)}
@@ -327,7 +346,7 @@ function Library() {
                     : "border-border bg-background/40 text-muted-foreground hover:text-foreground",
                 )}
               >
-                {currentMuscle}
+                {currentMuscle === allMuscle ? copy.all : getMuscleGroupSectionLabel(currentMuscle, locale)}
               </button>
             ))}
           </div>
@@ -339,8 +358,7 @@ function Library() {
           <div>
             <h2 className="font-display text-lg font-semibold">{copy.organized}</h2>
             <p className="text-xs text-muted-foreground">
-              {filtered.length} resultado{filtered.length === 1 ? "" : "s"} separados por tipo e
-              grupo muscular
+              {copy.showing} {filtered.length} / {stats.total} {copy.cataloged}
             </p>
           </div>
         </div>
@@ -351,13 +369,13 @@ function Library() {
               {groupedSections.length > 1 ? (
                 <div className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-surface px-4 py-3">
                   <div>
-                    <div className="font-display text-lg font-semibold">{section.type}</div>
+                    <div className="font-display text-lg font-semibold">{getModeLabel(section.type, locale)}</div>
                     <div className="text-xs text-muted-foreground">
                       {section.total} {copy.exercises.toLowerCase()}
                     </div>
                   </div>
                   <span className="rounded-full bg-elevated px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-foreground/80">
-                    {section.type}
+                    {getModeLabel(section.type, locale)}
                   </span>
                 </div>
               ) : null}
@@ -365,7 +383,7 @@ function Library() {
               {section.groups.map((group) => (
                 <div key={`${section.type}-${group.muscle}`} className="space-y-3">
                   <div>
-                    <h3 className="font-display text-base font-semibold">{group.muscle}</h3>
+                    <h3 className="font-display text-base font-semibold">{getMuscleGroupSectionLabel(group.muscle, locale)}</h3>
                     <p className="text-xs text-muted-foreground">
                       {group.items.length} {copy.exercises.toLowerCase()} {copy.thisGroup}
                     </p>
@@ -373,7 +391,7 @@ function Library() {
 
                   <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                     {group.items.map((exercise) => (
-                      <ExerciseCard key={exercise.id} exercise={exercise} />
+                      <ExerciseCard key={exercise.id} exercise={exercise} locale={locale} />
                     ))}
                   </div>
                 </div>
@@ -418,7 +436,7 @@ function TopStat({
   );
 }
 
-function ExerciseCard({ exercise }: { exercise: Exercise }) {
+function ExerciseCard({ exercise, locale }: { exercise: Exercise; locale: AppLocale }) {
   return (
     <a
       href={`/app/exercicio/${exercise.id}`}
@@ -442,23 +460,23 @@ function ExerciseCard({ exercise }: { exercise: Exercise }) {
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="text-base font-semibold leading-tight">
-              {displayValue(exercise.name)}
+              {getExerciseName(exercise.id, displayValue(exercise.name), locale)}
             </div>
             <div className="mt-1 text-xs text-muted-foreground">
-              {displayValue(exercise.biomechanics)}
+              {getExerciseBiomechanics(displayValue(exercise.biomechanics), locale)}
             </div>
           </div>
           <div className="rounded-full bg-elevated px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-foreground/80">
-            {getTypeLabel(exercise.type)}
+            {getWorkoutTypeLabel(exercise.type, locale)}
           </div>
         </div>
 
         <div className="mt-4 flex flex-wrap gap-2 text-[10px] font-semibold uppercase tracking-[0.16em]">
           <span className="rounded-full bg-primary/10 px-2.5 py-1 text-primary">
-            {formatMuscleLabel(exercise.muscle)}
+            {getMuscleGroupLabel(exercise.muscle, locale)}
           </span>
           <span className="rounded-full bg-background/50 px-2.5 py-1 text-muted-foreground">
-            {formatEquipmentLabel(exercise.equipment)}
+            {getEquipmentLabel(exercise.equipment, locale)}
           </span>
         </div>
       </div>

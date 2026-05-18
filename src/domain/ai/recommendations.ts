@@ -1,4 +1,8 @@
 import { type GeneratedTrainingState } from "@/domain/training/engine";
+import { getRecommendationsCopy } from "@/lib/app-copy";
+import { getCategoryLabel, getIntensityLabel } from "@/lib/training-i18n";
+import type { OfficialMuscleCategory } from "@/domain/exercises/catalog";
+import type { AppLocale } from "@/lib/locale";
 
 export type AIRecommendation = {
   id: string;
@@ -8,104 +12,92 @@ export type AIRecommendation = {
   type: "treino" | "nutricao" | "recuperacao" | "ambiente" | "hidratacao";
 };
 
-function getPrimaryWorkoutName(state: GeneratedTrainingState) {
-  return state.workouts[0]?.name ?? "treino atual";
-}
+type Copy = ReturnType<typeof getRecommendationsCopy>;
 
-function buildRecoveryRecommendation(state: GeneratedTrainingState): AIRecommendation | null {
+function buildRecoveryRecommendation(state: GeneratedTrainingState, t: Copy): AIRecommendation | null {
   if (!state.nutrition.needsRecoverySupport) return null;
-
   return {
     id: "recovery-support",
-    title: "Recovery em proteção",
-    message:
-      "Sua base nutricional ainda está curta para sustentar carga alta. Mantenha a técnica limpa e segure a agressividade nas últimas séries.",
+    title: t.recovery.title,
+    message: t.recovery.message,
     priority: "alta",
     type: "recuperacao",
   };
 }
 
-function buildNutritionRecommendation(state: GeneratedTrainingState): AIRecommendation | null {
+function buildNutritionRecommendation(state: GeneratedTrainingState, t: Copy): AIRecommendation | null {
   if (state.nutrition.proteinCompletionPct >= 70) return null;
-
   return {
     id: "protein-gap",
-    title: "Proteína abaixo do alvo",
-    message: `Seu dia ainda está em ${state.nutrition.proteinCompletionPct}% da meta de proteína. Feche isso antes do próximo treino pesado.`,
+    title: t.protein.title,
+    message: `${t.protein.messagePre} ${state.nutrition.proteinCompletionPct}${t.protein.messageMid}`,
     priority: "alta",
     type: "nutricao",
   };
 }
 
-function buildHydrationRecommendation(state: GeneratedTrainingState): AIRecommendation | null {
+function buildHydrationRecommendation(state: GeneratedTrainingState, t: Copy): AIRecommendation | null {
   if (state.nutrition.hydrationStatus !== "baixa") return null;
-
   return {
     id: "hydration-gap",
-    title: "Hidratação abaixo do alvo",
-    message: `Sua água do dia está em ${state.nutrition.hydrationCompletionPct}% da meta. Suba isso antes do treino para melhorar recuperação e rendimento.`,
+    title: t.hydration.title,
+    message: `${t.hydration.messagePre} ${state.nutrition.hydrationCompletionPct}${t.hydration.messageMid}`,
     priority: "alta",
     type: "hidratacao",
   };
 }
 
-function buildBodyPriorityRecommendation(state: GeneratedTrainingState): AIRecommendation | null {
+function buildBodyPriorityRecommendation(state: GeneratedTrainingState, t: Copy, locale?: string): AIRecommendation | null {
   const focus = state.body.muscularPriorities[0];
   if (!focus) return null;
-
+  const focusLabel = getCategoryLabel(focus as OfficialMuscleCategory, locale as AppLocale);
   return {
     id: "body-priority",
-    title: "Prioridade corporal ativa",
-    message: `O scan está puxando prioridade para ${focus.replaceAll("_", " ")}. O plano da semana já favorece esse bloco sem perder equilíbrio geral.`,
+    title: t.bodyPriority.title,
+    message: `${t.bodyPriority.messagePre} ${focusLabel}. ${t.bodyPriority.messageSuf}`,
     priority: state.body.priorityLevel === "alta" ? "alta" : "media",
     type: "treino",
   };
 }
 
-function buildEnvironmentRecommendation(state: GeneratedTrainingState): AIRecommendation | null {
-  if (state.environment.location !== "academia" && state.environment.location !== "hibrido") {
-    return null;
-  }
-
+function buildEnvironmentRecommendation(state: GeneratedTrainingState, t: Copy): AIRecommendation | null {
+  if (state.environment.location !== "academia" && state.environment.location !== "hibrido") return null;
   if (state.environment.crowdLevel !== "pico") return null;
-
   return {
     id: "peak-hours",
-    title: "Academia em horário de pico",
-    message:
-      "Seu treino foi priorizado com opções mais viáveis para evitar fila e manter fluidez entre os exercícios.",
+    title: t.peakHours.title,
+    message: t.peakHours.message,
     priority: "media",
     type: "ambiente",
   };
 }
 
-function buildExecutionRecommendation(state: GeneratedTrainingState): AIRecommendation {
-  const workoutName = getPrimaryWorkoutName(state);
-  const intensity = state.schedule.find((item) => item.workoutId)?.intensity ?? "Moderado";
-
+function buildExecutionRecommendation(state: GeneratedTrainingState, t: Copy, locale?: string): AIRecommendation {
+  const workoutName = state.workouts[0]?.name ?? "";
+  const rawIntensity = state.schedule.find((item) => item.workoutId)?.intensity ?? "Moderado";
+  const intensityLabel = getIntensityLabel(rawIntensity as "Leve" | "Moderado" | "Pesado", locale as AppLocale).toLowerCase();
   return {
     id: "execution-focus",
-    title: "Execução do dia",
-    message: `No ${workoutName}, mantenha os primeiros movimentos em técnica limpa e use a progressão de carga só quando o bloco estiver estável em intensidade ${intensity.toLowerCase()}.`,
+    title: t.execution.title,
+    message: `${t.execution.messagePre} ${workoutName}, ${t.execution.messageMid} ${intensityLabel}.`,
     priority: "media",
     type: "treino",
   };
 }
 
-export function buildAIRecommendations(state: GeneratedTrainingState) {
+export function buildAIRecommendations(state: GeneratedTrainingState, locale?: string) {
+  const t = getRecommendationsCopy(locale as Parameters<typeof getRecommendationsCopy>[0]);
+
   const recommendations = [
-    buildRecoveryRecommendation(state),
-    buildHydrationRecommendation(state),
-    buildNutritionRecommendation(state),
-    buildBodyPriorityRecommendation(state),
-    buildEnvironmentRecommendation(state),
-    buildExecutionRecommendation(state),
+    buildRecoveryRecommendation(state, t),
+    buildHydrationRecommendation(state, t),
+    buildNutritionRecommendation(state, t),
+    buildBodyPriorityRecommendation(state, t, locale),
+    buildEnvironmentRecommendation(state, t),
+    buildExecutionRecommendation(state, t, locale),
   ].filter((item): item is AIRecommendation => Boolean(item));
 
-  const primary = recommendations[0] ?? buildExecutionRecommendation(state);
+  const primary = recommendations[0] ?? buildExecutionRecommendation(state, t, locale);
 
-  return {
-    primary,
-    items: recommendations.slice(0, 3),
-  };
+  return { primary, items: recommendations.slice(0, 3) };
 }

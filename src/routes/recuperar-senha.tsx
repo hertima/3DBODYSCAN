@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
+import { resetPassword } from "@/lib/auth";
 import { motion } from "framer-motion";
 import { ArrowLeft, Mail } from "lucide-react";
 import { LocaleSwitcher } from "@/components/LocaleSwitcher";
@@ -22,10 +23,10 @@ function RecoverPasswordPage() {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const authCopy = getAuthCopy();
-  const VALID_EMAIL = "herculesacademiarv@gmail.com";
 
-  const handleSubmit = (event: FormEvent) => {
+  const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     setMessage("");
     setError("");
@@ -36,12 +37,20 @@ function RecoverPasswordPage() {
       return;
     }
 
-    if (sanitizedEmail === VALID_EMAIL) {
-      setMessage(authCopy.recoverDemoFound);
-      return;
+    setLoading(true);
+    try {
+      await resetPassword(sanitizedEmail);
+      setMessage("E-mail de recuperação enviado! Verifique sua caixa de entrada.");
+    } catch (err: unknown) {
+      const code = (err as { code?: string }).code ?? "";
+      if (code === "auth/user-not-found" || code === "auth/invalid-email") {
+        setError("Nenhuma conta encontrada com este e-mail.");
+      } else {
+        setError("Erro ao enviar e-mail. Tente novamente.");
+      }
+    } finally {
+      setLoading(false);
     }
-
-    setMessage(authCopy.recoverDemoOnly);
   };
 
   const handleLocaleChange = (nextLocale: string) => {
@@ -136,10 +145,11 @@ function RecoverPasswordPage() {
               <motion.button
                 whileTap={{ scale: 0.97 }}
                 type="submit"
-                className="mt-2 flex w-full items-center justify-center gap-2 rounded-full py-3.5 text-base font-bold text-white transition"
+                disabled={loading}
+                className="mt-2 flex w-full items-center justify-center gap-2 rounded-full py-3.5 text-base font-bold text-white transition disabled:opacity-40"
                 style={{ background: "linear-gradient(135deg,#ea580c,#fb923c,#fdba74)", boxShadow: "0 0 24px rgba(251,146,60,0.35), 0 4px 16px rgba(0,0,0,0.4)" }}
               >
-                {authCopy.recoverCta}
+                {loading ? "Enviando..." : authCopy.recoverCta}
               </motion.button>
             </form>
           </div>

@@ -1,8 +1,8 @@
 import type { OfficialMuscleCategory } from "@/domain/exercises/catalog";
 import type { TrainingSplit, WorkoutTemplate } from "@/domain/training/rules";
-import { getDefaultLocale, getStoredLocale } from "@/lib/locale";
+import { type AppLocale, getDefaultLocale, getStoredLocale } from "@/lib/locale";
 
-export type AppLocale = "pt" | "es" | "en" | "fr" | "de";
+export type { AppLocale };
 
 const defaultLocale: AppLocale = getDefaultLocale();
 
@@ -27,7 +27,7 @@ const trainingCopy = {
       male_upper_lower_bias: "Superior/Inferior com Vi\u00E9s Superior",
       performance_hybrid: "Performance H\u00EDbrida",
     } satisfies Record<TrainingSplit, string>,
-    workoutTypes: { musculacao: "Muscula\u00E7\u00E3o", calistenia: "Calistenia", hibrido: "H\u00EDbrido" },
+    workoutTypes: { musculacao: "Muscula\u00E7\u00E3o", funcional: "Funcional", calistenia: "Calistenia", hibrido: "H\u00EDbrido" },
     workoutNames: {
       Push: "Treino de Empurrar",
       Pull: "Treino de Puxar",
@@ -36,12 +36,13 @@ const trainingCopy = {
       Upper: "Treino de Superiores",
       Lower: "Treino Inferior",
       "Hybrid Performance": "Treino de Performance H\u00EDbrida",
+      "Functional Performance": "Treino Funcional",
     },
     goalTags: { ganho_massa: "Hipertrofia", perda_peso: "Defini\u00E7\u00E3o", definicao: "Defini\u00E7\u00E3o", forca: "For\u00E7a", performance: "Performance", saude: "Sa\u00FAde" },
     weekDays: ["Seg", "Ter", "Qua", "Qui", "Sex", "Sab", "Dom"],
     intensityLabels: { leve: "Leve", moderada: "Moderada", pesada: "Pesada" },
     phaseLabels: { base: "Base", progressao: "Progress\u00E3o", intensificacao: "Intensifica\u00E7\u00E3o", deload: "Deload" },
-    modalityLabels: { academia: "Academia", calistenia: "Calistenia", hibrido: "H\u00EDbrido" },
+    modalityLabels: { academia: "Academia", musculacao: "Muscula\u00E7\u00E3o", funcional: "Funcional", calistenia: "Calistenia", hibrido: "H\u00EDbrido" },
   },
   es: {
     focusSeparator: " | ",
@@ -63,7 +64,7 @@ const trainingCopy = {
       male_upper_lower_bias: "Superior/Inferior con Sesgo Superior",
       performance_hybrid: "Rendimiento H\u00EDbrido",
     } satisfies Record<TrainingSplit, string>,
-    workoutTypes: { musculacao: "Musculaci\u00F3n", calistenia: "Calistenia", hibrido: "H\u00EDbrido" },
+    workoutTypes: { musculacao: "Musculaci\u00F3n", funcional: "Funcional", calistenia: "Calistenia", hibrido: "H\u00EDbrido" },
     workoutNames: {
       Push: "Entrenamiento de Empuje",
       Pull: "Entrenamiento de Tir\u00F3n",
@@ -72,12 +73,13 @@ const trainingCopy = {
       Upper: "Entrenamiento Superior",
       Lower: "Entrenamiento Inferior",
       "Hybrid Performance": "Entrenamiento de Rendimiento H\u00EDbrido",
+      "Functional Performance": "Entrenamiento Funcional",
     },
     goalTags: { ganho_massa: "Hipertrofia", perda_peso: "Definici\u00F3n", definicao: "Definici\u00F3n", forca: "Fuerza", performance: "Rendimiento", saude: "Salud" },
     weekDays: ["Lun", "Mar", "Mi\u00E9", "Jue", "Vie", "S\u00E1b", "Dom"],
     intensityLabels: { leve: "Suave", moderada: "Moderada", pesada: "Pesada" },
     phaseLabels: { base: "Base", progressao: "Progresi\u00F3n", intensificacao: "Intensificaci\u00F3n", deload: "Descarga" },
-    modalityLabels: { academia: "Gimnasio", calistenia: "Calistenia", hibrido: "H\u00EDbrido" },
+    modalityLabels: { academia: "Gimnasio", musculacao: "Musculaci\u00F3n", funcional: "Funcional", calistenia: "Calistenia", hibrido: "H\u00EDbrido" },
   },
   en: {
     focusSeparator: " | ",
@@ -99,7 +101,7 @@ const trainingCopy = {
       male_upper_lower_bias: "Upper/Lower with Upper Bias",
       performance_hybrid: "Hybrid Performance",
     } satisfies Record<TrainingSplit, string>,
-    workoutTypes: { musculacao: "Strength", calistenia: "Calisthenics", hibrido: "Hybrid" },
+    workoutTypes: { musculacao: "Strength", funcional: "Functional", calistenia: "Calisthenics", hibrido: "Hybrid" },
     workoutNames: {
       Push: "Push Workout",
       Pull: "Pull Workout",
@@ -108,12 +110,13 @@ const trainingCopy = {
       Upper: "Upper Workout",
       Lower: "Lower Workout",
       "Hybrid Performance": "Hybrid Performance Workout",
+      "Functional Performance": "Functional Workout",
     },
     goalTags: { ganho_massa: "Hypertrophy", perda_peso: "Cut", definicao: "Cut", forca: "Strength", performance: "Performance", saude: "Health" },
     weekDays: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
     intensityLabels: { leve: "Light", moderada: "Moderate", pesada: "Heavy" },
     phaseLabels: { base: "Base", progressao: "Progression", intensificacao: "Intensification", deload: "Deload" },
-    modalityLabels: { academia: "Gym", calistenia: "Calisthenics", hibrido: "Hybrid" },
+    modalityLabels: { academia: "Gym", musculacao: "Strength", funcional: "Functional", calistenia: "Calisthenics", hibrido: "Hybrid" },
   },
   fr: {
     focusSeparator: " | ",
@@ -135,7 +138,7 @@ const trainingCopy = {
       male_upper_lower_bias: "Haut/Bas avec Biais Haut",
       performance_hybrid: "Performance Hybride",
     } satisfies Record<TrainingSplit, string>,
-    workoutTypes: { musculacao: "Musculation", calistenia: "Calisth\u00E9nie", hibrido: "Hybride" },
+    workoutTypes: { musculacao: "Musculation", funcional: "Fonctionnel", calistenia: "Calisth\u00E9nie", hibrido: "Hybride" },
     workoutNames: {
       Push: "S\u00E9ance de Pouss\u00E9e",
       Pull: "S\u00E9ance de Tirage",
@@ -144,12 +147,13 @@ const trainingCopy = {
       Upper: "S\u00E9ance Haut du Corps",
       Lower: "S\u00E9ance Bas du Corps",
       "Hybrid Performance": "S\u00E9ance de Performance Hybride",
+      "Functional Performance": "S\u00E9ance Fonctionnelle",
     },
     goalTags: { ganho_massa: "Hypertrophie", perda_peso: "D\u00E9finition", definicao: "D\u00E9finition", forca: "Force", performance: "Performance", saude: "Sant\u00E9" },
     weekDays: ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"],
     intensityLabels: { leve: "L\u00E9g\u00E8re", moderada: "Mod\u00E9r\u00E9e", pesada: "Lourde" },
     phaseLabels: { base: "Base", progressao: "Progression", intensificacao: "Intensification", deload: "Deload" },
-    modalityLabels: { academia: "Salle", calistenia: "Calisth\u00E9nie", hibrido: "Hybride" },
+    modalityLabels: { academia: "Salle", musculacao: "Musculation", funcional: "Fonctionnel", calistenia: "Calisth\u00E9nie", hibrido: "Hybride" },
   },
   de: {
     focusSeparator: " | ",
@@ -171,7 +175,7 @@ const trainingCopy = {
       male_upper_lower_bias: "Ober/Unter mit Oberk\u00F6rper-Bias",
       performance_hybrid: "Hybride Performance",
     } satisfies Record<TrainingSplit, string>,
-    workoutTypes: { musculacao: "Krafttraining", calistenia: "Calisthenics", hibrido: "Hybrid" },
+    workoutTypes: { musculacao: "Krafttraining", funcional: "Funktionell", calistenia: "Calisthenics", hibrido: "Hybrid" },
     workoutNames: {
       Push: "Push-Training",
       Pull: "Pull-Training",
@@ -180,12 +184,13 @@ const trainingCopy = {
       Upper: "Oberk\u00F6rper-Training",
       Lower: "Unterk\u00F6rper-Training",
       "Hybrid Performance": "Hybrides Performance-Training",
+      "Functional Performance": "Funktionelles Training",
     },
     goalTags: { ganho_massa: "Hypertrophie", perda_peso: "Definition", definicao: "Definition", forca: "Kraft", performance: "Performance", saude: "Gesundheit" },
     weekDays: ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"],
     intensityLabels: { leve: "Leicht", moderada: "Moderat", pesada: "Schwer" },
     phaseLabels: { base: "Basis", progressao: "Progression", intensificacao: "Intensivierung", deload: "Deload" },
-    modalityLabels: { academia: "Fitnessstudio", calistenia: "Calisthenics", hibrido: "Hybrid" },
+    modalityLabels: { academia: "Fitnessstudio", musculacao: "Krafttraining", funcional: "Funktionell", calistenia: "Calisthenics", hibrido: "Hybrid" },
   },
 } as const;
 
@@ -213,6 +218,7 @@ export function getWorkoutTypeLabel(type: string, locale: AppLocale = getStoredL
   const normalized = normalizeKey(type);
   const labels = getTrainingCopy(locale).workoutTypes;
   if (normalized === "musculacao") return labels.musculacao;
+  if (normalized === "funcional") return labels.funcional;
   if (normalized === "hibrido") return labels.hibrido;
   if (normalized === "calistenia") return labels.calistenia;
   return type;
@@ -230,6 +236,7 @@ export function getWorkoutNameLabel(
   if (templateName === "Upper") return labels.Upper;
   if (templateName === "Lower") return `${labels.Lower} ${(options.index ?? 0) + 1}`;
   if (templateName === "Hybrid Performance") return labels["Hybrid Performance"];
+  if (templateName === "Functional Performance") return labels["Functional Performance"];
   return templateName;
 }
 
@@ -253,6 +260,54 @@ export function getPhaseLabel(value: "base" | "progressao" | "intensificacao" | 
   return getTrainingCopy(locale).phaseLabels[value];
 }
 
-export function getModalityLabel(value: "academia" | "calistenia" | "hibrido", locale: AppLocale = getStoredLocale()) {
+export function getModalityLabel(value: "academia" | "musculacao" | "funcional" | "calistenia" | "hibrido", locale: AppLocale = getStoredLocale()) {
   return getTrainingCopy(locale).modalityLabels[value];
+}
+
+const volumeBiasLabels = {
+  pt: { alto: "Alto", moderado: "Moderado", baixo: "Baixo" },
+  es: { alto: "Alto", moderado: "Moderado", baixo: "Bajo" },
+  en: { alto: "High", moderado: "Moderate", baixo: "Low" },
+  fr: { alto: "Élevé", moderado: "Modéré", baixo: "Bas" },
+  de: { alto: "Hoch", moderado: "Moderat", baixo: "Niedrig" },
+} as const;
+
+export function getVolumeBiasLabel(value: "alto" | "moderado" | "baixo", locale: AppLocale = getStoredLocale()) {
+  return (volumeBiasLabels[locale] ?? volumeBiasLabels.pt)[value];
+}
+
+const readinessLevelLabels = {
+  pt: { alta: "Alta", media: "Média", baixa: "Baixa" },
+  es: { alta: "Alta", media: "Media", baixa: "Baja" },
+  en: { alta: "High", media: "Medium", baixa: "Low" },
+  fr: { alta: "Élevée", media: "Moyenne", baixa: "Faible" },
+  de: { alta: "Hoch", media: "Mittel", baixa: "Niedrig" },
+} as const;
+
+export function getReadinessLevelLabel(value: "alta" | "media" | "baixa", locale: AppLocale = getStoredLocale()) {
+  return (readinessLevelLabels[locale] ?? readinessLevelLabels.pt)[value];
+}
+
+const workoutNameTranslations: Record<string, Partial<Record<AppLocale, string>>> = {
+  "Push A — Força":       { en: "Push A — Strength",      es: "Empuje A — Fuerza",        fr: "Poussée A — Force",           de: "Drücken A — Kraft"          },
+  "Pull A — Costas":      { en: "Pull A — Back",          es: "Tirón A — Espalda",        fr: "Tirage A — Dos",              de: "Ziehen A — Rücken"          },
+  "Legs A — Quadríceps":  { en: "Legs A — Quads",         es: "Piernas A — Cuádriceps",   fr: "Jambes A — Quadriceps",       de: "Beine A — Quadrizeps"       },
+  "Push B — Ombros":      { en: "Push B — Shoulders",     es: "Empuje B — Hombros",       fr: "Poussée B — Épaules",         de: "Drücken B — Schultern"      },
+  "Pull B — Bíceps":      { en: "Pull B — Biceps",        es: "Tirón B — Bíceps",         fr: "Tirage B — Biceps",           de: "Ziehen B — Bizeps"          },
+  "Legs B — Glúteos":     { en: "Legs B — Glutes",        es: "Piernas B — Glúteos",      fr: "Jambes B — Fessiers",         de: "Beine B — Gesäß"            },
+  "Full Body A":          { en: "Full Body A",             es: "Cuerpo Completo A",        fr: "Corps Complet A",             de: "Ganzkörper A"               },
+  "Full Body B":          { en: "Full Body B",             es: "Cuerpo Completo B",        fr: "Corps Complet B",             de: "Ganzkörper B"               },
+  "Upper A — Empurrar":   { en: "Upper A — Push",         es: "Superior A — Empuje",      fr: "Haut A — Poussée",            de: "Oberkörper A — Drücken"     },
+  "Upper B — Puxar":      { en: "Upper B — Pull",         es: "Superior B — Tirón",       fr: "Haut B — Tirage",             de: "Oberkörper B — Ziehen"      },
+  "Lower A — Quadríceps": { en: "Lower A — Quads",        es: "Inferior A — Cuádriceps",  fr: "Bas A — Quadriceps",          de: "Unterkörper A — Quadrizeps" },
+  "Lower B — Posterior":  { en: "Lower B — Hamstrings",   es: "Inferior B — Isquios",     fr: "Bas B — Ischio-jambiers",     de: "Unterkörper B — Beinbeuger" },
+  "Lower A — Glúteos":    { en: "Lower A — Glutes",       es: "Inferior A — Glúteos",     fr: "Bas A — Fessiers",            de: "Unterkörper A — Gesäß"      },
+  "Upper — Definição":    { en: "Upper — Sculpting",      es: "Superior — Definición",    fr: "Haut — Sculpture",            de: "Oberkörper — Definition"    },
+  "Hybrid Performance":   { en: "Hybrid Performance",     es: "Rendimiento Híbrido",      fr: "Performance Hybride",         de: "Hybride Performance"        },
+};
+
+export function translateWorkoutName(name: string, locale: AppLocale = getStoredLocale()): string {
+  if (locale === "pt") return name;
+  const entry = workoutNameTranslations[name];
+  return entry?.[locale] ?? name;
 }

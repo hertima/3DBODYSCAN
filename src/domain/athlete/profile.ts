@@ -1,4 +1,4 @@
-import type { OnboardingState } from "@/lib/onboarding";
+import type { MenstrualCyclePhase, OnboardingState, TrainingType } from "@/lib/onboarding";
 
 export const athleteGoals = [
   "perda_peso",
@@ -37,6 +37,9 @@ export type AthleteProfile = {
   preferredFocus: string[];
   limitations: string[];
   injuries: string[];
+  trainingType: TrainingType;
+  trackCycle: boolean;
+  menstrualCyclePhase: MenstrualCyclePhase | null;
   onboardingCompletedAt: string | null;
 };
 
@@ -57,6 +60,10 @@ const goalMap: Record<NonNullable<OnboardingState["goal"]>, AthleteGoal> = {
   strength: "forca",
   hybrid: "performance",
   athletic: "performance",
+  weight_loss: "perda_peso",
+  definition: "definicao",
+  endurance: "performance",
+  wellness: "saude",
 };
 
 const levelMap: Record<NonNullable<OnboardingState["experience"]>, AthleteLevel> = {
@@ -85,6 +92,16 @@ const resultMap: Record<string, AthleteGoal> = {
   performance: "performance",
 };
 
+const sexMap: Record<NonNullable<OnboardingState["gender"]>, AthleteSex | null> = {
+  male: "masculino",
+  female: "feminino",
+  other: null,
+};
+
+function resolveSex(state: OnboardingState): AthleteSex | null {
+  return state.gender ? sexMap[state.gender] : null;
+}
+
 function dedupeStrings(values: string[] | undefined) {
   return Array.from(new Set((values ?? []).map((value) => value.trim()).filter(Boolean)));
 }
@@ -111,6 +128,13 @@ function resolveLocation(state: OnboardingState) {
   return state.location ? locationMap[state.location] : "academia";
 }
 
+function resolveTrainingType(state: OnboardingState): TrainingType {
+  if (state.trainingType) return state.trainingType;
+  if (state.location === "outdoor") return "calistenia";
+  if (state.location === "home" && (state.equipment?.length ?? 0) === 0) return "calistenia";
+  return "musculacao";
+}
+
 function resolveDuration(state: OnboardingState) {
   if (!state.duration) return 60;
   return Math.min(120, Math.max(30, state.duration));
@@ -127,10 +151,10 @@ export function buildAthleteProfile(
       onboarding.name?.trim() ||
       onboarding.email?.trim() ||
       "Atleta 3D Body Scan",
-    sex: input.sex ?? null,
-    age: input.age ?? null,
-    heightCm: input.heightCm ?? null,
-    weightKg: input.weightKg ?? null,
+    sex: input.sex ?? resolveSex(onboarding),
+    age: input.age ?? onboarding.age ?? null,
+    heightCm: input.heightCm ?? onboarding.height ?? null,
+    weightKg: input.weightKg ?? onboarding.weight ?? null,
     goal: resolveGoal(onboarding),
     level: resolveLevel(onboarding),
     consistency: resolveConsistency(onboarding),
@@ -138,9 +162,12 @@ export function buildAthleteProfile(
     equipment: dedupeStrings(onboarding.equipment),
     availableDays: sortDays(onboarding.days),
     workoutDurationMin: resolveDuration(onboarding),
-    preferredFocus: dedupeStrings(input.preferredFocus),
+    preferredFocus: dedupeStrings([...(onboarding.focusMuscles ?? []), ...(input.preferredFocus ?? [])]),
     limitations: dedupeStrings(input.limitations),
     injuries: dedupeStrings(input.injuries),
+    trainingType: resolveTrainingType(onboarding),
+    trackCycle: onboarding.gender === "female" && Boolean(onboarding.trackCycle),
+    menstrualCyclePhase: onboarding.gender === "female" && onboarding.trackCycle ? onboarding.menstrualCyclePhase ?? null : null,
     onboardingCompletedAt: onboarding.completedAt ?? null,
   };
 }

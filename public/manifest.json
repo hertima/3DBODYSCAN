@@ -1,0 +1,19 @@
+{
+  "id": "/",
+  "name": "3D Body Scan",
+  "short_name": "3D Body Scan",
+  "description": "Treino personalizado com IA — musculação, calistenia e híbrido.",
+  "start_url": "/app",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "portrait",
+  "background_color": "#070B14",
+  "theme_color": "#070B14",
+  "categories": ["health", "fitness", "sports"],
+  "icons": [
+    { "src": "/favicon.png", "sizes": "1254x1254", "type": "image/png", "purpose": "any" },
+    { "src": "/favicon.png", "sizes": "1254x1254", "type": "image/png", "purpose": "maskable" }
+  ],
+  "prefer_related_applications": false
+}

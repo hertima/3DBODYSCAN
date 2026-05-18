@@ -278,7 +278,8 @@ export const foodScans: FoodScan[] = [
   },
 ];
 
-export function formatScanDate(iso: string) {
+export function formatScanDate(iso: string, locale?: string) {
   const d = new Date(iso);
-  return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
+  const l = locale === "pt" ? "pt-BR" : locale === "es" ? "es-ES" : locale === "de" ? "de-DE" : locale === "fr" ? "fr-FR" : locale ? "en-US" : "pt-BR";
+  return d.toLocaleDateString(l, { day: "2-digit", month: "short" });
 }

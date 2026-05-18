@@ -15,11 +15,17 @@ import {
   Zap,
   Target,
   TrendingUp,
+  ScanLine,
+  Apple,
+  Dumbbell,
+  BarChart3,
 } from "lucide-react";
 import { useTrainingState } from "@/hooks/use-training-state";
 import { cleanLegacyText } from "@/lib/formatting";
 import { getStoredLocale } from "@/lib/locale";
-import { getIntensityLabel, getModalityLabel, getPhaseLabel, getWeekDayLabels } from "@/lib/training-i18n";
+import { getIntensityLabel, getModalityLabel, getPhaseLabel, getVolumeBiasLabel, getWeekDayLabels, translateWorkoutName } from "@/lib/training-i18n";
+import { loadOnboarding } from "@/lib/onboarding";
+import type { CyclePhase } from "@/domain/training/periodization";
 
 export const Route = createFileRoute("/app/treinos")({
   head: () => ({
@@ -35,14 +41,13 @@ function formatDisplayValue(value: string) {
   return cleanLegacyText(value);
 }
 
-const AI_STEPS = [
-  "Analisando histórico de 28 dias...",
-  "Detectando platôs e recovery...",
-  "Distribuindo volume semanal...",
-  "Selecionando exercícios prioritários...",
-  "Calibrando intensidade por dia...",
-  "Pronto.",
-];
+const AI_STEPS: Record<string, string[]> = {
+  pt: ["Analisando histórico de 28 dias...", "Detectando platôs e recovery...", "Distribuindo volume semanal...", "Selecionando exercícios prioritários...", "Calibrando intensidade por dia...", "Pronto."],
+  es: ["Analizando historial de 28 días...", "Detectando mesetas y recuperación...", "Distribuyendo volumen semanal...", "Seleccionando ejercicios prioritarios...", "Calibrando intensidad por día...", "Listo."],
+  en: ["Analyzing 28-day history...", "Detecting plateaus and recovery...", "Distributing weekly volume...", "Selecting priority exercises...", "Calibrating daily intensity...", "Done."],
+  fr: ["Analyse de l'historique 28 jours...", "Détection des plateaux et récupération...", "Distribution du volume hebdomadaire...", "Sélection des exercices prioritaires...", "Calibration de l'intensité journalière...", "Prêt."],
+  de: ["28-Tage-Verlauf wird analysiert...", "Plateaus und Recovery erkannt...", "Wochenvolumen wird verteilt...", "Prioritätsübungen werden ausgewählt...", "Tagesintensität wird kalibriert...", "Fertig."],
+};
 
 const COPY = {
   pt: { coach: "Coach IA", title: "Sua semana 3D Body Scan", workouts: "treinos", organized: "organizados pela IA", engine: "Motor IA v2.4", active: "Ativo", optimized: "Plano otimizado para sua próxima semana.", optimizing: "Otimizando", reorganize: "Reorganizar", statWorkouts: "Treinos", statTime: "Tempo", statVolume: "Volume", currentBlock: "Bloco atual", week: "Semana", phase: "Fase", volume: "Volume", intensity: "Intensidade", cycle: "Direção do ciclo", adjustment: "Ajuste do bloco", weekPlan: "Plano da semana", sorted: "Ordenado pela IA", rest: "Descanso ativo", mobility: "Mobilidade leve sugerida", why: "Por que essa ordem?", fullLibrary: "Biblioteca completa", cataloged: "500+ exercícios catalogados", reason1: "Treino de empurrar antes do treino de puxar para aproveitar melhor o descanso anterior.", reason2: "Treino de pernas na quinta: você performa melhor com 1 dia de recuperação prévia.", reason3: "Sessão técnica no sábado para skill em estado neural mais fresco." },
@@ -55,9 +60,11 @@ const COPY = {
 function TreinosPage() {
   const locale = getStoredLocale();
   const copy = COPY[locale] ?? COPY.pt;
+  const [refreshKey, setRefreshKey] = useState(0);
   const [aiState, setAiState] = useState<"idle" | "thinking" | "ready">("ready");
-  const [stepIdx, setStepIdx] = useState(AI_STEPS.length - 1);
-  const trainingState = useTrainingState();
+  const AI_STEPS_LEN = AI_STEPS.pt.length;
+  const [stepIdx, setStepIdx] = useState(AI_STEPS_LEN - 1);
+  const trainingState = useTrainingState(refreshKey);
   const { periodization } = trainingState;
   const weekDays = getWeekDayLabels(locale);
   const weekPlan = weekDays.map((day, index) => ({
@@ -68,18 +75,22 @@ function TreinosPage() {
   }));
 
   useEffect(() => {
+    if (trainingState.aiLoading) {
+      setAiState("thinking");
+      setStepIdx(0);
+    } else if (aiState === "thinking") {
+      setAiState("ready");
+      setStepIdx(AI_STEPS_LEN - 1);
+    }
+  }, [trainingState.aiLoading]);
+
+  useEffect(() => {
     if (aiState !== "thinking") return;
-    setStepIdx(0);
     const id = setInterval(() => {
-      setStepIdx((current) => {
-        if (current >= AI_STEPS.length - 1) {
-          clearInterval(id);
-          setAiState("ready");
-          return AI_STEPS.length - 1;
-        }
-        return current + 1;
-      });
-    }, 600);
+      setStepIdx((current) =>
+        current >= AI_STEPS_LEN - 2 ? current : current + 1,
+      );
+    }, 900);
     return () => clearInterval(id);
   }, [aiState]);
 
@@ -165,13 +176,16 @@ function TreinosPage() {
                 className="mt-1 text-xs text-muted-foreground"
               >
                 {aiState === "thinking"
-                  ? AI_STEPS[stepIdx]
+                  ? (AI_STEPS[locale] ?? AI_STEPS.pt)[stepIdx]
                   : copy.optimized}
               </motion.p>
             </AnimatePresence>
           </div>
           <button
-            onClick={() => setAiState("thinking")}
+            onClick={() => {
+              setRefreshKey((k) => k + 1);
+              trainingState.regenerate();
+            }}
             disabled={aiState === "thinking"}
             className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-cyan/40 bg-cyan/10 px-3 py-1.5 text-xs font-semibold text-cyan transition hover:bg-cyan/20 disabled:opacity-60"
           >
@@ -211,7 +225,7 @@ function TreinosPage() {
               {copy.phase}: {getPhaseLabel(currentPeriodWeek?.phase ?? "base", locale)}
             </span>
             <span className="rounded-full bg-success/10 px-2 py-1 text-success">
-              {copy.volume}: {currentPeriodWeek?.volumeBias ?? "alto"}
+              {copy.volume}: {getVolumeBiasLabel((currentPeriodWeek?.volumeBias ?? "alto") as "alto" | "moderado" | "baixo", locale)}
             </span>
             <span className="rounded-full bg-primary/10 px-2 py-1 text-primary">
               {copy.intensity}: {getIntensityLabel(currentPeriodWeek?.intensityBias ?? "leve", locale)}
@@ -304,7 +318,7 @@ function TreinosPage() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5">
-                    <span className="truncate text-sm font-semibold">{workout.name}</span>
+                    <span className="truncate text-sm font-semibold">{translateWorkoutName(workout.name, locale)}</span>
                     {plan.tag ? (
                       <span className="rounded-full bg-cyan/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-cyan">
                         {plan.tag}
@@ -325,7 +339,7 @@ function TreinosPage() {
                     {plan.intensity ? (
                       <>
                         <span>|</span>
-                        <IntensityPill level={plan.intensity} />
+                        <IntensityPill level={plan.intensity} locale={locale} />
                       </>
                     ) : null}
                   </div>
@@ -343,20 +357,40 @@ function TreinosPage() {
         <div className="mb-2 flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-cyan" />
           <h3 className="text-sm font-semibold">{copy.why}</h3>
+          {trainingState.aiLoading && (
+            <span className="ml-auto inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              {(AI_STEPS[locale] ?? AI_STEPS.pt)[0]}
+            </span>
+          )}
+          {trainingState.aiReady && !trainingState.aiLoading && (
+            <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-success">
+              <span className="h-1 w-1 rounded-full bg-success" />
+              {locale === "en" ? "AI" : "IA"}
+            </span>
+          )}
         </div>
+        {trainingState.aiWeekFocus && (
+          <p className="mb-3 text-xs font-medium italic text-primary/80">
+            {trainingState.aiWeekFocus}
+          </p>
+        )}
         <ul className="space-y-2 text-xs text-muted-foreground">
-          <li className="flex gap-2">
-            <Zap className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
-            {copy.reason1}
-          </li>
-          <li className="flex gap-2">
-            <TrendingUp className="mt-0.5 h-3.5 w-3.5 shrink-0 text-cyan" />
-            {copy.reason2}
-          </li>
-          <li className="flex gap-2">
-            <Brain className="mt-0.5 h-3.5 w-3.5 shrink-0 text-success" />
-            {copy.reason3}
-          </li>
+          {(trainingState.aiReady && trainingState.aiReasons.length >= 3
+            ? trainingState.aiReasons
+            : [copy.reason1, copy.reason2, copy.reason3]
+          ).map((reason, i) => (
+            <li key={i} className="flex gap-2">
+              {i === 0 ? (
+                <Zap className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+              ) : i === 1 ? (
+                <TrendingUp className="mt-0.5 h-3.5 w-3.5 shrink-0 text-cyan" />
+              ) : (
+                <Brain className="mt-0.5 h-3.5 w-3.5 shrink-0 text-success" />
+              )}
+              {reason}
+            </li>
+          ))}
         </ul>
       </div>
 
@@ -401,23 +435,25 @@ function Stat({
   );
 }
 
-function IntensityPill({ level }: { level: "Leve" | "Moderado" | "Pesado" }) {
-  const map = {
-    Leve: "text-success",
-    Moderado: "text-cyan",
-    Pesado: "text-primary",
-  } as const;
+const INTENSITY_LABELS: Record<string, Record<string, string>> = {
+  pt: { Leve: "Leve", Moderado: "Moderado", Pesado: "Pesado" },
+  es: { Leve: "Leve", Moderado: "Moderado", Pesado: "Pesado" },
+  en: { Leve: "Light", Moderado: "Moderate", Pesado: "Heavy" },
+  fr: { Leve: "Léger", Moderado: "Modéré", Pesado: "Intense" },
+  de: { Leve: "Leicht", Moderado: "Moderat", Pesado: "Schwer" },
+};
+
+function IntensityPill({ level, locale }: { level: "Leve" | "Moderado" | "Pesado"; locale: string }) {
+  const map = { Leve: "text-success", Moderado: "text-cyan", Pesado: "text-primary" } as const;
   const dots = level === "Leve" ? 1 : level === "Moderado" ? 2 : 3;
+  const label = (INTENSITY_LABELS[locale] ?? INTENSITY_LABELS.pt)[level] ?? level;
 
   return (
     <span className={`inline-flex items-center gap-0.5 ${map[level]}`}>
       {Array.from({ length: 3 }).map((_, index) => (
-        <span
-          key={index}
-          className={`h-1 w-1 rounded-full ${index < dots ? "bg-current" : "bg-border"}`}
-        />
+        <span key={index} className={`h-1 w-1 rounded-full ${index < dots ? "bg-current" : "bg-border"}`} />
       ))}
-      <span className="ml-1 font-semibold">{level}</span>
+      <span className="ml-1 font-semibold">{label}</span>
     </span>
   );
 }

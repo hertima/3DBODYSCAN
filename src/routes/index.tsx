@@ -1,13 +1,24 @@
 ﻿import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState, useEffect, type FormEvent } from "react";
+import { lazy, Suspense, useState, useEffect, type FormEvent } from "react";
 import { motion } from "framer-motion";
 import { Mail, Lock, Eye, EyeOff, Loader2, ArrowRight, Apple, Chrome } from "lucide-react";
 import { LocaleSwitcher } from "@/components/LocaleSwitcher";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import logo from "@/assets/zyrox-logo.png";
 import { getStoredLocale, setStoredLocale } from "@/lib/locale";
-import { isOnboarded, loadOnboarding, saveOnboarding } from "@/lib/onboarding";
+import { clearOnboarding, isOnboarded, loadOnboarding, saveOnboarding } from "@/lib/onboarding";
 import { getAuthCopy } from "@/lib/app-copy";
+import { signIn, onAuth } from "@/lib/auth";
+import { loadProfileFromFirestore } from "@/lib/firestore-profile";
+import {
+  clearManagedLocalState,
+  restoreLocalStateFromFirestore,
+  saveLocalStateToFirestore,
+} from "@/lib/firestore-local-state";
+
+const SplashScreen = lazy(() =>
+  import("@/components/SplashScreen").then((module) => ({ default: module.SplashScreen })),
+);
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -27,55 +38,69 @@ function LoginPage() {
   const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showSplash, setShowSplash] = useState(() =>
+    typeof window !== "undefined" ? !sessionStorage.getItem("zyrox_splash_shown") : false
+  );
   const authCopy = getAuthCopy();
 
-  // Novo usuário (sem dados de onboarding) → vai para onboarding primeiro
   useEffect(() => {
-    const existing = loadOnboarding();
-    const hasStarted = Object.keys(existing).length > 0;
-    if (!hasStarted) {
-      navigate({ to: "/onboarding/$step", params: { step: "1" } });
-    }
+    const unsub = onAuth((user) => {
+      if (user) {
+        if (isOnboarded()) {
+          navigate({ to: "/app" });
+        } else {
+          navigate({ to: "/onboarding/$step", params: { step: "1" } });
+        }
+        return;
+      }
+
+      });
+    return unsub;
   }, [navigate]);
-  const VALID_EMAIL = "herculesacademiarv@gmail.com";
-  const VALID_PASSWORD = "123456";
 
-  const deriveDisplayName = (value: string) =>
-    value
-      .split("@")[0]
-      .split(/[._-]+/)
-      .filter(Boolean)
-      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-      .join(" ");
-
-  const proceedAfterLogin = () => {
-    const current = loadOnboarding();
-    saveOnboarding({
-      ...current,
-      email: VALID_EMAIL,
-      name: current.name?.trim() || deriveDisplayName(VALID_EMAIL),
-    });
-
-    if (isOnboarded()) {
-      navigate({ to: "/app" });
-      return;
-    }
-
-    navigate({ to: "/onboarding/$step", params: { step: "1" } });
-  };
-
-  const onSubmit = (e: FormEvent) => {
+  const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
-    setTimeout(() => {
-      if (email.trim().toLowerCase() === VALID_EMAIL && password === VALID_PASSWORD) {
-        proceedAfterLogin();
+    try {
+      const cred = await signIn(email.trim().toLowerCase(), password);
+
+      try {
+        const profile = await loadProfileFromFirestore(cred.user.uid);
+        if (profile) {
+          saveOnboarding(profile);
+        } else {
+          clearOnboarding();
+        }
+      } catch {}
+
+      if (isOnboarded()) {
+        navigate({ to: "/app" });
       } else {
-        setLoading(false);
+        navigate({ to: "/onboarding/$step", params: { step: "1" } });
+      }
+
+      void restoreLocalStateFromFirestore(cred.user.uid, {
+        replaceLocal: true,
+      })
+        .then((restoredLocalState) => {
+          if (!restoredLocalState) clearManagedLocalState();
+          return saveLocalStateToFirestore(cred.user.uid);
+        })
+        .catch(() => {});
+    } catch (err: unknown) {
+      setLoading(false);
+      const code = (err as { code?: string }).code ?? "";
+      if (code === "auth/invalid-credential" || code === "auth/user-not-found" || code === "auth/wrong-password") {
+        setError(authCopy.invalidCredentials);
+      } else if (code === "auth/invalid-email") {
+        setError(authCopy.invalidEmail);
+      } else if (code === "auth/too-many-requests") {
+        setError("Muitas tentativas. Tente novamente mais tarde.");
+      } else {
         setError(authCopy.invalidCredentials);
       }
-    }, 700);
+    }
   };
 
   const handleLocaleChange = (nextLocale: string) => {
@@ -85,6 +110,17 @@ function LoginPage() {
   };
 
   return (
+    <>
+      {showSplash && (
+        <Suspense fallback={null}>
+          <SplashScreen
+            onFinish={() => {
+              sessionStorage.setItem("zyrox_splash_shown", "1");
+              setShowSplash(false);
+            }}
+          />
+        </Suspense>
+      )}
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-5 py-10 text-foreground" style={{ background: "#060b14" }}>
 
       {/* Glow ciano — esquerda (lado do "3" do logo) */}
@@ -169,7 +205,7 @@ function LoginPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder={authCopy.emailPlaceholder}
-                    className="w-full rounded-xl py-2.5 pl-9 pr-3 text-sm text-white outline-none transition"
+                    className="w-full rounded-xl py-3 pl-9 pr-3 text-sm text-white outline-none transition"
                     style={{ border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.05)" }}
                     onFocus={(e) => (e.currentTarget.style.borderColor = "rgba(34,211,238,0.5)")}
                     onBlur={(e) => (e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)")}
@@ -186,7 +222,7 @@ function LoginPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder={authCopy.passwordPlaceholder}
-                    className="w-full rounded-xl py-2.5 pl-9 pr-10 text-sm text-white outline-none transition"
+                    className="w-full rounded-xl py-3 pl-9 pr-10 text-sm text-white outline-none transition"
                     style={{ border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.05)" }}
                     onFocus={(e) => (e.currentTarget.style.borderColor = "rgba(251,146,60,0.5)")}
                     onBlur={(e) => (e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)")}
@@ -240,6 +276,15 @@ function LoginPage() {
                 {authCopy.createAccount}
               </Link>
             </p>
+
+            <div className="mt-4 border-t pt-4" style={{ borderColor: "rgba(255,255,255,0.06)" }}>
+              <div className="flex items-center justify-center gap-2">
+                <span className="text-xs tracking-wide" style={{ color: "#fbbf24" }}>★★★★★</span>
+                <span className="text-[11px]" style={{ color: "rgba(100,116,139,0.75)" }}>
+                  +12.800 atletas transformando seus resultados
+                </span>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -249,5 +294,6 @@ function LoginPage() {
         </p>
       </motion.div>
     </div>
+    </>
   );
 }

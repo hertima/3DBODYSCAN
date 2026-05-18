@@ -1,6 +1,6 @@
-﻿import type { AppLocale } from "@/lib/training-i18n";
+﻿const LOCALE_KEY = "zyrox.locale";
 
-const LOCALE_KEY = "zyrox.locale";
+export type AppLocale = "pt" | "es" | "en" | "fr" | "de";
 const DEFAULT_LOCALE: AppLocale = "pt";
 
 export const SUPPORTED_LOCALES: Array<{

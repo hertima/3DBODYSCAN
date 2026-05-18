@@ -7,6 +7,7 @@ import {
 } from "@/domain/environment/context";
 import {
   buildExerciseCatalog,
+  isFunctionalExerciseRecord,
   type ExerciseCatalogRecord,
   type OfficialMuscleCategory,
 } from "@/domain/exercises/catalog";
@@ -29,6 +30,7 @@ import {
 } from "@/domain/nutrition/state";
 import { loadOnboarding } from "@/lib/onboarding";
 import { getCategoryLabel, getFocusSeparator, getGoalTagLabel, getWorkoutNameLabel } from "@/lib/training-i18n";
+import { getStoredLocale } from "@/lib/locale";
 import { getWorkoutCustomization } from "@/lib/workout-customizations";
 
 export type GeneratedWeekPlanEntry = {
@@ -128,21 +130,33 @@ function resolveSetScheme(
 }
 
 function supportsProfileEquipment(record: ExerciseCatalogRecord, profile: AthleteProfile) {
-  if (profile.equipment.length === 0) return true;
+  // Peso corporal é sempre disponível — não precisa de equipamento selecionado
+  if (record.equipment === "peso_corporal") return true;
+
+  if (profile.equipment.length === 0) {
+    // Casa sem equipamento → apenas peso corporal (já tratado acima)
+    if (profile.location === "casa") return false;
+    // Outdoor → barra fixa e paralelas públicas mesmo sem seleção
+    if (profile.location === "outdoor") {
+      return ["barra_fixa", "paralelas", "parede", "trx"].includes(record.equipment);
+    }
+    // Academia/híbrido sem equipamento selecionado → assume acesso completo
+    return true;
+  }
 
   const equipmentMap: Record<string, string[]> = {
-    barra: ["barras", "barra"],
-    halteres: ["halteres", "halter"],
+    barra: ["barras", "barra", "anilhas", "rack"],
+    halteres: ["halteres", "halter", "kettlebell"],
     cabos: ["cabos", "cabo"],
     maquina: ["maquinas", "maquina"],
     peso_corporal: ["peso corporal"],
     barra_fixa: ["barra fixa"],
-    paralelas: ["paralelas"],
+    paralelas: ["paralelas", "argolas"],
     parede: ["parede"],
     banco: ["banco"],
     trx: ["trx"],
     bola: ["bola"],
-    elastico: ["elasticos", "elastico"],
+    elastico: ["elasticos", "elastico", "elasticos"],
   };
 
   const accepted = equipmentMap[record.equipment] ?? [record.equipment];
@@ -164,6 +178,26 @@ function supportsEnvironment(record: ExerciseCatalogRecord, environment: Environ
   }
 
   return true;
+}
+
+function supportsTrainingType(
+  record: ExerciseCatalogRecord,
+  profile: AthleteProfile,
+  environment: EnvironmentContext,
+) {
+  if (profile.trainingType === "calistenia") return record.trainingType === "calistenia";
+  if (profile.trainingType === "musculacao") return record.trainingType === "musculacao";
+
+  if (profile.trainingType === "funcional") {
+    if (record.trainingType === "calistenia") return true;
+
+    if (["barra", "halteres", "banco", "maquina", "cabos"].includes(record.equipment)) return false;
+    return isFunctionalExerciseRecord(record);
+  }
+
+  // fallback legacy (sem trainingType explícito)
+  if (environment.location === "outdoor" || environment.location === "casa") return true;
+  return record.trainingType === "musculacao";
 }
 
 function scoreEnvironmentFit(record: ExerciseCatalogRecord, environment: EnvironmentContext) {
@@ -204,6 +238,94 @@ function getMovementPattern(record: ExerciseCatalogRecord) {
   return record.movementPattern.pt;
 }
 
+export function resolveExerciseFamily(record: ExerciseCatalogRecord) {
+  const name = normalizeName(record.name.pt);
+  const movement = normalizeName(getMovementPattern(record));
+
+  if (name.includes("remada curvada")) return "costas:remada_curvada";
+  if (name.includes("remada baixa")) return "costas:remada_baixa";
+  if (name.includes("remada unilateral")) return "costas:remada_unilateral";
+  if (name.includes("remada")) return `costas:${name.replace(/\b(pronada|supinada|aberta|fechada|neutra|pegada|com|no|na|cabo|halteres?)\b/g, "").replace(/\s+/g, "_")}`;
+
+  if (name.includes("puxada alta") || name.includes("pulldown") || name.includes("pulley")) return "costas:puxada_alta";
+  if (name.includes("barra fixa") || name.includes("pull up") || name.includes("chin up")) return "costas:barra_fixa";
+
+  if (name.includes("rosca martelo")) return "biceps:rosca_martelo";
+  if (name.includes("rosca scott")) return "biceps:rosca_scott";
+  if (name.includes("rosca direta")) return "biceps:rosca_direta";
+  if (name.includes("rosca unilateral")) return "biceps:rosca_unilateral";
+  if (record.category === "biceps_antebraco" && (name.includes("rosca") || name.includes("curl"))) {
+    return `biceps:${name.replace(/\b(unilateral|bilateral|pronada|supinada|alternada|com|no|na|cabo|halteres?|barra)\b/g, "").replace(/\s+/g, "_")}`;
+  }
+
+  if (record.category === "triceps") {
+    if (name.includes("corda")) return "triceps:corda";
+    if (name.includes("frances")) return "triceps:frances";
+    if (name.includes("testa")) return "triceps:testa";
+    if (name.includes("coice") || name.includes("patada")) return "triceps:coice";
+    if (name.includes("mergulho") || name.includes("paralela")) return "triceps:mergulho";
+    if (name.includes("extensao") || movement.includes("extensao")) return "triceps:extensao";
+  }
+
+  if (name.includes("supino reto")) return "peitoral:supino_reto";
+  if (name.includes("supino inclinado")) return "peitoral:supino_inclinado";
+  if (name.includes("supino declinado")) return "peitoral:supino_declinado";
+  if (name.includes("crucifixo")) return "peitoral:crucifixo";
+  if (name.includes("crossover")) return "peitoral:crossover";
+
+  return `${record.category}:${name.replace(/\b(pronada|supinada|aberta|fechada|neutra|pegada|unilateral|bilateral)\b/g, "").replace(/\s+/g, "_")}`;
+}
+
+export function resolveMovementBucket(record: ExerciseCatalogRecord) {
+  const name = normalizeName(record.name.pt);
+  const movement = normalizeName(getMovementPattern(record));
+
+  if (name.includes("remada") || movement.includes("puxar horizontal")) return "horizontal_pull";
+  if (name.includes("puxada") || name.includes("pulldown") || name.includes("pulley") || name.includes("barra fixa") || movement.includes("puxar vertical")) return "vertical_pull";
+  if (record.category === "biceps_antebraco" || name.includes("rosca") || name.includes("curl")) return "biceps_curl";
+  if (record.category === "triceps") return "triceps_extension";
+  if (name.includes("face pull") || name.includes("posterior") || name.includes("crucifixo invertido") || name.includes("encolhimento")) return "scapula_rear_delt";
+  if (name.includes("supino") || name.includes("chest press") || name.includes("flexao") || movement.includes("empurrar horizontal")) return "horizontal_press";
+  if (name.includes("desenvolvimento") || movement.includes("empurrar vertical")) return "vertical_press";
+  if (name.includes("crucifixo") || name.includes("crossover") || name.includes("fly")) return "fly";
+  if (name.includes("agach") || name.includes("leg press") || name.includes("extensora")) return "squat_knee";
+  if (name.includes("stiff") || name.includes("terra") || name.includes("flexora") || movement.includes("hip hinge")) return "hinge_posterior";
+  if (name.includes("hip thrust") || name.includes("ponte") || name.includes("abdutor")) return "glute_hip";
+  if (record.category === "panturrilha") return "calf";
+  if (record.category === "abdomen_core") return "core";
+  return record.category;
+}
+
+function getMovementBucketLimit(bucket: string) {
+  if (bucket === "horizontal_pull") return 2;
+  if (bucket === "vertical_pull") return 2;
+  if (bucket === "biceps_curl") return 2;
+  if (bucket === "triceps_extension") return 2;
+  if (bucket === "horizontal_press") return 2;
+  if (bucket === "vertical_press") return 2;
+  if (bucket === "fly") return 1;
+  if (bucket === "squat_knee") return 2;
+  if (bucket === "hinge_posterior") return 2;
+  if (bucket === "glute_hip") return 2;
+  if (bucket === "core") return 2;
+  return 3;
+}
+
+export function canAddExerciseToSelection(
+  selected: ExerciseCatalogRecord[],
+  candidate: ExerciseCatalogRecord,
+  options: { relaxBucketLimit?: boolean } = {},
+) {
+  const candidateFamily = resolveExerciseFamily(candidate);
+  if (selected.some((record) => resolveExerciseFamily(record) === candidateFamily)) return false;
+
+  if (options.relaxBucketLimit) return true;
+
+  const candidateBucket = resolveMovementBucket(candidate);
+  const bucketCount = selected.filter((record) => resolveMovementBucket(record) === candidateBucket).length;
+  return bucketCount < getMovementBucketLimit(candidateBucket);
+}
+
 function scoreExerciseQuality(record: ExerciseCatalogRecord) {
   let score = 0;
   const name = normalizeName(record.name.pt);
@@ -228,50 +350,131 @@ function scoreExerciseQuality(record: ExerciseCatalogRecord) {
   return score;
 }
 
+function scoreGenderFit(record: ExerciseCatalogRecord, profile: AthleteProfile) {
+  if (!profile.sex) return 0;
+  const name = normalizeName(record.name.pt);
+  const movement = normalizeName(getMovementPattern(record));
+
+  if (profile.sex === "feminino") {
+    let score = 0;
+    // Glúteos/quadril — inclui exercícios pelo nome E pela biomecânica "hip thrust"
+    if (["hip thrust", "abdutor", "ponte", "abdutora", "sumo"].some((t) => name.includes(t))) score += 14;
+    if (record.category === "membros_inferiores_gluteos" && movement.includes("hip thrust")) score += 14;
+    if (["stiff", "passada", "afundo", "avanco", "agachamento bulgaro"].some((t) => name.includes(t))) score += 10;
+    if (["extensora", "flexora", "cadeira"].some((t) => name.includes(t))) score += 6;
+    if (["feminino"].some((t) => name.includes(t))) score += 8;
+    if (["masculino"].some((t) => name.includes(t))) score -= 8;
+    if (["supino reto", "supino inclinado"].some((t) => name.includes(t)) && record.category === "peitoral") score -= 4;
+    return score;
+  }
+
+  if (profile.sex === "masculino") {
+    let score = 0;
+    if (["masculino"].some((t) => name.includes(t))) score += 8;
+    if (["feminino"].some((t) => name.includes(t))) score -= 8;
+    if (["supino", "agachamento", "barra fixa", "desenvolvimento", "levantamento", "stiff", "remada curvada"].some((t) => name.includes(t))) score += 6;
+    return score;
+  }
+
+  return 0;
+}
+
 function scoreTemplateFit(record: ExerciseCatalogRecord, template: WorkoutTemplate, profile: AthleteProfile) {
   let score = 0;
   const name = normalizeName(record.name.pt);
   const movement = normalizeName(getMovementPattern(record));
+  const tName = template.name;
 
-  if (template.name === "Push") {
+  if (tName.includes("Costas") && record.category === "costas_trapezio") score += 12;
+  if (tName.includes("Peito") && record.category === "peitoral") score += 12;
+  if (tName.includes("Tríceps") && record.category === "triceps") score += 10;
+  if (tName.includes("Bíceps") && record.category === "biceps_antebraco") score += 10;
+  if (tName.includes("Ombros") && record.category === "deltoides") score += 10;
+  if (tName.includes("Ombro") && record.category === "deltoides") score += 10;
+  if (tName.includes("Braços") && ["biceps_antebraco", "triceps"].includes(record.category)) score += 12;
+  if ((tName.includes("Pernas") || tName.includes("Quadríceps") || tName.includes("Posterior") || tName.includes("Glúteos")) && record.category === "membros_inferiores_gluteos") score += 12;
+  if ((tName.includes("Panturrilha") || tName.includes("Pernas")) && record.category === "panturrilha") score += 8;
+  if ((tName.includes("Core") || tName.includes("Abdômen")) && record.category === "abdomen_core") score += 8;
+
+  // Push A/B — peito, ombros, tríceps
+  if (tName.startsWith("Push") || tName.includes(" Push") || tName.startsWith("Upper A")) {
     if (record.category === "peitoral" && movement.includes("empurrar horizontal")) score += 12;
     if (record.category === "deltoides" && movement.includes("empurrar vertical")) score += 10;
     if (record.category === "triceps") score += 8;
     if (record.category === "abdomen_core") score += 2;
   }
 
-  if (template.name === "Pull") {
-    if (record.category === "costas_trapezio" && movement.includes("puxar")) score += 12;
+  // Pull A/B — costas, bíceps
+  if (tName.startsWith("Pull") || tName.includes(" Pull") || tName.startsWith("Upper B")) {
+    if (record.category === "costas_trapezio" && (movement.includes("puxar") || movement.includes("remada"))) score += 12;
     if (record.category === "biceps_antebraco") score += 8;
     if (record.category === "deltoides" && name.includes("posterior")) score += 6;
     if (record.category === "abdomen_core") score += 2;
   }
 
-  if (template.name === "Legs" || template.name.startsWith("Lower")) {
+  // Upper A — Empurrar (upper/lower splits)
+  if (tName === "Upper A — Empurrar") {
+    if (record.category === "peitoral") score += 10;
+    if (record.category === "costas_trapezio") score += 8;
+    if (record.category === "deltoides") score += 6;
+    if (record.category === "triceps") score += 6;
+  }
+
+  // Upper B — Puxar (upper/lower splits)
+  if (tName === "Upper B — Puxar") {
+    if (record.category === "costas_trapezio") score += 12;
+    if (record.category === "biceps_antebraco") score += 10;
+    if (record.category === "peitoral") score += 6;
+  }
+
+  // Legs / Lower — membros inferiores
+  if (tName.startsWith("Legs") || tName.includes(" Legs") || tName.startsWith("Lower")) {
     if (record.category === "membros_inferiores_gluteos") score += 12;
     if (record.category === "panturrilha") score += 8;
     if (record.category === "abdomen_core") score += 3;
-    if (["agachamento", "leg press", "stiff", "extensora", "flexora", "panturrilha", "abdutor", "quadril"].some((token) => name.includes(token))) {
+    if (["agachamento", "leg press", "stiff", "extensora", "flexora", "panturrilha", "abdutor", "quadril", "hip thrust", "passada", "afundo"].some((t) => name.includes(t))) {
       score += 6;
     }
   }
 
-  if (template.name === "Hybrid Performance") {
-    if (["costas_trapezio", "peitoral", "deltoides", "membros_inferiores_gluteos", "abdomen_core"].includes(record.category)) {
-      score += 6;
-    }
-    if (record.trainingType === "calistenia") score += 4;
-    if (record.trainingType === "musculacao") score += 2;
+  // Upper — Definição (female split)
+  if (tName.startsWith("Upper")) {
+    if (record.category === "costas_trapezio") score += 8;
+    if (record.category === "peitoral") score += 8;
+    if (record.category === "deltoides") score += 6;
+    if (record.category === "triceps") score += 5;
+    if (record.category === "biceps_antebraco") score += 5;
   }
 
+  // Hybrid Performance
+  if (tName === "Hybrid Performance" || tName === "Functional Performance" || tName.startsWith("Funcional")) {
+    if (["costas_trapezio", "peitoral", "deltoides", "membros_inferiores_gluteos", "abdomen_core"].includes(record.category)) score += 6;
+    if (record.trainingType === "calistenia") score += 6;
+    if (isFunctionalExerciseRecord(record)) score += 6;
+    if (record.equipment === "peso_corporal") score += 5;
+    if (["barra", "halteres", "banco", "maquina", "cabos"].includes(record.equipment)) score -= 10;
+  }
+
+  if (tName.startsWith("Calistenia")) {
+    if (record.trainingType === "calistenia") score += 14;
+    if (["peso_corporal", "barra_fixa", "paralelas", "parede", "trx"].includes(record.equipment)) score += 8;
+    if (record.equipment === "maquina" || record.equipment === "cabos") score -= 20;
+    if (tName.includes("Skills") && (movement.includes("controle") || movement.includes("vertical") || record.category === "abdomen_core")) score += 8;
+    if (tName.includes("Full Body") && ["membros_inferiores_gluteos", "costas_trapezio", "peitoral", "abdomen_core"].includes(record.category)) score += 6;
+  }
+
+  // Full Body — favorece compostos
+  if (tName.startsWith("Full Body")) {
+    if (movement.includes("agach") || movement.includes("hip hinge") || movement.includes("empurrar") || movement.includes("puxar")) score += 4;
+  }
+
+  // Bônus de ambiente
   if (profile.location === "casa" && ["halteres", "peso_corporal", "barra", "elastico", "banco"].includes(record.equipment)) {
     score += 5;
   }
-
   if (profile.location === "hibrido" && (record.trainingType === "calistenia" || ["halteres", "barra", "peso_corporal", "barra_fixa", "paralelas"].includes(record.equipment))) {
     score += 4;
   }
-
   if (profile.goal === "performance" && (record.trainingType === "calistenia" || movement.includes("vertical") || movement.includes("controle"))) {
     score += 3;
   }
@@ -313,12 +516,97 @@ function resolveAdaptiveDensity(
   return density;
 }
 
+function hashString(value: string): number {
+  let hash = 0;
+  for (let i = 0; i < value.length; i++) {
+    hash = (Math.imul(31, hash) + value.charCodeAt(i)) | 0;
+  }
+  return Math.abs(hash);
+}
+
+function getUserSeed(profile?: AthleteProfile): number {
+  if (typeof window === "undefined") return 54321;
+  try {
+    // Seed baseado no perfil do usuário — único por conta, não por dispositivo
+    if (profile) {
+      const regenerationSeed = localStorage.getItem("_zyrox_regen_seed") ?? "";
+      const profileKey = `${profile.name}|${profile.goal}|${profile.level}|${profile.sex ?? ""}|${profile.location}`;
+      return hashString(`${profileKey}|${regenerationSeed}`) % 999_983 || 12345;
+    }
+    let seed = localStorage.getItem("_zyrox_seed");
+    if (!seed) {
+      seed = String(Math.floor(Math.random() * 999_983));
+      localStorage.setItem("_zyrox_seed", seed);
+    }
+    return parseInt(seed, 10);
+  } catch {
+    return 54321;
+  }
+}
+
+function lcgRandom(seed: number): number {
+  const s = (seed * 1664525 + 1013904223) & 0x7fffffff;
+  return s;
+}
+
+function seededPick<T>(ranked: T[], count: number, seed: number): T[] {
+  const poolSize = Math.min(ranked.length, Math.max(count + 2, Math.ceil(count * 1.7)));
+  const pool = ranked.slice(0, poolSize);
+  const result: T[] = [];
+  const buf = [...pool];
+  let s = seed;
+  while (result.length < count && buf.length > 0) {
+    s = lcgRandom(s);
+    const idx = s % buf.length;
+    result.push(buf.splice(idx, 1)[0]);
+  }
+  return result;
+}
+
+function pickDiverseRecords(
+  candidates: ExerciseCatalogRecord[],
+  count: number,
+  seed: number,
+  selected: ExerciseCatalogRecord[],
+) {
+  const picked: ExerciseCatalogRecord[] = [];
+  const working = [...selected];
+  const poolSize = Math.min(candidates.length, Math.max(count + 6, count * 4));
+  const randomizedPool = seededPick(candidates.slice(0, poolSize), poolSize, seed);
+
+  const tryPick = (relaxBucketLimit = false) => {
+    for (const candidate of randomizedPool) {
+      if (picked.length >= count) return;
+      if (picked.some((item) => item.id === candidate.id)) continue;
+      if (!canAddExerciseToSelection(working, candidate, { relaxBucketLimit })) continue;
+
+      picked.push(candidate);
+      working.push(candidate);
+    }
+  };
+
+  tryPick(false);
+  tryPick(true);
+
+  for (const candidate of candidates) {
+    if (picked.length >= count) break;
+    if (picked.some((item) => item.id === candidate.id)) continue;
+    if (working.some((item) => item.id === candidate.id)) continue;
+
+    picked.push(candidate);
+    working.push(candidate);
+  }
+
+  return picked;
+}
+
 function selectExercisesForTemplate(
   template: WorkoutTemplate,
   catalog: ExerciseCatalogRecord[],
   profile: AthleteProfile,
   environment: EnvironmentContext,
   body: BodyTrainingContext,
+  templateIndex: number = 0,
 ) {
   const selected: ExerciseCatalogRecord[] = [];
   const allowedCategories = new Set(
@@ -330,18 +618,18 @@ function selectExercisesForTemplate(
     .filter((record) => record.status === "active")
     .filter((record) => supportsProfileEquipment(record, profile))
     .filter((record) => supportsEnvironment(record, environment))
-    .filter((record) => {
-      if (environment.location === "outdoor") return true;
-      if (environment.location === "casa") return true;
-      return record.trainingType === "musculacao" || template.name === "Hybrid Performance";
-    });
+    .filter((record) => supportsTrainingType(record, profile, environment));
 
   const rankRecords = (records: ExerciseCatalogRecord[]) =>
     [...records].sort(
       (left, right) =>
-        scoreExerciseQuality(right) + scoreTemplateFit(right, template, profile) + scoreEnvironmentFit(right, environment) + getBodyPriorityScore(right, body) -
-        (scoreExerciseQuality(left) + scoreTemplateFit(left, template, profile) + scoreEnvironmentFit(left, environment) + getBodyPriorityScore(left, body)),
+        scoreExerciseQuality(right) + scoreTemplateFit(right, template, profile) + scoreEnvironmentFit(right, environment) + getBodyPriorityScore(right, body) + scoreGenderFit(right, profile) -
+        (scoreExerciseQuality(left) + scoreTemplateFit(left, template, profile) + scoreEnvironmentFit(left, environment) + getBodyPriorityScore(left, body) + scoreGenderFit(left, profile)),
     );
+
+  const weekOfYear = Math.floor(Date.now() / (7 * 24 * 60 * 60 * 1000));
+  const userSeed = getUserSeed(profile);
+  let slotSeed = userSeed ^ (weekOfYear * 0x9e3779b9) ^ (templateIndex * 0x517cc1b7);
 
   for (const categoryRule of template.categories) {
     const candidates = rankRecords(
@@ -353,7 +641,8 @@ function selectExercisesForTemplate(
       ),
     );
 
-    selected.push(...candidates.slice(0, categoryRule.slots));
+    selected.push(...pickDiverseRecords(candidates, categoryRule.slots, slotSeed, selected));
+    slotSeed = lcgRandom(slotSeed);
   }
 
   if (selected.length < EXERCISES_PER_WORKOUT) {
@@ -364,10 +653,67 @@ function selectExercisesForTemplate(
           allowedCategories.has(record.category),
       ),
     );
-    selected.push(...fallback.slice(0, EXERCISES_PER_WORKOUT - selected.length));
+    selected.push(...pickDiverseRecords(fallback, EXERCISES_PER_WORKOUT - selected.length, slotSeed, selected));
   }
 
   return selected.slice(0, EXERCISES_PER_WORKOUT);
+}
+
+export type AICandidateExercise = {
+  id: string;
+  name: string;
+  category: string;
+  equipment: string;
+};
+
+export type AIWorkoutCandidate = {
+  workoutId: string;
+  workoutName: string;
+  workoutFocus: string;
+  exercises: AICandidateExercise[];
+};
+
+export function buildAIWorkoutCandidates(
+  profile: AthleteProfile,
+  environment: EnvironmentContext,
+  body: BodyTrainingContext,
+  templates: WorkoutTemplate[],
+  catalog: ExerciseCatalogRecord[],
+): AIWorkoutCandidate[] {
+  const available = catalog
+    .filter((r) => r.status === "active")
+    .filter((r) => supportsProfileEquipment(r, profile))
+    .filter((r) => supportsEnvironment(r, environment))
+    .filter((r) => supportsTrainingType(r, profile, environment));
+
+  return templates.map((template, index) => {
+    const seen = new Set<string>();
+    const candidates: AICandidateExercise[] = [];
+
+    for (const categoryRule of template.categories) {
+      const pool = [...available]
+        .filter((r) => r.category === categoryRule.primary || r.category === categoryRule.secondary)
+        .sort((a, b) =>
+          scoreExerciseQuality(b) + scoreTemplateFit(b, template, profile) + getBodyPriorityScore(b, body) + scoreGenderFit(b, profile) -
+          (scoreExerciseQuality(a) + scoreTemplateFit(a, template, profile) + getBodyPriorityScore(a, body) + scoreGenderFit(a, profile)),
+        )
+        .slice(0, (categoryRule.slots + 2) * 2);
+
+      for (const r of pool) {
+        if (!seen.has(r.id)) {
+          seen.add(r.id);
+          candidates.push({ id: r.id, name: r.name.pt, category: r.category, equipment: r.equipment });
+        }
+      }
+    }
+
+    return {
+      workoutId: `${resolveTrainingSplit(profile)}-${index + 1}`,
+      workoutName: template.name,
+      workoutFocus: template.categories.map((c) => c.primary).join(", "),
+      exercises: candidates,
+    };
+  });
 }
 
 function buildWorkoutExercises(
@@ -411,6 +757,33 @@ function mapIntensityLabel(
   return "Leve";
 }
 
+function applyMenstrualCycleIntensity(
+  intensity: "leve" | "moderada" | "pesada",
+  profile: AthleteProfile,
+): "leve" | "moderada" | "pesada" {
+  if (profile.sex !== "feminino" || !profile.trackCycle) return intensity;
+  if (profile.menstrualCyclePhase === "menstrual") return "leve";
+  if (profile.menstrualCyclePhase === "luteal") return intensity === "pesada" ? "moderada" : intensity;
+  if (profile.menstrualCyclePhase === "ovulatory") return intensity === "leve" ? "moderada" : intensity;
+  return intensity;
+}
+
+function applyMenstrualCycleDensity(
+  density: "alta" | "moderada" | "controlada",
+  profile: AthleteProfile,
+): "alta" | "moderada" | "controlada" {
+  if (profile.sex !== "feminino" || !profile.trackCycle) return density;
+  if (profile.menstrualCyclePhase === "menstrual") return "controlada";
+  if (profile.menstrualCyclePhase === "luteal") return density === "alta" ? "moderada" : density;
+  return density;
+}
+
+function resolveWorkoutTypeLabel(profile: AthleteProfile): Workout["type"] {
+  if (profile.trainingType === "calistenia") return "Calistenia";
+  if (profile.trainingType === "funcional") return "Funcional";
+  return "Musculação";
+}
+
 function applyStoredCustomizations(workouts: Workout[]) {
   if (typeof window === "undefined") return workouts;
 
@@ -430,12 +803,19 @@ export function buildGeneratedTrainingState(
   const body = buildBodyTrainingContext();
   const nutrition = buildNutritionTrainingContext();
   const resolvedEnvironment = environment ?? buildEnvironmentContextFromOnboarding(profile, {});
-  const periodization = buildPeriodizationBlock(profile, body, nutrition, resolvedEnvironment);
-  const intensity = resolveAdaptiveIntensity(
-    resolveWorkoutIntensity(profile.level, profile.consistency),
-    nutrition,
+  const locale = getStoredLocale();
+  const periodization = buildPeriodizationBlock(profile, body, nutrition, resolvedEnvironment, locale);
+  const intensity = applyMenstrualCycleIntensity(
+    resolveAdaptiveIntensity(
+      resolveWorkoutIntensity(profile.level, profile.consistency, profile.goal),
+      nutrition,
+    ),
+    profile,
   );
-  const density = resolveAdaptiveDensity(resolveWorkoutDensity(profile), nutrition, body);
+  const density = applyMenstrualCycleDensity(
+    resolveAdaptiveDensity(resolveWorkoutDensity(profile), nutrition, body),
+    profile,
+  );
 
   const workouts = templates.map((template, index) => {
     const selected = selectExercisesForTemplate(
@@ -444,6 +824,7 @@ export function buildGeneratedTrainingState(
       profile,
       resolvedEnvironment,
       body,
+      index,
     );
     const exercises = buildWorkoutExercises(selected, intensity, density);
 
@@ -452,7 +833,7 @@ export function buildGeneratedTrainingState(
       name: resolveWorkoutName(template, profile, index),
       focus: resolveFocus(template),
       duration: estimateWorkoutDuration(exercises, density, profile.workoutDurationMin),
-      type: "Musculacao" as Workout["type"],
+      type: resolveWorkoutTypeLabel(profile),
       exercises,
     } satisfies Workout;
   });
@@ -506,7 +887,3 @@ export function getGeneratedWorkout(id: string, options: GeneratedTrainingOption
 export function getGeneratedExercise(exerciseId: string) {
   return getExercise(exerciseId);
 }
-
-
-
-

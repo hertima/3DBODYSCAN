@@ -6,6 +6,8 @@ import {
   type OfficialMuscleCategory,
 } from "@/domain/exercises/catalog";
 import { type GeneratedTrainingState } from "@/domain/training/engine";
+import { getWeekDayLabels, getCategoryLabel, translateWorkoutName } from "@/lib/training-i18n";
+import { getStoredLocale, type AppLocale } from "@/lib/locale";
 
 type VolumePoint = {
   day: string;
@@ -50,17 +52,17 @@ export type TrainingAnalytics = {
   completionTrend: Array<{ day: string; completed: number }>;
 };
 
-const DAY_LABELS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sab", "Dom"];
+const ALL_MUSCLE_CATEGORIES: OfficialMuscleCategory[] = [
+  "peitoral", "costas_trapezio", "deltoides", "biceps_antebraco",
+  "triceps", "abdomen_core", "membros_inferiores_gluteos", "panturrilha",
+];
 
-const muscleLabels: Record<OfficialMuscleCategory, string> = {
-  peitoral: "Peitoral",
-  costas_trapezio: "Costas",
-  deltoides: "Deltoides",
-  biceps_antebraco: "Biceps",
-  triceps: "Triceps",
-  abdomen_core: "Core",
-  membros_inferiores_gluteos: "Inferiores",
-  panturrilha: "Panturrilha",
+const dayText: Record<AppLocale, [string, string]> = {
+  pt: ["dia", "dias"],
+  es: ["día", "días"],
+  en: ["day", "days"],
+  fr: ["jour", "jours"],
+  de: ["Tag", "Tage"],
 };
 
 function getCategoryBaseLoad(category: OfficialMuscleCategory) {
@@ -132,8 +134,9 @@ function getWorkoutCategories(workout: Workout, catalogById: Map<string, Exercis
 function buildVolumeTrend(
   state: GeneratedTrainingState,
   catalogById: Map<string, ExerciseCatalogRecord>,
+  locale: AppLocale,
 ) {
-  return DAY_LABELS.map((day, index) => {
+  return getWeekDayLabels(locale).map((day, index) => {
     const workoutId = state.schedule[index]?.workoutId;
     const workout = state.workouts.find((item) => item.id === workoutId);
 
@@ -148,6 +151,7 @@ function buildVolumeTrend(
 function buildMuscleRadar(
   state: GeneratedTrainingState,
   catalogById: Map<string, ExerciseCatalogRecord>,
+  locale: AppLocale,
 ) {
   const distribution = new Map<OfficialMuscleCategory, number>();
 
@@ -159,9 +163,9 @@ function buildMuscleRadar(
 
   const max = Math.max(...distribution.values(), 1);
 
-  return Object.entries(muscleLabels).map(([category, label]) => ({
-    muscle: label,
-    value: Math.round(((distribution.get(category as OfficialMuscleCategory) ?? 0) / max) * 100),
+  return ALL_MUSCLE_CATEGORIES.map((category) => ({
+    muscle: getCategoryLabel(category, locale),
+    value: Math.round(((distribution.get(category) ?? 0) / max) * 100),
   }));
 }
 
@@ -202,11 +206,13 @@ function buildProgressionData(state: GeneratedTrainingState) {
 function buildWorkoutHistory(
   state: GeneratedTrainingState,
   catalogById: Map<string, ExerciseCatalogRecord>,
+  locale: AppLocale,
 ) {
+  const [singular, plural] = dayText[locale] ?? dayText.pt;
   return state.workouts.map((workout, index) => ({
     id: workout.id,
-    name: workout.name,
-    date: `${index + 1} dia${index === 0 ? "" : "s"}`,
+    name: translateWorkoutName(workout.name, locale),
+    date: `${index + 1} ${index === 0 ? singular : plural}`,
     duration: workout.duration,
     volume: getWorkoutVolume(workout, catalogById, state.profile),
     sets: workout.exercises.reduce((sum, item) => sum + item.sets.length, 0),
@@ -214,8 +220,8 @@ function buildWorkoutHistory(
   }));
 }
 
-function buildCompletionTrend(state: GeneratedTrainingState) {
-  return DAY_LABELS.map((day, index) => ({
+function buildCompletionTrend(state: GeneratedTrainingState, locale: AppLocale) {
+  return getWeekDayLabels(locale).map((day, index) => ({
     day,
     completed: state.schedule[index]?.workoutId ? 1 : 0,
   }));
@@ -245,16 +251,17 @@ function buildRecoveryScore(state: GeneratedTrainingState) {
 export function buildTrainingAnalytics(
   state: GeneratedTrainingState,
   catalog: ExerciseCatalogRecord[] = buildExerciseCatalog(),
+  locale: AppLocale = getStoredLocale(),
 ): TrainingAnalytics {
   const catalogById = new Map(catalog.map((record) => [record.id, record]));
 
   return {
-    volumeTrend: buildVolumeTrend(state, catalogById),
-    muscleRadar: buildMuscleRadar(state, catalogById),
+    volumeTrend: buildVolumeTrend(state, catalogById, locale),
+    muscleRadar: buildMuscleRadar(state, catalogById, locale),
     consistencyHeatmap: buildConsistencyHeatmap(state),
     progressionData: buildProgressionData(state),
-    workoutHistory: buildWorkoutHistory(state, catalogById),
+    workoutHistory: buildWorkoutHistory(state, catalogById, locale),
     recoveryScore: buildRecoveryScore(state),
-    completionTrend: buildCompletionTrend(state),
+    completionTrend: buildCompletionTrend(state, locale),
   };
 }

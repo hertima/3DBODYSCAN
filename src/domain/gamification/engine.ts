@@ -1,4 +1,5 @@
 import { type GeneratedTrainingState } from "@/domain/training/engine";
+import { getGamificationCopy, type GamificationCopy } from "@/lib/app-copy";
 
 export const missionWindows = [
   "diaria",
@@ -68,7 +69,7 @@ function getHydrationCompletionRate(state: GeneratedTrainingState) {
   return percentToRate(state.nutrition.hydrationCompletionPct);
 }
 
-function buildMissions(state: GeneratedTrainingState): Record<MissionWindow, GamificationMission[]> {
+function buildMissions(state: GeneratedTrainingState, t: GamificationCopy["missions"]): Record<MissionWindow, GamificationMission[]> {
   const completedWorkouts = getCompletedWorkouts(state);
   const workoutRate = getWorkoutCompletionRate(state);
   const hydrationRate = getHydrationCompletionRate(state);
@@ -80,8 +81,8 @@ function buildMissions(state: GeneratedTrainingState): Record<MissionWindow, Gam
       {
         id: "daily-workout",
         window: "diaria",
-        title: "Fechar o treino do dia",
-        description: "Conclua o bloco principal sem perder a ordem planejada.",
+        title: t.dailyWorkoutTitle,
+        description: t.dailyWorkoutDesc,
         progress: Math.min(completedWorkouts, 1),
         target: 1,
         completed: completedWorkouts >= 1,
@@ -89,8 +90,8 @@ function buildMissions(state: GeneratedTrainingState): Record<MissionWindow, Gam
       {
         id: "daily-hydration",
         window: "diaria",
-        title: "Bater a agua do dia",
-        description: "Chegue perto da meta de hidratação para sustentar recuperação.",
+        title: t.dailyWaterTitle,
+        description: t.dailyWaterDesc,
         progress: hydrationRate,
         target: 100,
         completed: hydrationRate >= 100,
@@ -100,8 +101,8 @@ function buildMissions(state: GeneratedTrainingState): Record<MissionWindow, Gam
       {
         id: "weekly-consistency",
         window: "semanal",
-        title: "Consistência da semana",
-        description: "Feche os treinos planejados da semana com aderência alta.",
+        title: t.weeklyConsistencyTitle,
+        description: t.weeklyConsistencyDesc,
         progress: completedWorkouts,
         target: Math.max(3, state.workouts.length),
         completed: completedWorkouts >= Math.max(3, state.workouts.length),
@@ -109,8 +110,8 @@ function buildMissions(state: GeneratedTrainingState): Record<MissionWindow, Gam
       {
         id: "weekly-protein",
         window: "semanal",
-        title: "Proteína alinhada",
-        description: "Mantenha a nutrição da semana acima do alvo médio.",
+        title: t.weeklyProteinTitle,
+        description: t.weeklyProteinDesc,
         progress: nutritionRate,
         target: 80,
         completed: nutritionRate >= 80,
@@ -120,8 +121,8 @@ function buildMissions(state: GeneratedTrainingState): Record<MissionWindow, Gam
       {
         id: "monthly-rhythm",
         window: "mensal",
-        title: "Ritmo mensal",
-        description: "Sustente treino, agua e comida em bloco continuo.",
+        title: t.monthlyTitle,
+        description: t.monthlyDesc,
         progress: Math.round((workoutRate + hydrationRate + nutritionRate) / 3),
         target: 78,
         completed: (workoutRate + hydrationRate + nutritionRate) / 3 >= 78,
@@ -131,8 +132,8 @@ function buildMissions(state: GeneratedTrainingState): Record<MissionWindow, Gam
       {
         id: "quarterly-body",
         window: "trimestral",
-        title: "Transformação do bloco",
-        description: "Consolide um trimestre de evolução com scans confiáveis.",
+        title: t.quarterlyTitle,
+        description: t.quarterlyDesc,
         progress: bodyConfidence,
         target: 85,
         completed: bodyConfidence >= 85,
@@ -142,8 +143,8 @@ function buildMissions(state: GeneratedTrainingState): Record<MissionWindow, Gam
       {
         id: "semester-engine",
         window: "semestral",
-        title: "Motor de consistência",
-        description: "Segure o plano por seis meses com alto controle de execução.",
+        title: t.semesterTitle,
+        description: t.semesterDesc,
         progress: Math.round((workoutRate * 0.5) + (nutritionRate * 0.25) + (hydrationRate * 0.25)),
         target: 82,
         completed:
@@ -154,8 +155,8 @@ function buildMissions(state: GeneratedTrainingState): Record<MissionWindow, Gam
       {
         id: "year-transformation",
         window: "anual",
-        title: "Jornada anual premium",
-        description: "Feche o ano com corpo, treino e aderência evoluindo juntos.",
+        title: t.annualTitle,
+        description: t.annualDesc,
         progress: Math.round(
           (bodyConfidence * 0.3) +
             (workoutRate * 0.35) +
@@ -269,7 +270,8 @@ function buildAchievements(
   ];
 }
 
-export function buildGamificationState(state: GeneratedTrainingState): GamificationState {
+export function buildGamificationState(state: GeneratedTrainingState, locale?: string): GamificationState {
+  const copy = getGamificationCopy(locale as Parameters<typeof getGamificationCopy>[0]);
   const xp = buildXp(state);
   const streakDays = buildStreakDays(state);
 
@@ -280,7 +282,7 @@ export function buildGamificationState(state: GeneratedTrainingState): Gamificat
     workoutCompletionRate: getWorkoutCompletionRate(state),
     hydrationCompletionRate: getHydrationCompletionRate(state),
     nutritionCompletionRate: getNutritionCompletionRate(state),
-    missions: buildMissions(state),
+    missions: buildMissions(state, copy.missions),
     achievements: buildAchievements(state, xp, streakDays),
   };
 }

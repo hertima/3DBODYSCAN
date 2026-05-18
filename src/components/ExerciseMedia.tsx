@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Activity,
   Anchor,
@@ -7,6 +7,8 @@ import {
   Flame,
   Hexagon,
   Mountain,
+  Pause,
+  Play,
   Target,
   Wind,
   Zap,
@@ -26,6 +28,38 @@ type Props = {
 };
 
 const VIDEO_EXTENSIONS = [".mp4", ".webm", ".mov"] as const;
+
+function pushUnique(target: string[], value: string | undefined | null) {
+  if (!value || target.includes(value)) return;
+  target.push(value);
+}
+
+function buildMediaSources(exerciseId: string, primary?: string | null, mapped?: string | null) {
+  const sources: string[] = [];
+  pushUnique(sources, primary);
+  if (primary) {
+    try {
+      pushUnique(sources, decodeURI(primary));
+    } catch {
+      // Keep the encoded source only when the browser cannot decode it.
+    }
+    pushUnique(
+      sources,
+      primary
+        .replace(/^\/musculacao-media\//, "/gif-catalog/")
+        .replace(/\.(mp4|webm|mov)$/i, ".gif"),
+    );
+    pushUnique(
+      sources,
+      primary
+        .replace(/^\/musculacao-media\//, "/Calistenia-GIFS/GIF´S ANIMADOS MUSCULAÇÃO/")
+        .replace(/\.(mp4|webm|mov)$/i, ".gif"),
+    );
+  }
+  pushUnique(sources, mapped);
+  pushUnique(sources, `/exercises/${exerciseId}.gif`);
+  return sources;
+}
 
 const muscleStyle: Record<
   MuscleGroup,
@@ -49,13 +83,13 @@ const muscleStyle: Record<
     Icon: Wind,
     short: "OMBROS",
   },
-  "Bíceps": {
+  Bíceps: {
     grad: "from-violet-500/30 via-fuchsia-500/20 to-transparent",
     ring: "ring-violet-400/40",
     Icon: Dumbbell,
     short: "BICEPS",
   },
-  "Tríceps": {
+  Tríceps: {
     grad: "from-pink-500/30 via-rose-500/20 to-transparent",
     ring: "ring-pink-400/40",
     Icon: Zap,
@@ -67,7 +101,7 @@ const muscleStyle: Record<
     Icon: Activity,
     short: "PERNAS",
   },
-  "Glúteos": {
+  Glúteos: {
     grad: "from-fuchsia-500/30 via-pink-500/20 to-transparent",
     ring: "ring-fuchsia-400/40",
     Icon: Hexagon,
@@ -79,7 +113,7 @@ const muscleStyle: Record<
     Icon: Target,
     short: "CORE",
   },
-  "Antebraço": {
+  Antebraço: {
     grad: "from-sky-500/30 via-cyan-500/20 to-transparent",
     ring: "ring-sky-400/40",
     Icon: Anchor,
@@ -97,11 +131,43 @@ export function ExerciseMedia({ exerciseId, size = "card", className, muscle, sr
   const exercise = getExercise(exerciseId);
   const target = muscle ?? exercise?.muscle ?? "Core";
   const mappedMediaSrc = getExerciseGifUrl(exerciseId, exercise?.name);
-  const mediaSrc = src ?? exercise?.gifUrl ?? mappedMediaSrc ?? `/exercises/${exerciseId}.gif`;
+  const mediaSources = buildMediaSources(exerciseId, src ?? exercise?.gifUrl, mappedMediaSrc);
+  const [mediaIndex, setMediaIndex] = useState(0);
+  const mediaSrc = mediaSources[mediaIndex] ?? `/exercises/${exerciseId}.gif`;
   const [failed, setFailed] = useState(false);
   const [visible, setVisible] = useState(false);
+  const [playing, setPlaying] = useState(true);
+  const [showControls, setShowControls] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
   const isVideo = VIDEO_EXTENSIONS.some((extension) => mediaSrc.toLowerCase().endsWith(extension));
+
+  const handleMediaError = () => {
+    if (mediaIndex < mediaSources.length - 1) {
+      setMediaIndex((current) => current + 1);
+      return;
+    }
+    setFailed(true);
+  };
+
+  useEffect(() => {
+    setMediaIndex(0);
+    setFailed(false);
+  }, [exerciseId, src, exercise?.gifUrl, mappedMediaSrc]);
+
+  const togglePlay = () => {
+    const vid = videoRef.current;
+    if (!vid) return;
+    if (vid.paused) {
+      vid.play().catch(() => {});
+      setPlaying(true);
+    } else {
+      vid.pause();
+      setPlaying(false);
+    }
+    setShowControls(true);
+    setTimeout(() => setShowControls(false), 1200);
+  };
 
   useEffect(() => {
     const node = containerRef.current;
@@ -134,42 +200,108 @@ export function ExerciseMedia({ exerciseId, size = "card", className, muscle, sr
     <div ref={containerRef} className={cn("relative isolate overflow-hidden bg-elevated", radius, aspect, className)}>
       {visible && !failed &&
         (isVideo ? (
-          <video
-            src={mediaSrc}
-            muted
-            loop
-            autoPlay
-            playsInline
-            {...({ "webkit-playsinline": "true" } as Record<string, string>)}
-            disableRemotePlayback
-            disablePictureInPicture
-            controls={false}
-            preload="auto"
-            onLoadedMetadata={(e) => {
-              const v = e.currentTarget;
-              v.muted = true;
-              const p = v.play();
-              if (p && typeof p.catch === "function") p.catch(() => {});
-            }}
-            onCanPlay={(e) => {
-              const v = e.currentTarget;
-              if (v.paused) {
-                const p = v.play();
-                if (p && typeof p.catch === "function") p.catch(() => {});
-              }
-            }}
-            onError={() => setFailed(true)}
-            className="absolute inset-0 h-full w-full object-cover"
-          />
+          <>
+            <video
+              ref={videoRef}
+              src={mediaSrc}
+              muted
+              loop
+              autoPlay
+              playsInline
+              preload="metadata"
+              onError={handleMediaError}
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+            {size !== "thumb" && (
+              <button
+                onClick={togglePlay}
+                className="absolute inset-0 z-10 flex items-center justify-center group/play"
+                aria-label={playing ? "Pausar" : "Reproduzir"}
+              >
+                {/* Play/Pause always-visible overlay */}
+                <AnimatePresence mode="wait">
+                  {!playing ? (
+                    <motion.div
+                      key="play"
+                      initial={{ scale: 0.7, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      exit={{ scale: 1.1, opacity: 0 }}
+                      transition={{ type: "spring", stiffness: 400, damping: 22 }}
+                      className="grid h-14 w-14 place-items-center rounded-full backdrop-blur-sm"
+                      style={{
+                        background: "rgba(34,211,238,0.85)",
+                        boxShadow: "0 0 28px rgba(34,211,238,0.6), 0 0 8px rgba(34,211,238,0.4)",
+                      }}
+                    >
+                      <Play className="h-6 w-6 translate-x-0.5" style={{ color: "#060b14", fill: "#060b14" }} />
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="playing"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="flex flex-col items-center gap-1 opacity-0 transition-opacity group-hover/play:opacity-100"
+                    >
+                      <div
+                        className="grid h-12 w-12 place-items-center rounded-full backdrop-blur-sm"
+                        style={{
+                          background: "rgba(34,211,238,0.75)",
+                          boxShadow: "0 0 20px rgba(34,211,238,0.5)",
+                        }}
+                      >
+                        <Pause className="h-5 w-5" style={{ color: "#060b14" }} />
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Indicador de mídia ativa — canto inferior esquerdo */}
+                {showControls && playing && (
+                  <div className="absolute bottom-2 left-2 flex items-center gap-1 rounded-full bg-black/60 px-2 py-0.5 backdrop-blur-sm">
+                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-white/80">AO VIVO</span>
+                  </div>
+                )}
+              </button>
+            )}
+
+            {/* Badge "▶ vídeo" visível no canto superior esquerdo quando thumb */}
+            {size === "thumb" && (
+              <div
+                className="absolute bottom-1 left-1 flex items-center gap-0.5 rounded-full px-1.5 py-0.5 backdrop-blur"
+                style={{ background: "rgba(34,211,238,0.85)" }}
+              >
+                <Play className="h-2 w-2" style={{ fill: "#060b14", color: "#060b14" }} />
+              </div>
+            )}
+          </>
         ) : (
-          <img
-            src={mediaSrc}
-            alt={exercise?.name ?? "Exercicio"}
-            loading="lazy"
-            decoding="async"
-            onError={() => setFailed(true)}
-            className="absolute inset-0 h-full w-full object-cover"
-          />
+          <>
+            <img
+              src={mediaSrc}
+              alt={exercise?.name ?? "Exercicio"}
+              loading="lazy"
+              decoding="async"
+              onError={handleMediaError}
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+            {size === "thumb" ? (
+              <div
+                className="absolute bottom-1 left-1 flex items-center gap-0.5 rounded-full px-1.5 py-0.5 backdrop-blur"
+                style={{ background: "rgba(34,211,238,0.85)" }}
+              >
+                <Play className="h-2 w-2" style={{ fill: "#060b14", color: "#060b14" }} />
+              </div>
+            ) : (
+              <div
+                className="absolute bottom-2 left-2 flex items-center gap-1 rounded-full px-2 py-0.5 backdrop-blur-sm"
+                style={{ background: "rgba(34,211,238,0.2)", border: "1px solid rgba(34,211,238,0.4)" }}
+              >
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full" style={{ background: "#22d3ee" }} />
+                <span className="text-[9px] font-bold uppercase tracking-wider" style={{ color: "#22d3ee" }}>GIF</span>
+              </div>
+            )}
+          </>
         ))}
 
       {failed && (

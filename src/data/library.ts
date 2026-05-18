@@ -24,11 +24,11 @@ export type Exercise = {
 
 const curatedExercises: Exercise[] = [
   { id: "supino-reto", name: "Supino Reto", type: "Musculação", muscle: "Peito", equipment: "Barra", biomechanics: "Empurrar horizontal", instructions: ["Deite no banco com os pés firmes no chão", "Pegada um pouco mais aberta que os ombros", "Desça a barra controlado até o peito", "Empurre explosivo mantendo escápulas retraídas"], mistakes: ["Arquear lombar excessivamente", "Cotovelos abertos 90°", "Saltar barra do peito"], alternatives: ["supino-halter", "flexao"] },
-  { id: "supino-halter", name: "Supino com Halteres", type: "Musculação", muscle: "Peito", equipment: "Halteres", biomechanics: "Empurrar horizontal", instructions: ["Halteres na altura do peito", "Empurre em arco até quase tocar"], mistakes: ["Travar cotovelos", "Pouca amplitude"], alternatives: ["supino-reto", "crucifixo"] },
+  { id: "supino-halter", name: "Supino com Halteres", type: "Musculação", muscle: "Peito", equipment: "Banco", biomechanics: "Empurrar horizontal", instructions: ["Halteres na altura do peito", "Empurre em arco até quase tocar"], mistakes: ["Travar cotovelos", "Pouca amplitude"], alternatives: ["supino-reto", "crucifixo"] },
   { id: "crucifixo", name: "Crucifixo", type: "Musculação", muscle: "Peito", equipment: "Halteres", biomechanics: "Adução horizontal", instructions: ["Cotovelos levemente flexionados", "Abra controlado e feche contraindo o peito"], mistakes: ["Descer demais e perder tensão"], alternatives: ["crossover"] },
   { id: "crossover", name: "Crossover Cabos", type: "Musculação", muscle: "Peito", equipment: "Cabos", biomechanics: "Adução horizontal", instructions: ["Inclinação leve à frente", "Puxe cruzando à frente"], mistakes: ["Usar peso demais"], alternatives: ["crucifixo"] },
 
-  { id: "remada-curvada", name: "Remada Curvada", type: "Musculação", muscle: "Costas", equipment: "Barra", biomechanics: "Puxar horizontal", instructions: ["Tronco a 45°", "Puxe a barra ao umbigo", "Aperte escápulas"], mistakes: ["Tronco subindo a cada repetição"], alternatives: ["remada-baixa", "remada-cavalinho"] },
+  { id: "remada-curvada", name: "Remada Curvada", type: "Musculação", muscle: "Costas", equipment: "Barra", biomechanics: "Puxar horizontal", instructions: ["Tronco a 45°", "Puxe a barra ao umbigo", "Aperte escápulas"], mistakes: ["Tronco subindo a cada repetição"], alternatives: ["remada-baixa", "remada-australiana"] },
   { id: "remada-baixa", name: "Remada Baixa", type: "Musculação", muscle: "Costas", equipment: "Cabos", biomechanics: "Puxar horizontal", instructions: ["Coluna neutra", "Puxe ao abdômen"], mistakes: ["Balançar tronco"], alternatives: ["remada-curvada"] },
   { id: "puxada-frente", name: "Puxada Frontal", type: "Musculação", muscle: "Costas", equipment: "Cabos", biomechanics: "Puxar vertical", instructions: ["Pegada pronada larga", "Puxe ao peito alto"], mistakes: ["Inclinar demais"], alternatives: ["barra-fixa"] },
   { id: "barra-fixa", name: "Barra Fixa", type: "Calistenia", muscle: "Costas", equipment: "Barra fixa", biomechanics: "Puxar vertical", instructions: ["Suba até queixo passar a barra", "Desça controlado total"], mistakes: ["Balanço com pernas"], alternatives: ["puxada-frente"] },
@@ -46,7 +46,7 @@ const curatedExercises: Exercise[] = [
   { id: "triceps-frances", name: "Tríceps Francês", type: "Musculação", muscle: "Tríceps", equipment: "Halteres", biomechanics: "Extensão", instructions: ["Cotovelos apontando ao teto", "Desça atrás da cabeça"], mistakes: ["Abrir cotovelos"], alternatives: ["triceps-corda"] },
   { id: "mergulho", name: "Mergulho em Paralelas", type: "Calistenia", muscle: "Tríceps", equipment: "Paralelas", biomechanics: "Empurrar vertical", instructions: ["Tronco vertical para tríceps", "Desça até 90°"], mistakes: ["Cabeça caindo à  frente"], alternatives: ["triceps-corda"] },
 
-  { id: "agachamento", name: "Agachamento Livre", type: "Musculação", muscle: "Pernas", equipment: "Barra", biomechanics: "Agachamento", instructions: ["Barra apoiada no trapézio", "Desça até paralelo", "Suba empurrando o chão"], mistakes: ["Joelhos colapsando para dentro", "Lombar arredondada"], alternatives: ["leg-press", "agachamento-livre"] },
+  { id: "agachamento", name: "Agachamento Livre", type: "Musculação", muscle: "Pernas", equipment: "Barra", biomechanics: "Agachamento", instructions: ["Barra apoiada no trapézio", "Desça até paralelo", "Suba empurrando o chão"], mistakes: ["Joelhos colapsando para dentro", "Lombar arredondada"], alternatives: ["leg-press", "agachamento-pc"] },
   { id: "leg-press", name: "Leg Press 45°", type: "Musculação", muscle: "Pernas", equipment: "Máquina", biomechanics: "Empurrar pernas", instructions: ["Pés na largura dos ombros", "Desça até 90°"], mistakes: ["Tirar quadril do banco"], alternatives: ["agachamento"] },
   { id: "stiff", name: "Stiff", type: "Musculação", muscle: "Pernas", equipment: "Barra", biomechanics: "Hip hinge", instructions: ["Pernas semi-flexionadas", "Desça com coluna neutra"], mistakes: ["Arredondar lombar"], alternatives: ["levantamento-terra"] },
   { id: "levantamento-terra", name: "Levantamento Terra", type: "Musculação", muscle: "Pernas", equipment: "Barra", biomechanics: "Hip hinge", instructions: ["Barra junto ao corpo", "Empurre o chão"], mistakes: ["Subir com lombar"], alternatives: ["stiff"] },
@@ -56,16 +56,30 @@ const curatedExercises: Exercise[] = [
 
   { id: "elevacao-quadril", name: "Elevação de Quadril", type: "Musculação", muscle: "Glúteos", equipment: "Barra", biomechanics: "Hip thrust", instructions: ["Apoio escapular no banco", "Empurre quadril ao teto"], mistakes: ["Hiperextender lombar"], alternatives: ["agachamento"] },
   { id: "abdutor", name: "Cadeira Abdutora", type: "Musculação", muscle: "Glúteos", equipment: "Máquina", biomechanics: "Abdução quadril", instructions: ["Tronco levemente à frente"], mistakes: ["Balançar"], alternatives: [] },
+  { id: "panturrilha-pc", name: "Panturrilha em Pé (Peso Corporal)", type: "Calistenia", muscle: "Pernas", equipment: "Peso corporal", biomechanics: "Flexão plantar", instructions: ["Fique na ponta dos pés na borda de um degrau ou plano", "Suba ao máximo e desça abaixo do nível do calcanhar", "Controle em 2s de descida"], mistakes: ["Amplitude curta", "Usar impulso"], alternatives: ["panturrilha-halter"] },
+  { id: "panturrilha-halter", name: "Panturrilha com Haltere", type: "Musculação", muscle: "Pernas", equipment: "Halteres", biomechanics: "Flexão plantar", instructions: ["Segure haltere em uma mão, apoie a outra na parede", "Suba na ponta do pé fazendo movimento completo"], mistakes: ["Amplitude curta", "Velocidade alta"], alternatives: ["panturrilha-pc"] },
 
   { id: "prancha", name: "Prancha", type: "Calistenia", muscle: "Core", equipment: "Peso corporal", biomechanics: "Anti-extensão", instructions: ["Linha reta corpo", "Glúteos contraídos"], mistakes: ["Quadril alto demais"], alternatives: ["abdominal"] },
   { id: "abdominal", name: "Abdominal Crunch", type: "Calistenia", muscle: "Core", equipment: "Peso corporal", biomechanics: "Flexão tronco", instructions: ["Eleve apenas escápulas"], mistakes: ["Puxar pescoço"], alternatives: ["prancha"] },
   { id: "leg-raise", name: "Elevação de Pernas", type: "Calistenia", muscle: "Core", equipment: "Barra fixa", biomechanics: "Flexão quadril", instructions: ["Pernas estendidas até 90°"], mistakes: ["Balanço"], alternatives: ["abdominal"] },
-  { id: "ab-roller", name: "Ab Roller", type: "Calistenia", muscle: "Core", equipment: "Roda abdominal", biomechanics: "Anti-extensão", instructions: ["Avance sem arquear lombar"], mistakes: ["Arquear lombar"], alternatives: ["prancha"] },
+  { id: "ab-roller", name: "Ab Roller", type: "Calistenia", muscle: "Core", equipment: "Peso corporal", biomechanics: "Anti-extensão", instructions: ["Avance sem arquear lombar"], mistakes: ["Arquear lombar"], alternatives: ["prancha"] },
 
   { id: "flexao", name: "Flexão de Braço", type: "Calistenia", muscle: "Peito", equipment: "Peso corporal", biomechanics: "Empurrar horizontal", instructions: ["Corpo alinhado", "Desça até peito quase tocar o chão"], mistakes: ["Quadril caindo"], alternatives: ["supino-halter"] },
+  { id: "flexao-fechada", name: "Flexão Fechada", type: "Calistenia", muscle: "Tríceps", equipment: "Peso corporal", biomechanics: "Extensão cotovelo", instructions: ["Mãos próximas abaixo do peito", "Cotovelos colados ao tronco na subida"], mistakes: ["Abrir cotovelos", "Quadril caindo"], alternatives: ["triceps-corda", "mergulho"] },
+  { id: "dips-cadeira", name: "Dips na Cadeira", type: "Calistenia", muscle: "Tríceps", equipment: "Peso corporal", biomechanics: "Extensão cotovelo", instructions: ["Apoio nas mãos atrás do corpo", "Desça até cotovelos a 90°", "Empurre subindo sem travar"], mistakes: ["Ombros subindo", "Amplitude curta"], alternatives: ["mergulho", "flexao-fechada"] },
+  { id: "remada-australiana", name: "Remada Australiana", type: "Calistenia", muscle: "Costas", equipment: "Barra fixa", biomechanics: "Puxar horizontal", instructions: ["Corpo inclinado sob a barra, calcanhar no chão", "Puxe o peito até a barra mantendo escápulas retraídas", "Desça controlado"], mistakes: ["Quadril caindo", "Usar impulso"], alternatives: ["remada-curvada", "barra-fixa"] },
+  { id: "superman", name: "Superman", type: "Calistenia", muscle: "Costas", equipment: "Peso corporal", biomechanics: "Extensão", instructions: ["Deite de bruços com braços estendidos à frente", "Eleve peito e pernas simultaneamente contraindo as costas", "Segure 2s no topo e desça controlado"], mistakes: ["Usar impulso", "Pescoço tenso"], alternatives: ["remada-australiana"] },
+{ id: "curl-barra-fixa", name: "Rosca na Barra Fixa", type: "Calistenia", muscle: "Bíceps", equipment: "Barra fixa", biomechanics: "Flexão de cotovelo", instructions: ["Pegada supinada na barra", "Puxe concentrando a contração no bíceps", "Cotovelso na frente do corpo"], mistakes: ["Balanço corporal", "Usar as costas"], alternatives: ["rosca-direta", "remada-australiana"] },
+  { id: "elevacao-toalha", name: "Elevação Lateral com Toalha", type: "Calistenia", muscle: "Ombros", equipment: "Parede", biomechanics: "Abdução", instructions: ["Toalha presa na parede ou porta", "Incline o corpo e eleve lateralmente com resistência", "Controle a descida"], mistakes: ["Usar trapézio", "Movimento rápido"], alternatives: ["elevacao-lateral", "handstand"] },
+  { id: "pike-push-up", name: "Pike Push-up", type: "Calistenia", muscle: "Ombros", equipment: "Peso corporal", biomechanics: "Empurrar vertical", instructions: ["Quadril elevado formando V invertido", "Desça a cabeça entre as mãos", "Empurre subindo sem abrir o quadril"], mistakes: ["Quadril caindo", "Cotovelos muito abertos"], alternatives: ["handstand", "desenvolvimento"] },
+  { id: "agachamento-pc", name: "Agachamento Livre (Peso Corporal)", type: "Calistenia", muscle: "Pernas", equipment: "Peso corporal", biomechanics: "Agachamento", instructions: ["Pés na largura dos ombros", "Desça até coxa paralela ao chão", "Suba empurrando com os calcanhares"], mistakes: ["Joelhos colapsando para dentro", "Levantar calcanhares"], alternatives: ["agachamento-bulgaro-pc", "pistol-squat"] },
+  { id: "afundo-pc", name: "Afundo (Peso Corporal)", type: "Calistenia", muscle: "Pernas", equipment: "Peso corporal", biomechanics: "Agachamento unilateral", instructions: ["Dê um passo largo à frente", "Desça o joelho traseiro próximo ao chão", "Suba e alterne as pernas"], mistakes: ["Tronco muito inclinado", "Joelho ultrapassar o pé"], alternatives: ["agachamento-bulgaro-pc", "pistol-squat"] },
+  { id: "agachamento-bulgaro-pc", name: "Agachamento Búlgaro", type: "Calistenia", muscle: "Pernas", equipment: "Peso corporal", biomechanics: "Agachamento unilateral", instructions: ["Pé traseiro elevado num banco ou degrau", "Desça o joelho traseiro próximo ao chão", "Suba empurrando com o calcanhar da frente"], mistakes: ["Joelho ultrapassar muito o pé", "Tronco muito inclinado"], alternatives: ["pistol-squat", "afundo-pc"] },
+  { id: "hip-thrust-solo", name: "Hip Thrust no Solo", type: "Calistenia", muscle: "Glúteos", equipment: "Peso corporal", biomechanics: "Hip thrust", instructions: ["Deite com joelhos dobrados e pés no chão", "Eleve o quadril contraindo glúteos no topo", "Segure 2s no pico e desça controlado"], mistakes: ["Hiperextender lombar", "Usar impulso"], alternatives: ["elevacao-quadril", "agachamento-bulgaro-pc"] },
+  { id: "ponte-gluteos-unilateral", name: "Ponte de Glúteos Unilateral", type: "Calistenia", muscle: "Glúteos", equipment: "Peso corporal", biomechanics: "Hip thrust", instructions: ["Deite com uma perna estendida", "Eleve o quadril empurrando com o calcanhar da perna apoiada", "Contraia glúteos no topo e desça controlado"], mistakes: ["Usar impulso", "Quadril torto"], alternatives: ["hip-thrust-solo", "elevacao-quadril"] },
   { id: "muscle-up", name: "Muscle Up", type: "Calistenia", muscle: "Costas", equipment: "Barra fixa", biomechanics: "Puxar + Empurrar", instructions: ["Explosão na transição"], mistakes: ["Falta de puxada alta"], alternatives: ["barra-fixa"] },
-  { id: "pistol-squat", name: "Pistol Squat", type: "Calistenia", muscle: "Pernas", equipment: "Peso corporal", biomechanics: "Agachamento unilateral", instructions: ["Equilíbrio em uma perna"], mistakes: ["Calcanhar levantando"], alternatives: ["agachamento"] },
-  { id: "handstand", name: "Handstand Push-up", type: "Calistenia", muscle: "Ombros", equipment: "Parede", biomechanics: "Empurrar vertical invertido", instructions: ["Cabeça toca o chão controlado"], mistakes: ["Hiperextender lombar"], alternatives: ["desenvolvimento"] },
+  { id: "pistol-squat", name: "Pistol Squat", type: "Calistenia", muscle: "Pernas", equipment: "Peso corporal", biomechanics: "Agachamento unilateral", instructions: ["Equilíbrio em uma perna"], mistakes: ["Calcanhar levantando"], alternatives: ["agachamento-bulgaro-pc"] },
+  { id: "handstand", name: "Handstand Push-up", type: "Calistenia", muscle: "Ombros", equipment: "Parede", biomechanics: "Empurrar vertical invertido", instructions: ["Cabeça toca o chão controlado"], mistakes: ["Hiperextender lombar"], alternatives: ["pike-push-up"] },
   { id: "front-lever", name: "Front Lever", type: "Calistenia", muscle: "Core", equipment: "Barra fixa", biomechanics: "Isometria", instructions: ["Corpo paralelo ao chão"], mistakes: ["Quadril caindo"], alternatives: ["leg-raise"] },
 ];
 
@@ -82,7 +96,7 @@ export type Workout = {
   name: string;
   focus: string;
   duration: number;
-  type: ExerciseType | "Híbrido";
+  type: ExerciseType | "Híbrido" | "Funcional";
   exercises: WorkoutExercise[];
 };
 
@@ -622,7 +636,7 @@ function inferBiomechanicsFromCatalog(muscle: MuscleGroup, type: ExerciseType) {
 
 function extractCatalogName(path: string) {
   const filename = path.split("/").pop() ?? path;
-  const withoutExtension = filename.replace(/\.gif$/i, "");
+  const withoutExtension = filename.replace(/\.(gif|mp4|webm|mov)$/i, "");
   const withoutCounter = withoutExtension.replace(/\s*\(\d+\)\s*$/g, "");
   const normalized = normalizeCatalogValue(withoutCounter).replace(/-/g, " ");
   return toTitleCase(normalized);
@@ -640,7 +654,7 @@ function extractCatalogSourceGroup(path: string) {
 
 function extractCatalogFingerprint(path: string) {
   const filename = path.split("/").pop() ?? path;
-  const withoutExtension = filename.replace(/\.gif$/i, "");
+  const withoutExtension = filename.replace(/\.(gif|mp4|webm|mov)$/i, "");
   const withoutCounter = withoutExtension.replace(/\s*\(\d+\)\s*$/g, "");
 
   return normalizeCatalogValue(withoutCounter)
@@ -779,8 +793,6 @@ export function getExercise(id: string) {
 export function getWorkout(id: string) {
   return workouts.find(w => w.id === id);
 }
-
-
 
 
 

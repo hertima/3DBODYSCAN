@@ -20,10 +20,14 @@ import { Route as AppIndexRouteImport } from './routes/app.index'
 import { Route as OnboardingStepRouteImport } from './routes/onboarding.$step'
 import { Route as AppTreinosRouteImport } from './routes/app.treinos'
 import { Route as AppPerfilRouteImport } from './routes/app.perfil'
+import { Route as AppNutricaoRouteImport } from './routes/app.nutricao'
 import { Route as AppExerciciosRouteImport } from './routes/app.exercicios'
 import { Route as AppCorpoRouteImport } from './routes/app.corpo'
 import { Route as AppConfiguracoesRouteImport } from './routes/app.configuracoes'
 import { Route as AppAnalyticsRouteImport } from './routes/app.analytics'
+import { Route as ApiMealPlanRouteImport } from './routes/api/meal-plan'
+import { Route as ApiChatStreamRouteImport } from './routes/api/chat-stream'
+import { Route as ApiAiWorkoutRouteImport } from './routes/api/ai-workout'
 import { Route as AppTreinoIdRouteImport } from './routes/app.treino.$id'
 import { Route as AppHistoricoIdRouteImport } from './routes/app.historico.$id'
 import { Route as AppExercicioIdRouteImport } from './routes/app.exercicio.$id'
@@ -83,6 +87,11 @@ const AppPerfilRoute = AppPerfilRouteImport.update({
   path: '/perfil',
   getParentRoute: () => AppRoute,
 } as any)
+const AppNutricaoRoute = AppNutricaoRouteImport.update({
+  id: '/nutricao',
+  path: '/nutricao',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppExerciciosRoute = AppExerciciosRouteImport.update({
   id: '/exercicios',
   path: '/exercicios',
@@ -102,6 +111,21 @@ const AppAnalyticsRoute = AppAnalyticsRouteImport.update({
   id: '/analytics',
   path: '/analytics',
   getParentRoute: () => AppRoute,
+} as any)
+const ApiMealPlanRoute = ApiMealPlanRouteImport.update({
+  id: '/api/meal-plan',
+  path: '/api/meal-plan',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiChatStreamRoute = ApiChatStreamRouteImport.update({
+  id: '/api/chat-stream',
+  path: '/api/chat-stream',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiWorkoutRoute = ApiAiWorkoutRouteImport.update({
+  id: '/api/ai-workout',
+  path: '/api/ai-workout',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AppTreinoIdRoute = AppTreinoIdRouteImport.update({
   id: '/treino/$id',
@@ -126,10 +150,14 @@ export interface FileRoutesByFullPath {
   '/onboarding': typeof OnboardingRouteWithChildren
   '/paywall': typeof PaywallRoute
   '/recuperar-senha': typeof RecuperarSenhaRoute
+  '/api/ai-workout': typeof ApiAiWorkoutRoute
+  '/api/chat-stream': typeof ApiChatStreamRoute
+  '/api/meal-plan': typeof ApiMealPlanRoute
   '/app/analytics': typeof AppAnalyticsRoute
   '/app/configuracoes': typeof AppConfiguracoesRoute
   '/app/corpo': typeof AppCorpoRoute
   '/app/exercicios': typeof AppExerciciosRoute
+  '/app/nutricao': typeof AppNutricaoRoute
   '/app/perfil': typeof AppPerfilRoute
   '/app/treinos': typeof AppTreinosRoute
   '/onboarding/$step': typeof OnboardingStepRoute
@@ -144,10 +172,14 @@ export interface FileRoutesByTo {
   '/criar-conta': typeof CriarContaRoute
   '/paywall': typeof PaywallRoute
   '/recuperar-senha': typeof RecuperarSenhaRoute
+  '/api/ai-workout': typeof ApiAiWorkoutRoute
+  '/api/chat-stream': typeof ApiChatStreamRoute
+  '/api/meal-plan': typeof ApiMealPlanRoute
   '/app/analytics': typeof AppAnalyticsRoute
   '/app/configuracoes': typeof AppConfiguracoesRoute
   '/app/corpo': typeof AppCorpoRoute
   '/app/exercicios': typeof AppExerciciosRoute
+  '/app/nutricao': typeof AppNutricaoRoute
   '/app/perfil': typeof AppPerfilRoute
   '/app/treinos': typeof AppTreinosRoute
   '/onboarding/$step': typeof OnboardingStepRoute
@@ -165,10 +197,14 @@ export interface FileRoutesById {
   '/onboarding': typeof OnboardingRouteWithChildren
   '/paywall': typeof PaywallRoute
   '/recuperar-senha': typeof RecuperarSenhaRoute
+  '/api/ai-workout': typeof ApiAiWorkoutRoute
+  '/api/chat-stream': typeof ApiChatStreamRoute
+  '/api/meal-plan': typeof ApiMealPlanRoute
   '/app/analytics': typeof AppAnalyticsRoute
   '/app/configuracoes': typeof AppConfiguracoesRoute
   '/app/corpo': typeof AppCorpoRoute
   '/app/exercicios': typeof AppExerciciosRoute
+  '/app/nutricao': typeof AppNutricaoRoute
   '/app/perfil': typeof AppPerfilRoute
   '/app/treinos': typeof AppTreinosRoute
   '/onboarding/$step': typeof OnboardingStepRoute
@@ -187,10 +223,14 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/paywall'
     | '/recuperar-senha'
+    | '/api/ai-workout'
+    | '/api/chat-stream'
+    | '/api/meal-plan'
     | '/app/analytics'
     | '/app/configuracoes'
     | '/app/corpo'
     | '/app/exercicios'
+    | '/app/nutricao'
     | '/app/perfil'
     | '/app/treinos'
     | '/onboarding/$step'
@@ -205,10 +245,14 @@ export interface FileRouteTypes {
     | '/criar-conta'
     | '/paywall'
     | '/recuperar-senha'
+    | '/api/ai-workout'
+    | '/api/chat-stream'
+    | '/api/meal-plan'
     | '/app/analytics'
     | '/app/configuracoes'
     | '/app/corpo'
     | '/app/exercicios'
+    | '/app/nutricao'
     | '/app/perfil'
     | '/app/treinos'
     | '/onboarding/$step'
@@ -225,10 +269,14 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/paywall'
     | '/recuperar-senha'
+    | '/api/ai-workout'
+    | '/api/chat-stream'
+    | '/api/meal-plan'
     | '/app/analytics'
     | '/app/configuracoes'
     | '/app/corpo'
     | '/app/exercicios'
+    | '/app/nutricao'
     | '/app/perfil'
     | '/app/treinos'
     | '/onboarding/$step'
@@ -246,6 +294,9 @@ export interface RootRouteChildren {
   OnboardingRoute: typeof OnboardingRouteWithChildren
   PaywallRoute: typeof PaywallRoute
   RecuperarSenhaRoute: typeof RecuperarSenhaRoute
+  ApiAiWorkoutRoute: typeof ApiAiWorkoutRoute
+  ApiChatStreamRoute: typeof ApiChatStreamRoute
+  ApiMealPlanRoute: typeof ApiMealPlanRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -327,6 +378,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppPerfilRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/nutricao': {
+      id: '/app/nutricao'
+      path: '/nutricao'
+      fullPath: '/app/nutricao'
+      preLoaderRoute: typeof AppNutricaoRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/exercicios': {
       id: '/app/exercicios'
       path: '/exercicios'
@@ -354,6 +412,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/app/analytics'
       preLoaderRoute: typeof AppAnalyticsRouteImport
       parentRoute: typeof AppRoute
+    }
+    '/api/meal-plan': {
+      id: '/api/meal-plan'
+      path: '/api/meal-plan'
+      fullPath: '/api/meal-plan'
+      preLoaderRoute: typeof ApiMealPlanRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/chat-stream': {
+      id: '/api/chat-stream'
+      path: '/api/chat-stream'
+      fullPath: '/api/chat-stream'
+      preLoaderRoute: typeof ApiChatStreamRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai-workout': {
+      id: '/api/ai-workout'
+      path: '/api/ai-workout'
+      fullPath: '/api/ai-workout'
+      preLoaderRoute: typeof ApiAiWorkoutRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/app/treino/$id': {
       id: '/app/treino/$id'
@@ -384,6 +463,7 @@ interface AppRouteChildren {
   AppConfiguracoesRoute: typeof AppConfiguracoesRoute
   AppCorpoRoute: typeof AppCorpoRoute
   AppExerciciosRoute: typeof AppExerciciosRoute
+  AppNutricaoRoute: typeof AppNutricaoRoute
   AppPerfilRoute: typeof AppPerfilRoute
   AppTreinosRoute: typeof AppTreinosRoute
   AppIndexRoute: typeof AppIndexRoute
@@ -397,6 +477,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppConfiguracoesRoute: AppConfiguracoesRoute,
   AppCorpoRoute: AppCorpoRoute,
   AppExerciciosRoute: AppExerciciosRoute,
+  AppNutricaoRoute: AppNutricaoRoute,
   AppPerfilRoute: AppPerfilRoute,
   AppTreinosRoute: AppTreinosRoute,
   AppIndexRoute: AppIndexRoute,
@@ -428,7 +509,20 @@ const rootRouteChildren: RootRouteChildren = {
   OnboardingRoute: OnboardingRouteWithChildren,
   PaywallRoute: PaywallRoute,
   RecuperarSenhaRoute: RecuperarSenhaRoute,
+  ApiAiWorkoutRoute: ApiAiWorkoutRoute,
+  ApiChatStreamRoute: ApiChatStreamRoute,
+  ApiMealPlanRoute: ApiMealPlanRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

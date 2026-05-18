@@ -7,6 +7,9 @@ import {
   createRootRouteWithContext,
   useRouter,
 } from "@tanstack/react-router";
+import { useEffect } from "react";
+import { Toaster } from "sonner";
+import { InstallBanner } from "@/components/InstallBanner";
 
 import appCss from "../styles.css?url";
 
@@ -122,8 +125,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
+      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-visual" },
       { name: "theme-color", content: "#070B14" },
+      { name: "mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-title", content: "3D Body Scan" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
       { title: seoTitle },
       { name: "description", content: seoDescription },
       { name: "robots", content: "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" },
@@ -143,6 +150,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "canonical", href: siteUrl },
       { rel: "stylesheet", href: appCss },
       { rel: "icon", type: "image/png", href: "/favicon.png" },
+      { rel: "manifest", href: "/manifest.json" },
+      { rel: "apple-touch-icon", href: "/favicon.png" },
+      { rel: "apple-touch-icon", sizes: "180x180", href: "/favicon.png" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "" },
       {
@@ -176,12 +186,39 @@ function RootShell({ children }: { children: React.ReactNode }) {
   );
 }
 
+function useAppHeight() {
+  useEffect(() => {
+    const set = () =>
+      document.documentElement.style.setProperty("--app-height", `${window.innerHeight}px`);
+    set();
+    // só atualiza se NÃO for abertura de teclado (resize sem mudança de largura)
+    let lastWidth = window.innerWidth;
+    const onResize = () => {
+      if (window.innerWidth !== lastWidth) {
+        lastWidth = window.innerWidth;
+        set();
+      }
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+}
+
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  useAppHeight();
 
   return (
     <QueryClientProvider client={queryClient}>
       <Outlet />
+      <InstallBanner />
+      <Toaster
+        theme="dark"
+        position="bottom-center"
+        toastOptions={{
+          style: { background: "oklch(0.24 0.04 262)", border: "1px solid oklch(0.30 0.04 262)", color: "oklch(0.98 0.01 250)" },
+        }}
+      />
     </QueryClientProvider>
   );
 }

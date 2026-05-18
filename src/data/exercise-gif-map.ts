@@ -36,7 +36,25 @@ const STOP_WORDS = new Set([
   "frontal",
 ]);
 
+const CALISTENIA_PATH = "/calistenia-pura/Calistenia";
+
 export const exerciseGifMap: ExerciseGifMap = {
+  // ── Calistenia / Peso Corporal ───────────────────────────────────
+  "remada-australiana": `${CALISTENIA_PATH}/Remada Invertida na Mesa.mp4`,
+  "curl-barra-fixa": `${CALISTENIA_PATH}/Barra Fixa para o Braquial.mp4`,
+  "elevacao-toalha": `${CALISTENIA_PATH}/Elevação lateral com toalha na parede.mp4`,
+  "pike-push-up": `${CALISTENIA_PATH}/Flexão inclinada.mp4`,
+  "flexao-fechada": `${CALISTENIA_PATH}/Flexão Fechada com bola medicinal.mp4`,
+  "dips-cadeira": `${CALISTENIA_PATH}/Dips na cadeira.mp4`,
+  "agachamento-bulgaro-pc": `${CALISTENIA_PATH}/Agachamento Búlgaro com Peso Corporal.mp4`,
+  "hip-thrust-solo": `${CALISTENIA_PATH}/Ponte em Unilateral.mp4`,
+  "agachamento-pc": `${CALISTENIA_PATH}/Agachamento.mp4`,
+  "afundo-pc": `${CALISTENIA_PATH}/Afundo.mp4`,
+  "ponte-gluteos-unilateral": "single-leg-glute-bridge (1).mp4",
+  "panturrilha-pc": `${CALISTENIA_PATH}/Elevação de panturrilha em pé.mp4`,
+  "superman": "superman (1).mp4",
+"panturrilha-halter": "Panturrilha com halteres (1).mp4",
+  // ── Musculação ───────────────────────────────────────────────────
   "supino-reto": "Supino (1).mp4",
   "supino-halter": "Supino com halteres (1).mp4",
   crucifixo: "Crucifixo inclinado com halteres (1).mp4",
@@ -132,6 +150,10 @@ function resolveMappedFile(fileName: string) {
 
 export function getExerciseGifUrl(exerciseId: string, exerciseName?: string) {
   const mappedFile = exerciseGifMap[exerciseId];
+
+  // caminho absoluto (calistenia ou outra pasta fora de GIF_BASE_PATH)
+  if (mappedFile?.startsWith("/")) return encodeURI(mappedFile);
+
   const resolvedMappedFile = mappedFile ? resolveMappedFile(mappedFile) : null;
   const autoMatchedFile = resolvedMappedFile ? null : getAutoMatchedGif(exerciseId, exerciseName);
   const fileName = resolvedMappedFile ?? autoMatchedFile;
