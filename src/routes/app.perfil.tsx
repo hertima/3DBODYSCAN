@@ -178,7 +178,7 @@ function Perfil() {
           style={{ transform: "translateX(30%)", animation: "mascotFadeIn 1.1s ease-out forwards", opacity: 0 }}
         >
           <img
-            src="/MASCOTE SEM FUNDO.png"
+            src="/mascote-sem-fundo.png"
             alt=""
             style={{
               width: 200, height: 200, objectFit: "contain",

@@ -147,7 +147,7 @@ export function ProfileEvolutionVideo({
         transform: `scale(${mascotScale})`,
         filter: "drop-shadow(0 0 60px rgba(34,211,238,0.45)) drop-shadow(0 0 30px rgba(251,146,60,0.35))",
       }}>
-        <img src="/NASCOSTE 04.png" style={{ width: 420, height: 420, objectFit: "contain" }} />
+        <img src="/mascote.png" style={{ width: 420, height: 420, objectFit: "contain" }} />
       </div>
 
       {/* ─── AVATAR + NOME ─── */}
