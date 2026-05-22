@@ -1,10 +1,11 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { ShareVideoButton, ProfileEvolutionVideo } from "@/remotion";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   BadgeCheck,
   Brain,
   CalendarDays,
+  Camera,
   Flame,
   LogOut,
   MapPin,
@@ -21,10 +22,10 @@ import { AIInsightCard } from "@/components/AIInsightCard";
 import { buildAthleteProfile, type AthleteProfile } from "@/domain/athlete/profile";
 import { buildGeneratedTrainingState, type GeneratedTrainingState } from "@/domain/training/engine";
 import { resolveTrainingSplit } from "@/domain/training/rules";
-import { clearOnboarding, loadOnboarding, type OnboardingState } from "@/lib/onboarding";
+import { clearOnboarding, loadOnboarding, saveOnboarding, type OnboardingState } from "@/lib/onboarding";
 import { logout } from "@/lib/auth";
 import { auth } from "@/lib/firebase";
-import { loadProfileFromFirestore } from "@/lib/firestore-profile";
+import { loadProfileFromFirestore, saveProfileToFirestore } from "@/lib/firestore-profile";
 import { loadWorkoutsFromFirestore } from "@/lib/firestore-workouts";
 import { loadBodyScansFromFirestore, type FirestoreBodyScan } from "@/lib/firestore-body-scans";
 import { loadFoodScansFromFirestore, type FirestoreFoodScan } from "@/lib/firestore-food-scans";
@@ -52,6 +53,34 @@ function Perfil() {
   const [workouts, setWorkouts]     = useState<SavedWorkout[]>([]);
   const [bodyScans, setBodyScans]   = useState<FirestoreBodyScan[]>([]);
   const [foodScans, setFoodScans]   = useState<FirestoreFoodScan[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const img = new Image();
+      img.onload = () => {
+        const size = 400;
+        const canvas = document.createElement("canvas");
+        canvas.width = size; canvas.height = size;
+        const ctx = canvas.getContext("2d")!;
+        const min = Math.min(img.width, img.height);
+        const sx = (img.width - min) / 2;
+        const sy = (img.height - min) * 0.15;
+        ctx.drawImage(img, sx, sy, min, min, 0, 0, size, size);
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.72);
+        const updated = { ...loadOnboarding(), avatarUrl: dataUrl };
+        saveOnboarding(updated);
+        setProfile(p => ({ ...p, avatarUrl: dataUrl }));
+        const uid = auth.currentUser?.uid;
+        if (uid) saveProfileToFirestore(uid, updated).catch(() => {});
+      };
+      img.src = ev.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  };
 
   useEffect(() => {
     const uid = auth.currentUser?.uid;
@@ -124,24 +153,33 @@ function Perfil() {
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,oklch(0.78_0.14_220_/_0.16),transparent_38%),radial-gradient(circle_at_bottom_left,oklch(0.74_0.17_53_/_0.18),transparent_35%)]" />
         <div className="relative flex flex-col items-center text-center gap-4">
           {/* Avatar */}
-          <div className={`grid h-24 w-24 shrink-0 place-items-center overflow-hidden rounded-[1.8rem] text-2xl font-black text-primary-foreground ${profile.avatarUrl ? "bg-transparent shadow-none" : "bg-gradient-primary shadow-glow-primary"}`}>
-            {profile.avatarUrl ? (
-              <img src={profile.avatarUrl} alt={athleteProfile.name} className="h-full w-full object-cover" />
-            ) : (
-              profileInitials
-            )}
+          <div className="relative">
+            <div className={`grid h-24 w-24 shrink-0 place-items-center overflow-hidden rounded-[1.8rem] text-2xl font-black text-primary-foreground ${profile.avatarUrl ? "bg-transparent shadow-none" : "bg-gradient-primary shadow-glow-primary"}`}>
+              {profile.avatarUrl ? (
+                <img src={profile.avatarUrl} alt={athleteProfile.name} className="h-full w-full object-cover object-top" />
+              ) : (
+                profileInitials
+              )}
+            </div>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="absolute -bottom-1.5 -right-1.5 flex h-7 w-7 items-center justify-center rounded-full border border-border bg-surface shadow-md transition hover:bg-muted"
+            >
+              <Camera className="h-3.5 w-3.5 text-muted-foreground" />
+            </button>
+            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
           </div>
 
           {/* Nome + badge */}
-          <div>
-            <div className="inline-flex items-center gap-1 rounded-full border border-cyan/30 bg-cyan/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.22em] text-cyan">
-              <BadgeCheck className="h-3 w-3" />
-              {athleteProfile.name}
+          <div className="w-full min-w-0 px-1">
+            <div className="inline-flex max-w-full items-center gap-1 rounded-full border border-cyan/30 bg-cyan/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.22em] text-cyan">
+              <BadgeCheck className="h-3 w-3 shrink-0" />
+              <span className="truncate">{athleteProfile.name}</span>
             </div>
-            <h1 className="mt-2 font-display text-2xl font-bold leading-tight text-gradient-brand">
+            <h1 className="mt-2 break-words font-display text-xl font-bold leading-tight text-gradient-brand sm:text-2xl">
               {dashboardCopy.profileTitle}
             </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
+            <p className="mt-1 truncate text-sm text-muted-foreground">
               {normalizedExperience} · {normalizedLocation}
             </p>
           </div>
