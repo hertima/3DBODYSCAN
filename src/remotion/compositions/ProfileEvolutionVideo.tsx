@@ -46,6 +46,8 @@ export function ProfileEvolutionVideo({
   const cardScale = spring({ frame: frame - 25, fps, config: { damping: 14, stiffness: 110 } });
   const statsOpacity = interpolate(frame, [45, 65], [0, 1], { extrapolateRight: "clamp" });
   const badgesOpacity = interpolate(frame, [65, 85], [0, 1], { extrapolateRight: "clamp" });
+  const avatarRevealScale = spring({ frame: frame - 88, fps, config: { damping: 12, stiffness: 72 } });
+  const avatarRevealOpacity = interpolate(frame, [88, 115], [0, 1], { extrapolateRight: "clamp" });
 
   const initials = name.split(" ").slice(0, 2).map(p => p[0]?.toUpperCase() ?? "").join("");
   const xpBar = Math.min(100, (xp % 1000) / 10);
@@ -69,49 +71,33 @@ export function ProfileEvolutionVideo({
 
       {/* ─── LOGO TOPO ─── */}
       <div style={{
-        position: "absolute", top: 72, left: 0, right: 0,
-        display: "flex", alignItems: "center", justifyContent: "center", gap: 14,
+        position: "absolute", top: 64, left: 0, right: 0,
+        display: "flex", alignItems: "center", justifyContent: "center", gap: 18,
         opacity: fadeIn,
       }}>
-        <img src="/logo favicton 3D Body Scan.png" style={{ width: 48, height: 48, borderRadius: 12, boxShadow: "0 0 20px rgba(34,211,238,0.5)" }} />
+        <img src="/logo favicton 3D Body Scan.png" style={{ width: 60, height: 60, borderRadius: 14, boxShadow: "0 0 24px rgba(34,211,238,0.52)" }} />
         <span style={{
-          fontWeight: 900, fontSize: 24, letterSpacing: -0.5,
+          fontWeight: 900, fontSize: 30, letterSpacing: -0.5,
           background: "linear-gradient(90deg,#22d3ee,#fff,#fb923c)",
           WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
         }}>3D Body Scanner</span>
       </div>
 
-      {/* ─── HERO: AVATAR + NOME ─── */}
+      {/* ─── HERO: NOME ─── */}
       <div style={{
-        position: "absolute", top: 170, left: 0, right: 0,
-        display: "flex", flexDirection: "column", alignItems: "center", gap: 20,
+        position: "absolute", top: 220, left: 0, right: 0,
+        display: "flex", flexDirection: "column", alignItems: "center", gap: 16,
         transform: `scale(${heroScale})`, opacity: fadeIn,
       }}>
-        {/* Avatar */}
-        <div style={{
-          width: 140, height: 140,
-          borderRadius: 38,
-          overflow: "hidden",
-          background: avatarUrl ? "transparent" : "linear-gradient(135deg,#22d3ee,#3b82f6,#fb923c)",
-          boxShadow: "0 0 0 3px rgba(34,211,238,0.5), 0 0 0 6px rgba(34,211,238,0.12)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          fontSize: 52, fontWeight: 900, color: "#fff",
-        }}>
-          {avatarUrl
-            ? <img src={avatarUrl} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} />
-            : initials || "🏋️"}
-        </div>
-
-        {/* Nome */}
         <div style={{ textAlign: "center" }}>
           <div style={{
-            fontSize: 52, fontWeight: 900, letterSpacing: -1, lineHeight: 1,
+            fontSize: 58, fontWeight: 900, letterSpacing: -1, lineHeight: 1,
             background: "linear-gradient(90deg,#22d3ee,#fff,#fb923c)",
             WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
           }}>{name}</div>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginTop: 14 }}>
-            <span style={{ fontSize: 13, color: "#22d3ee", fontWeight: 700, background: "rgba(34,211,238,0.12)", border: "1px solid rgba(34,211,238,0.3)", borderRadius: 999, padding: "5px 16px" }}>{level}</span>
-            <span style={{ fontSize: 13, color: "#fb923c", fontWeight: 700, background: "rgba(251,146,60,0.12)", border: "1px solid rgba(251,146,60,0.3)", borderRadius: 999, padding: "5px 16px" }}>{goal}</span>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginTop: 16 }}>
+            <span style={{ fontSize: 14, color: "#22d3ee", fontWeight: 700, background: "rgba(34,211,238,0.12)", border: "1px solid rgba(34,211,238,0.3)", borderRadius: 999, padding: "6px 20px" }}>{level}</span>
+            <span style={{ fontSize: 14, color: "#fb923c", fontWeight: 700, background: "rgba(251,146,60,0.12)", border: "1px solid rgba(251,146,60,0.3)", borderRadius: 999, padding: "6px 20px" }}>{goal}</span>
           </div>
         </div>
       </div>
@@ -119,7 +105,7 @@ export function ProfileEvolutionVideo({
       {/* ─── XP CARD ─── */}
       <Sequence from={25}>
         <div style={{
-          position: "absolute", top: 530, left: 48, right: 48,
+          position: "absolute", top: 470, left: 48, right: 48,
           transform: `scale(${cardScale})`,
           background: "rgba(255,255,255,0.05)", border: "1.5px solid rgba(251,146,60,0.3)",
           borderRadius: 28, padding: "28px 32px",
@@ -144,7 +130,7 @@ export function ProfileEvolutionVideo({
       {/* ─── STATS 3 CARDS ─── */}
       <Sequence from={45}>
         <div style={{
-          position: "absolute", top: 790, left: 48, right: 48,
+          position: "absolute", top: 800, left: 48, right: 48,
           display: "flex", gap: 16, opacity: statsOpacity,
         }}>
           {[
@@ -166,7 +152,7 @@ export function ProfileEvolutionVideo({
       {/* ─── CONQUISTAS ─── */}
       {badges.length > 0 && (
         <Sequence from={65}>
-          <div style={{ position: "absolute", top: 990, left: 48, right: 48, opacity: badgesOpacity }}>
+          <div style={{ position: "absolute", top: 1060, left: 48, right: 48, opacity: badgesOpacity }}>
             <div style={{ fontSize: 11, color: "rgba(148,163,184,0.4)", letterSpacing: 3.5, textTransform: "uppercase", marginBottom: 18 }}>{t.achievements}</div>
             <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
               {badges.slice(0, 6).map((b, i) => {
@@ -185,17 +171,37 @@ export function ProfileEvolutionVideo({
         </Sequence>
       )}
 
-      {/* ─── TAGLINE + FOOTER ─── */}
-      <div style={{
-        position: "absolute", bottom: 60, left: 0, right: 0,
-        display: "flex", flexDirection: "column", alignItems: "center", gap: 14,
-        opacity: badgesOpacity,
-      }}>
-        <div style={{ width: 180, height: 1, background: "linear-gradient(90deg,transparent,rgba(34,211,238,0.4),transparent)" }} />
-        <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: 3, textTransform: "uppercase", color: "rgba(148,163,184,0.3)" }}>
-          {t.tagline}
+      {/* ─── AVATAR REVEAL + ASSINATURA FINAL ─── */}
+      <Sequence from={88}>
+        <div style={{
+          position: "absolute", top: 1340, left: 0, right: 0,
+          display: "flex", flexDirection: "column", alignItems: "center", gap: 18,
+          transform: `scale(${avatarRevealScale})`, opacity: avatarRevealOpacity,
+        }}>
+          <div style={{ width: 200, height: 1, background: "linear-gradient(90deg,transparent,rgba(34,211,238,0.3),transparent)" }} />
+          <div style={{
+            width: 150, height: 150, borderRadius: 42, overflow: "hidden",
+            background: avatarUrl ? "transparent" : "linear-gradient(135deg,#22d3ee,#3b82f6,#fb923c)",
+            boxShadow: "0 0 0 3px rgba(34,211,238,0.5), 0 0 0 7px rgba(34,211,238,0.1)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 54, fontWeight: 900, color: "#fff",
+          }}>
+            {avatarUrl
+              ? <img src={avatarUrl} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} />
+              : initials || "🏋️"}
+          </div>
+          <div style={{ textAlign: "center" }}>
+            <div style={{
+              fontSize: 36, fontWeight: 900, letterSpacing: -0.5, lineHeight: 1,
+              background: "linear-gradient(90deg,#22d3ee,#fff,#fb923c)",
+              WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
+            }}>{name}</div>
+            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 3, textTransform: "uppercase", color: "rgba(148,163,184,0.28)", marginTop: 10 }}>
+              {t.tagline}
+            </div>
+          </div>
         </div>
-      </div>
+      </Sequence>
 
     </AbsoluteFill>
   );
