@@ -173,23 +173,44 @@ export function VideoPlayerModal({
 
   return (
     <div
-      style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.92)", backdropFilter: "blur(12px)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "16px" }}
+      style={{
+        position: "fixed", inset: 0, zIndex: 9999,
+        background: "rgba(0,0,0,0.96)",
+        display: "flex", flexDirection: "column",
+        fontFamily: "sans-serif",
+      }}
       onClick={!generating ? onClose : undefined}
     >
+      {/* Barra superior */}
       <div
-        style={{ width: "100%", maxWidth: 360, display: "flex", flexDirection: "column", gap: 16 }}
+        style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", flexShrink: 0 }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <span style={{ fontSize: 15, fontWeight: 700, color: "#e2e8f0", fontFamily: "sans-serif" }}>{title}</span>
-          <button onClick={onClose} disabled={generating} style={{ background: "rgba(255,255,255,0.08)", border: "none", borderRadius: 10, padding: "6px 8px", cursor: "pointer", color: "#94a3b8", display: "flex", alignItems: "center" }}>
-            <X size={18} />
-          </button>
-        </div>
+        <span style={{ fontSize: 15, fontWeight: 700, color: "#e2e8f0" }}>{title}</span>
+        <button
+          onClick={onClose}
+          disabled={generating}
+          style={{ background: "rgba(255,255,255,0.08)", border: "none", borderRadius: 10, padding: "8px", cursor: "pointer", color: "#94a3b8", display: "flex", alignItems: "center" }}
+        >
+          <X size={20} />
+        </button>
+      </div>
 
+      {/* Player — ocupa todo o espaço disponível */}
+      <div
+        style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", padding: "0 12px" }}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div
           ref={containerRef}
-          style={{ borderRadius: 20, overflow: "hidden", boxShadow: "0 0 40px rgba(34,211,238,0.15)", maxHeight: "60vh", aspectRatio: `${compositionWidth}/${compositionHeight}`, margin: "0 auto", width: "100%" }}
+          style={{
+            height: "100%",
+            aspectRatio: `${compositionWidth}/${compositionHeight}`,
+            maxWidth: "100%",
+            borderRadius: 20,
+            overflow: "hidden",
+            boxShadow: "0 0 60px rgba(34,211,238,0.18)",
+          }}
         >
           <Player
             ref={playerRef}
@@ -203,36 +224,53 @@ export function VideoPlayerModal({
             autoPlay loop
           />
         </div>
+      </div>
 
+      {/* Área inferior — botões */}
+      <div
+        style={{ flexShrink: 0, padding: "16px 20px 32px", display: "flex", flexDirection: "column", gap: 10 }}
+        onClick={(e) => e.stopPropagation()}
+      >
         {generating && (
-          <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: 8, overflow: "hidden", height: 6 }}>
+          <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: 8, overflow: "hidden", height: 5 }}>
             <div style={{ height: "100%", width: `${progress}%`, background: "linear-gradient(90deg,#22d3ee,#3b82f6)", transition: "width 0.3s", borderRadius: 8 }} />
           </div>
         )}
 
         {errorMsg && (
-          <p style={{ fontSize: 12, color: "#f87171", textAlign: "center", fontFamily: "sans-serif", margin: 0 }}>{errorMsg}</p>
+          <p style={{ fontSize: 12, color: "#f87171", textAlign: "center", margin: 0 }}>{errorMsg}</p>
         )}
 
-        <div style={{ display: "flex", gap: 12 }}>
+        <div style={{ display: "flex", gap: 10 }}>
           <button
             onClick={handleShare}
             disabled={generating}
-            style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: generating ? "rgba(34,211,238,0.3)" : "linear-gradient(135deg,#22d3ee,#3b82f6)", border: "none", borderRadius: 14, padding: "14px", fontSize: 14, fontWeight: 700, color: "#060b14", cursor: generating ? "wait" : "pointer", fontFamily: "sans-serif" }}
+            style={{
+              flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+              background: generating ? "rgba(34,211,238,0.25)" : "linear-gradient(135deg,#22d3ee,#3b82f6)",
+              border: "none", borderRadius: 16, padding: "16px",
+              fontSize: 15, fontWeight: 700, color: generating ? "#22d3ee" : "#060b14",
+              cursor: generating ? "wait" : "pointer",
+            }}
           >
-            {generating ? <Loader2 size={16} className="animate-spin" /> : <Share2 size={16} />}
+            {generating ? <Loader2 size={18} className="animate-spin" /> : <Share2 size={18} />}
             {generating ? `Gerando… ${progress}%` : shareLabel}
           </button>
           <button
             onClick={handleDownload}
             disabled={generating}
-            style={{ display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 14, padding: "14px 16px", color: "#94a3b8", cursor: generating ? "wait" : "pointer" }}
+            style={{
+              display: "flex", alignItems: "center", justifyContent: "center",
+              background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)",
+              borderRadius: 16, padding: "16px 20px",
+              color: "#94a3b8", cursor: generating ? "wait" : "pointer",
+            }}
           >
-            {generating ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+            {generating ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />}
           </button>
         </div>
 
-        <p style={{ fontSize: 11, color: "rgba(148,163,184,0.35)", textAlign: "center", fontFamily: "sans-serif", margin: 0 }}>
+        <p style={{ fontSize: 11, color: "rgba(148,163,184,0.3)", textAlign: "center", margin: 0 }}>
           {formatLabel}
         </p>
       </div>
