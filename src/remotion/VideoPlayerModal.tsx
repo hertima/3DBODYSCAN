@@ -19,27 +19,16 @@ interface VideoPlayerModalProps {
 }
 
 // Encontra o elemento interno da composição Remotion (sem CSS scale)
-function findCompositionEl(container: HTMLElement, cW: number, cH: number): HTMLElement {
-  const all = container.querySelectorAll("*");
-  for (const el of Array.from(all)) {
-    const h = el as HTMLElement;
-    if (h.style.width === `${cW}px` && h.style.height === `${cH}px`) return h;
-  }
-  const scaled = container.querySelector('[style*="scale"]') as HTMLElement | null;
-  if (scaled?.firstElementChild) return scaled.firstElementChild as HTMLElement;
-  return container;
-}
-
 async function captureFrame(
   container: HTMLElement,
-  cW: number,
-  cH: number,
   outW: number,
   outH: number,
 ): Promise<HTMLCanvasElement> {
   const { toPng } = await import("html-to-image");
-  const el = findCompositionEl(container, cW, cH);
-  const dataUrl = await toPng(el, { pixelRatio: 1, cacheBust: false });
+  // Captura o container visível com pixelRatio alto em vez do elemento
+  // interno com CSS transform — resolve o frame preto no iOS Safari.
+  const pixelRatio = Math.max(2, Math.ceil(outW / (container.offsetWidth || outW)));
+  const dataUrl = await toPng(container, { pixelRatio, cacheBust: false });
   const img = new Image();
   img.src = dataUrl;
   await new Promise<void>((res) => { img.onload = () => res(); });
@@ -72,24 +61,22 @@ async function buildGif(
   player: PlayerRef,
   durationInFrames: number,
   fps: number,
-  cW: number,
-  cH: number,
   onProgress: (n: number) => void,
 ): Promise<Blob> {
   const GIF = await loadGifJs();
   const outW = 540;
-  const outH = Math.round((outW * cH) / cW);
-  const frameCount = 30;
+  const outH = 960;
+  const frameCount = 20;
   const step = Math.max(1, Math.floor(durationInFrames / frameCount));
   const delay = Math.round((step / fps) * 1000);
 
-  const gif = new GIF({ workers: 2, quality: 3, width: outW, height: outH, workerScript: "/gif.worker.js" });
+  const gif = new GIF({ workers: 2, quality: 6, width: outW, height: outH, workerScript: "/gif.worker.js" });
 
   player.pause();
   for (let i = 0; i < frameCount; i++) {
     player.seekTo(i * step);
-    await new Promise((r) => setTimeout(r, 80));
-    const canvas = await captureFrame(container, cW, cH, outW, outH);
+    await new Promise((r) => setTimeout(r, 120));
+    const canvas = await captureFrame(container, outW, outH);
     gif.addFrame(canvas, { delay, copy: true });
     onProgress(Math.round(((i + 1) / frameCount) * 90));
   }
@@ -139,7 +126,7 @@ export function VideoPlayerModal({
     try {
       const blob = await buildGif(
         containerRef.current, playerRef.current,
-        durationInFrames, fps, compositionWidth, compositionHeight, setProgress,
+        durationInFrames, fps, setProgress,
       );
       setReadyBlob(blob);
     } catch (e) {
