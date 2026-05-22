@@ -21,7 +21,7 @@ import { AIInsightCard } from "@/components/AIInsightCard";
 import { buildAthleteProfile, type AthleteProfile } from "@/domain/athlete/profile";
 import { buildGeneratedTrainingState, type GeneratedTrainingState } from "@/domain/training/engine";
 import { resolveTrainingSplit } from "@/domain/training/rules";
-import { clearOnboarding, type OnboardingState } from "@/lib/onboarding";
+import { clearOnboarding, loadOnboarding, type OnboardingState } from "@/lib/onboarding";
 import { logout } from "@/lib/auth";
 import { auth } from "@/lib/firebase";
 import { loadProfileFromFirestore } from "@/lib/firestore-profile";
@@ -62,11 +62,18 @@ function Perfil() {
       loadBodyScansFromFirestore(uid),
       loadFoodScansFromFirestore(uid),
     ]).then(([prof, w, b, f]) => {
-      if (prof) setProfile(prof);
+      const local = loadOnboarding();
+      if (prof) {
+        setProfile({ ...prof, avatarUrl: prof.avatarUrl ?? local.avatarUrl });
+      } else {
+        setProfile(local);
+      }
       setWorkouts(w);
       setBodyScans(b);
       setFoodScans(f);
-    }).catch(() => {});
+    }).catch(() => {
+      setProfile(loadOnboarding());
+    });
   }, []);
 
   const locale = getStoredLocale();
