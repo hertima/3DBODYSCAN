@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { Player, type PlayerRef } from "@remotion/player";
-import { X, Share2, Download, Loader2, Film } from "lucide-react";
+import { X, Share2, Download, Loader2 } from "lucide-react";
 import { type ComponentType } from "react";
 
 interface VideoPlayerModalProps {
@@ -25,7 +25,6 @@ function findCompositionEl(container: HTMLElement, cW: number, cH: number): HTML
     const h = el as HTMLElement;
     if (h.style.width === `${cW}px` && h.style.height === `${cH}px`) return h;
   }
-  // Fallback: procura pelo filho do elemento com transform:scale
   const scaled = container.querySelector('[style*="scale"]') as HTMLElement | null;
   if (scaled?.firstElementChild) return scaled.firstElementChild as HTMLElement;
   return container;
@@ -68,7 +67,6 @@ function loadGifJs(): Promise<new (opts: Record<string, unknown>) => {
   });
 }
 
-// GIF melhorado: 30 frames, qualidade 3 (cores fiéis), 540×960 Stories
 async function buildGif(
   container: HTMLElement,
   player: PlayerRef,
@@ -102,95 +100,11 @@ async function buildGif(
   });
 }
 
-// Vídeo: MediaRecorder (MP4 no iOS 14.3+ / WebM no Android)
-function getVideoMimeType(): string | null {
-  if (typeof MediaRecorder === "undefined") return null;
-  for (const t of ["video/mp4;codecs=avc1", "video/webm;codecs=vp9", "video/webm"]) {
-    if (MediaRecorder.isTypeSupported(t)) return t;
-  }
-  return null;
-}
-
-async function buildVideo(
-  container: HTMLElement,
-  player: PlayerRef,
-  durationInFrames: number,
-  fps: number,
-  cW: number,
-  cH: number,
-  onProgress: (n: number) => void,
-): Promise<Blob> {
-  const mimeType = getVideoMimeType();
-  if (!mimeType) throw new Error("Vídeo não suportado neste navegador");
-
-  const outW = 540;
-  const outH = Math.round((outW * cH) / cW);
-
-  const canvas = document.createElement("canvas");
-  canvas.width = outW; canvas.height = outH;
-  const ctx = canvas.getContext("2d")!;
-
-  // Precisa pintar algo no canvas ANTES de criar o captureStream
-  player.pause();
-  player.seekTo(0);
-  await new Promise((r) => setTimeout(r, 120));
-  const firstFrame = await captureFrame(container, cW, cH, outW, outH);
-  ctx.drawImage(firstFrame, 0, 0);
-
-  const stream = canvas.captureStream(30);
-
-  // Cria MediaRecorder com fallback sem codec específico
-  let recorder: MediaRecorder;
-  try {
-    recorder = new MediaRecorder(stream, { mimeType });
-  } catch {
-    recorder = new MediaRecorder(stream);
-  }
-
-  const chunks: Blob[] = [];
-  recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
-  recorder.start(100);
-
-  const frameCount = 25;
-  const step = Math.max(1, Math.floor(durationInFrames / frameCount));
-  const frameDurationMs = Math.round((step / fps) * 1000);
-
-  for (let i = 0; i < frameCount; i++) {
-    player.seekTo(i * step);
-    await new Promise((r) => setTimeout(r, 80));
-    const frame = await captureFrame(container, cW, cH, outW, outH);
-    ctx.drawImage(frame, 0, 0);
-    await new Promise((r) => setTimeout(r, frameDurationMs));
-    onProgress(Math.round(((i + 1) / frameCount) * 90));
-  }
-
-  return new Promise((resolve, reject) => {
-    recorder.onstop = () => {
-      if (chunks.length === 0) { reject(new Error("Nenhum frame gravado")); return; }
-      resolve(new Blob(chunks, { type: recorder.mimeType || mimeType }));
-    };
-    recorder.stop();
-  });
-}
-
 function triggerDownload(blob: Blob, name: string) {
   const url = URL.createObjectURL(blob);
   const a = Object.assign(document.createElement("a"), { href: url, download: name });
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
-
-async function shareOrDownload(blob: Blob, filename: string, shareText: string) {
-  const file = new File([blob], filename, { type: blob.type });
-  try {
-    if (navigator.canShare?.({ files: [file] })) {
-      await navigator.share({ files: [file], title: "3D Body Scanner", text: shareText });
-      return;
-    }
-  } catch (e: unknown) {
-    if ((e as Error)?.name === "AbortError") return;
-  }
-  triggerDownload(blob, filename);
 }
 
 export function VideoPlayerModal({
@@ -204,83 +118,75 @@ export function VideoPlayerModal({
   compositionHeight = 1920,
   title = "Compartilhar",
   shareLabel = "Compartilhar GIF",
-  formatLabel,
+  formatLabel = "GIF animado · Stories 9:16 · Instagram · WhatsApp",
   shareText = "Minha evolução no 3D Body Scanner 🏋️",
 }: VideoPlayerModalProps) {
   const playerRef = useRef<PlayerRef>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [progress, setProgress] = useState(0);
-  const [generating, setGenerating] = useState<"gif" | "video" | null>(null);
+  const [generating, setGenerating] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   if (!open) return null;
 
-  const videoMimeType = getVideoMimeType();
-  const videoExt = videoMimeType?.startsWith("video/mp4") ? "mp4" : "webm";
-
-  const runGenerate = async (mode: "gif" | "video"): Promise<Blob | null> => {
+  const generate = async (): Promise<Blob | null> => {
     if (!containerRef.current || !playerRef.current) return null;
-    setGenerating(mode);
+    setGenerating(true);
     setProgress(0);
     setErrorMsg(null);
     try {
-      const blob = mode === "gif"
-        ? await buildGif(containerRef.current, playerRef.current, durationInFrames, fps, compositionWidth, compositionHeight, setProgress)
-        : await buildVideo(containerRef.current, playerRef.current, durationInFrames, fps, compositionWidth, compositionHeight, setProgress);
+      const blob = await buildGif(
+        containerRef.current, playerRef.current,
+        durationInFrames, fps, compositionWidth, compositionHeight, setProgress,
+      );
       setProgress(100);
       return blob;
     } catch (e) {
-      console.error(`${mode} error`, e);
-      setErrorMsg(`Falha ao gerar ${mode.toUpperCase()}. Tente novamente.`);
+      console.error("gif error", e);
+      setErrorMsg("Falha ao gerar GIF. Tente novamente.");
       return null;
     } finally {
       playerRef.current?.play();
-      setGenerating(null);
+      setGenerating(false);
     }
   };
 
-  const handleGif = async () => {
-    const blob = await runGenerate("gif");
-    if (blob) await shareOrDownload(blob, "3dbodyscanner.gif", shareText);
-  };
-
-  const handleVideo = async () => {
-    const blob = await runGenerate("video");
-    if (blob) await shareOrDownload(blob, `3dbodyscanner.${videoExt}`, shareText);
+  const handleShare = async () => {
+    const blob = await generate();
+    if (!blob) return;
+    const file = new File([blob], "3dbodyscanner.gif", { type: "image/gif" });
+    try {
+      if (navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file], title: "3D Body Scanner", text: shareText });
+        return;
+      }
+    } catch (e: unknown) {
+      if ((e as Error)?.name === "AbortError") return;
+    }
+    triggerDownload(blob, "3dbodyscanner.gif");
   };
 
   const handleDownload = async () => {
-    const blob = await runGenerate("gif");
+    const blob = await generate();
     if (blob) triggerDownload(blob, "3dbodyscanner.gif");
   };
-
-  const isGenerating = generating !== null;
-  const label = isGenerating
-    ? `Gerando ${generating?.toUpperCase()}… ${progress}%`
-    : shareLabel;
-
-  const fmt = formatLabel ?? (videoMimeType
-    ? "GIF · Vídeo Stories · Instagram · WhatsApp"
-    : "GIF animado · pronto para Instagram e WhatsApp");
 
   return (
     <div
       style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.92)", backdropFilter: "blur(12px)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "16px" }}
-      onClick={!isGenerating ? onClose : undefined}
+      onClick={!generating ? onClose : undefined}
     >
       <div
         style={{ width: "100%", maxWidth: 360, display: "flex", flexDirection: "column", gap: 16 }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <span style={{ fontSize: 15, fontWeight: 700, color: "#e2e8f0", fontFamily: "sans-serif" }}>{title}</span>
-          <button onClick={onClose} disabled={isGenerating} style={{ background: "rgba(255,255,255,0.08)", border: "none", borderRadius: 10, padding: "6px 8px", cursor: "pointer", color: "#94a3b8", display: "flex", alignItems: "center" }}>
+          <button onClick={onClose} disabled={generating} style={{ background: "rgba(255,255,255,0.08)", border: "none", borderRadius: 10, padding: "6px 8px", cursor: "pointer", color: "#94a3b8", display: "flex", alignItems: "center" }}>
             <X size={18} />
           </button>
         </div>
 
-        {/* Player preview */}
         <div
           ref={containerRef}
           style={{ borderRadius: 20, overflow: "hidden", boxShadow: "0 0 40px rgba(34,211,238,0.15)", maxHeight: "60vh", aspectRatio: `${compositionWidth}/${compositionHeight}`, margin: "0 auto", width: "100%" }}
@@ -298,53 +204,37 @@ export function VideoPlayerModal({
           />
         </div>
 
-        {/* Progress */}
-        {isGenerating && (
+        {generating && (
           <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: 8, overflow: "hidden", height: 6 }}>
-            <div style={{ height: "100%", width: `${progress}%`, background: generating === "video" ? "linear-gradient(90deg,#a78bfa,#3b82f6)" : "linear-gradient(90deg,#22d3ee,#3b82f6)", transition: "width 0.3s", borderRadius: 8 }} />
+            <div style={{ height: "100%", width: `${progress}%`, background: "linear-gradient(90deg,#22d3ee,#3b82f6)", transition: "width 0.3s", borderRadius: 8 }} />
           </div>
         )}
 
-        {/* Error */}
         {errorMsg && (
           <p style={{ fontSize: 12, color: "#f87171", textAlign: "center", fontFamily: "sans-serif", margin: 0 }}>{errorMsg}</p>
         )}
 
-        {/* Botões */}
-        <div style={{ display: "flex", gap: 10 }}>
-          {/* GIF */}
+        <div style={{ display: "flex", gap: 12 }}>
           <button
-            onClick={handleGif}
-            disabled={isGenerating}
-            style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: isGenerating && generating === "gif" ? "rgba(34,211,238,0.3)" : "linear-gradient(135deg,#22d3ee,#3b82f6)", border: "none", borderRadius: 14, padding: "13px 10px", fontSize: 13, fontWeight: 700, color: "#060b14", cursor: isGenerating ? "wait" : "pointer", fontFamily: "sans-serif" }}
+            onClick={handleShare}
+            disabled={generating}
+            style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: generating ? "rgba(34,211,238,0.3)" : "linear-gradient(135deg,#22d3ee,#3b82f6)", border: "none", borderRadius: 14, padding: "14px", fontSize: 14, fontWeight: 700, color: "#060b14", cursor: generating ? "wait" : "pointer", fontFamily: "sans-serif" }}
           >
-            {isGenerating && generating === "gif" ? <Loader2 size={15} className="animate-spin" /> : <Share2 size={15} />}
-            {isGenerating && generating === "gif" ? label : "Compartilhar GIF"}
+            {generating ? <Loader2 size={16} className="animate-spin" /> : <Share2 size={16} />}
+            {generating ? `Gerando… ${progress}%` : shareLabel}
           </button>
-
-          {/* Vídeo (se suportado) */}
-          {videoMimeType && (
-            <button
-              onClick={handleVideo}
-              disabled={isGenerating}
-              style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: isGenerating && generating === "video" ? "rgba(167,139,250,0.3)" : "linear-gradient(135deg,#a78bfa,#ec4899)", border: "none", borderRadius: 14, padding: "13px 10px", fontSize: 13, fontWeight: 700, color: "#fff", cursor: isGenerating ? "wait" : "pointer", fontFamily: "sans-serif" }}
-            >
-              {isGenerating && generating === "video" ? <Loader2 size={15} className="animate-spin" /> : <Film size={15} />}
-              {isGenerating && generating === "video" ? label : `Vídeo ${videoExt.toUpperCase()}`}
-            </button>
-          )}
-
-          {/* Download */}
           <button
             onClick={handleDownload}
-            disabled={isGenerating}
-            style={{ display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 14, padding: "13px 14px", color: "#94a3b8", cursor: isGenerating ? "wait" : "pointer" }}
+            disabled={generating}
+            style={{ display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 14, padding: "14px 16px", color: "#94a3b8", cursor: generating ? "wait" : "pointer" }}
           >
-            {isGenerating ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
+            {generating ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
           </button>
         </div>
 
-        <p style={{ fontSize: 11, color: "rgba(148,163,184,0.35)", textAlign: "center", fontFamily: "sans-serif", margin: 0 }}>{fmt}</p>
+        <p style={{ fontSize: 11, color: "rgba(148,163,184,0.35)", textAlign: "center", fontFamily: "sans-serif", margin: 0 }}>
+          {formatLabel}
+        </p>
       </div>
     </div>
   );
