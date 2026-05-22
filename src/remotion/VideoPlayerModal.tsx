@@ -121,7 +121,7 @@ async function buildVideo(
   onProgress: (n: number) => void,
 ): Promise<Blob> {
   const mimeType = getVideoMimeType();
-  if (!mimeType) throw new Error("MediaRecorder não suportado neste navegador");
+  if (!mimeType) throw new Error("Vídeo não suportado neste navegador");
 
   const outW = 540;
   const outH = Math.round((outW * cH) / cW);
@@ -130,8 +130,23 @@ async function buildVideo(
   canvas.width = outW; canvas.height = outH;
   const ctx = canvas.getContext("2d")!;
 
+  // Precisa pintar algo no canvas ANTES de criar o captureStream
+  player.pause();
+  player.seekTo(0);
+  await new Promise((r) => setTimeout(r, 120));
+  const firstFrame = await captureFrame(container, cW, cH, outW, outH);
+  ctx.drawImage(firstFrame, 0, 0);
+
   const stream = canvas.captureStream(30);
-  const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 3_000_000 });
+
+  // Cria MediaRecorder com fallback sem codec específico
+  let recorder: MediaRecorder;
+  try {
+    recorder = new MediaRecorder(stream, { mimeType });
+  } catch {
+    recorder = new MediaRecorder(stream);
+  }
+
   const chunks: Blob[] = [];
   recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
   recorder.start(100);
@@ -140,7 +155,6 @@ async function buildVideo(
   const step = Math.max(1, Math.floor(durationInFrames / frameCount));
   const frameDurationMs = Math.round((step / fps) * 1000);
 
-  player.pause();
   for (let i = 0; i < frameCount; i++) {
     player.seekTo(i * step);
     await new Promise((r) => setTimeout(r, 80));
@@ -150,8 +164,11 @@ async function buildVideo(
     onProgress(Math.round(((i + 1) / frameCount) * 90));
   }
 
-  return new Promise((resolve) => {
-    recorder.onstop = () => resolve(new Blob(chunks, { type: mimeType }));
+  return new Promise((resolve, reject) => {
+    recorder.onstop = () => {
+      if (chunks.length === 0) { reject(new Error("Nenhum frame gravado")); return; }
+      resolve(new Blob(chunks, { type: recorder.mimeType || mimeType }));
+    };
     recorder.stop();
   });
 }
