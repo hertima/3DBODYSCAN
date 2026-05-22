@@ -136,12 +136,12 @@ export function useRealGamification(
     };
 
     const achievements = [
-      { id: "first-week",   title: "Primeira Semana",    desc: "7 dias de consistência no plano",         icon: "7D",  unlocked: streak >= 7 || workouts.length >= 7 },
-      { id: "plan-set",     title: "Plano Estruturado",  desc: "7 treinos planejados na semana",           icon: "PL",  unlocked: weekW.length >= weekTarget },
-      { id: "21-days",      title: "Disciplina Cinza",   desc: "21 dias consecutivos de aderência",        icon: "21",  unlocked: streak >= 21 },
-      { id: "skill-master", title: "Skill Master",       desc: "Perfil orientado para performance",        icon: "SK",  unlocked: profile.level === "avancado" },
-      { id: "xp-marathon",  title: "Maratona",           desc: "1000 XP acumulados no ecossistema",        icon: "XP",  unlocked: xp >= 1000 },
-      { id: "ai-adapted",   title: "AI Adapted",         desc: "30+ treinos com dados reais registrados",  icon: "AI",  unlocked: workouts.length >= 30 },
+      { id: "first-week",   title: "Primeira Semana",    desc: "7 dias de consistência no plano",         icon: "🔥",  unlocked: streak >= 7 || workouts.length >= 7 },
+      { id: "plan-set",     title: "Plano Estruturado",  desc: "7 treinos planejados na semana",           icon: "📋",  unlocked: weekW.length >= weekTarget },
+      { id: "21-days",      title: "Disciplina Cinza",   desc: "21 dias consecutivos de aderência",        icon: "💎",  unlocked: streak >= 21 },
+      { id: "skill-master", title: "Skill Master",       desc: "Perfil orientado para performance",        icon: "⚡",  unlocked: profile.level === "avancado" },
+      { id: "xp-marathon",  title: "Maratona",           desc: "1000 XP acumulados no ecossistema",        icon: "🏆",  unlocked: xp >= 1000 },
+      { id: "ai-adapted",   title: "AI Adapted",         desc: "30+ treinos com dados reais registrados",  icon: "🤖",  unlocked: workouts.length >= 30 },
     ];
 
     return {

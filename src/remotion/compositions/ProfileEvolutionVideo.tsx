@@ -59,20 +59,12 @@ export function ProfileEvolutionVideo({
         background: "linear-gradient(160deg, #0a0f1e 0%, #0d1a2e 40%, #0a1520 100%)",
       }} />
 
-      {/* Glow cyan topo */}
+      {/* Glow sutil topo */}
       <div style={{
-        position: "absolute", top: -200, left: "50%", transform: "translateX(-50%)",
-        width: 700, height: 700, borderRadius: "50%",
-        background: "radial-gradient(circle, rgba(34,211,238,0.18) 0%, transparent 65%)",
-        filter: "blur(40px)",
-      }} />
-
-      {/* Glow laranja baixo */}
-      <div style={{
-        position: "absolute", bottom: -100, right: -100,
-        width: 500, height: 500, borderRadius: "50%",
-        background: "radial-gradient(circle, rgba(251,146,60,0.14) 0%, transparent 65%)",
-        filter: "blur(40px)",
+        position: "absolute", top: -300, left: "50%", transform: "translateX(-50%)",
+        width: 800, height: 800, borderRadius: "50%",
+        background: "radial-gradient(circle, rgba(34,211,238,0.08) 0%, transparent 60%)",
+        filter: "blur(60px)",
       }} />
 
       {/* ─── LOGO TOPO ─── */}
@@ -101,7 +93,7 @@ export function ProfileEvolutionVideo({
           borderRadius: 38,
           overflow: "hidden",
           background: avatarUrl ? "transparent" : "linear-gradient(135deg,#22d3ee,#3b82f6,#fb923c)",
-          boxShadow: "0 0 50px rgba(34,211,238,0.45), 0 0 0 4px rgba(34,211,238,0.3)",
+          boxShadow: "0 0 0 3px rgba(34,211,238,0.5), 0 0 0 6px rgba(34,211,238,0.12)",
           display: "flex", alignItems: "center", justifyContent: "center",
           fontSize: 52, fontWeight: 900, color: "#fff",
         }}>
