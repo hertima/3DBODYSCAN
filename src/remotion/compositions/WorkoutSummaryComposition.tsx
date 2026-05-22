@@ -1,10 +1,21 @@
 import { useCurrentFrame, useVideoConfig, interpolate, spring, Easing } from "remotion";
 
+type Locale = "pt" | "es" | "en" | "fr" | "de";
+
+const COPY: Record<Locale, { title: string; exercises: string; minutes: string; calories: string; cta: string }> = {
+  pt: { title: "TREINO COMPLETO", exercises: "Exercícios", minutes: "Minutos", calories: "Calorias", cta: "Ver Histórico" },
+  en: { title: "WORKOUT COMPLETE", exercises: "Exercises", minutes: "Minutes", calories: "Calories", cta: "View History" },
+  es: { title: "ENTRENAMIENTO COMPLETO", exercises: "Ejercicios", minutes: "Minutos", calories: "Calorías", cta: "Ver Historial" },
+  fr: { title: "ENTRAÎNEMENT TERMINÉ", exercises: "Exercices", minutes: "Minutes", calories: "Calories", cta: "Voir l'Historique" },
+  de: { title: "TRAINING FERTIG", exercises: "Übungen", minutes: "Minuten", calories: "Kalorien", cta: "Verlauf ansehen" },
+};
+
 type Props = {
   exerciseCount?: number;
   durationMinutes?: number;
   calories?: number;
   workoutName?: string;
+  locale?: Locale;
 };
 
 function StatItem({ label, value, unit, delay, frame, fps }: {
@@ -28,9 +39,10 @@ function StatItem({ label, value, unit, delay, frame, fps }: {
   );
 }
 
-export function WorkoutSummaryComposition({ exerciseCount = 8, durationMinutes = 45, calories = 380, workoutName = "Treino A" }: Props) {
+export function WorkoutSummaryComposition({ exerciseCount = 8, durationMinutes = 45, calories = 380, workoutName = "Treino A", locale = "pt" }: Props) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
+  const t = COPY[locale] ?? COPY.pt;
 
   const bgOpacity = interpolate(frame, [0, 20], [0, 1], { extrapolateRight: "clamp" });
 
@@ -101,7 +113,7 @@ export function WorkoutSummaryComposition({ exerciseCount = 8, durationMinutes =
       {/* Title */}
       <div style={{ opacity: titleOpacity, transform: `translateY(${titleY}px)`, marginBottom: 6 }}>
         <div style={{ fontSize: 28, fontWeight: 900, color: "oklch(0.98 0.01 250)", textAlign: "center", letterSpacing: "0.05em" }}>
-          TREINO COMPLETO
+          {t.title}
         </div>
       </div>
 
@@ -122,11 +134,11 @@ export function WorkoutSummaryComposition({ exerciseCount = 8, durationMinutes =
 
       {/* Stats */}
       <div style={{ display: "flex", gap: 36, alignItems: "flex-start", marginBottom: 36 }}>
-        <StatItem label="Exercícios" value={exerciseCount} unit="" delay={82} frame={frame} fps={fps} />
+        <StatItem label={t.exercises} value={exerciseCount} unit="" delay={82} frame={frame} fps={fps} />
         <div style={{ width: 1, height: 50, background: "oklch(0.30 0.04 262)", alignSelf: "center" }} />
-        <StatItem label="Minutos" value={durationMinutes} unit="min" delay={94} frame={frame} fps={fps} />
+        <StatItem label={t.minutes} value={durationMinutes} unit="min" delay={94} frame={frame} fps={fps} />
         <div style={{ width: 1, height: 50, background: "oklch(0.30 0.04 262)", alignSelf: "center" }} />
-        <StatItem label="Calorias" value={calories} unit="kcal" delay={106} frame={frame} fps={fps} />
+        <StatItem label={t.calories} value={calories} unit="kcal" delay={106} frame={frame} fps={fps} />
       </div>
 
       {/* CTA */}
@@ -142,7 +154,7 @@ export function WorkoutSummaryComposition({ exerciseCount = 8, durationMinutes =
         letterSpacing: "0.1em",
         textTransform: "uppercase",
       }}>
-        Ver Histórico
+        {t.cta}
       </div>
 
       {/* Logo */}

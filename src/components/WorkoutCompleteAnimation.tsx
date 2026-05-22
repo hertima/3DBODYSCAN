@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { Player, type PlayerRef } from "@remotion/player";
 import { WorkoutSummaryComposition } from "@/remotion/compositions/WorkoutSummaryComposition";
+import { getStoredLocale } from "@/lib/locale";
 
 type Props = {
   exerciseCount: number;
@@ -37,7 +38,7 @@ export function WorkoutCompleteAnimation({ exerciseCount, durationMinutes, calor
           loop={false}
           controls={false}
           style={{ width: "100%", height: "100%" }}
-          inputProps={{ exerciseCount, durationMinutes, calories, workoutName }}
+          inputProps={{ exerciseCount, durationMinutes, calories, workoutName, locale: getStoredLocale() }}
           autoPlay
         />
       </div>

@@ -153,6 +153,7 @@ function Perfil() {
               streak: gamification.streakDays,
               badges: gamification.achievements.filter((a) => a.unlocked).slice(0, 6).map((a) => a.icon ?? "🏆"),
               avatarUrl: profile.avatarUrl ?? undefined,
+              locale: getStoredLocale(),
             }}
             durationInFrames={390}
             title={c.shareBtn}

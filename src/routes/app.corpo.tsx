@@ -458,6 +458,7 @@ function CorpoPage() {
               waistCurrent: fsBodyScans[0]?.estimativas?.cinturaCmEstimada ?? 86,
               muscleMass: 68,
               trend: copy.evolution,
+              locale: getStoredLocale(),
             }}
             durationInFrames={450}
             title={copy.shareEvolution}
