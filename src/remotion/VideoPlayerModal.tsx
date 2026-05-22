@@ -80,8 +80,8 @@ async function buildGif(
 ): Promise<Blob> {
   const GIF = await loadGifJs();
 
-  // GIF a 360×640 (9:16) — tamanho leve para compartilhar
-  const outW = 360;
+  // GIF a 540×960 (9:16 Stories) — resolução adequada para Instagram/WhatsApp
+  const outW = 540;
   const outH = Math.round((outW * cH) / cW);
 
   const frameCount = 20;
