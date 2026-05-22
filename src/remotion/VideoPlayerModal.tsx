@@ -25,10 +25,12 @@ async function captureFrame(
   outH: number,
 ): Promise<HTMLCanvasElement> {
   const { toPng } = await import("html-to-image");
-  // Captura o container visível com pixelRatio alto em vez do elemento
-  // interno com CSS transform — resolve o frame preto no iOS Safari.
   const pixelRatio = Math.max(2, Math.ceil(outW / (container.offsetWidth || outW)));
-  const dataUrl = await toPng(container, { pixelRatio, cacheBust: false });
+  const dataUrl = await toPng(container, {
+    pixelRatio,
+    cacheBust: false,
+    style: { borderRadius: "0", overflow: "hidden" },
+  });
   const img = new Image();
   img.src = dataUrl;
   await new Promise<void>((res) => { img.onload = () => res(); });
@@ -66,16 +68,16 @@ async function buildGif(
   const GIF = await loadGifJs();
   const outW = 540;
   const outH = 960;
-  const frameCount = 20;
+  const frameCount = 24;
   const step = Math.max(1, Math.floor(durationInFrames / frameCount));
   const delay = Math.round((step / fps) * 1000);
 
-  const gif = new GIF({ workers: 2, quality: 6, width: outW, height: outH, workerScript: "/gif.worker.js" });
+  const gif = new GIF({ workers: 2, quality: 4, width: outW, height: outH, workerScript: "/gif.worker.js" });
 
   player.pause();
   for (let i = 0; i < frameCount; i++) {
     player.seekTo(i * step);
-    await new Promise((r) => setTimeout(r, 120));
+    await new Promise((r) => setTimeout(r, 150));
     const canvas = await captureFrame(container, outW, outH);
     gif.addFrame(canvas, { delay, copy: true });
     onProgress(Math.round(((i + 1) / frameCount) * 90));
