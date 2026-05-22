@@ -55,13 +55,13 @@ function loadGifJs(): Promise<new (opts: Record<string, unknown>) => {
   on(e: "finished", cb: (b: Blob) => void): void;
 }> {
   return new Promise((resolve, reject) => {
-    if ((window as Record<string, unknown>).GIF) {
-      resolve((window as Record<string, unknown>).GIF as never);
+    if ((window as unknown as Record<string, unknown>).GIF) {
+      resolve((window as unknown as Record<string, unknown>).GIF as never);
       return;
     }
     const s = document.createElement("script");
     s.src = "/gif.js";
-    s.onload = () => resolve((window as Record<string, unknown>).GIF as never);
+    s.onload = () => resolve((window as unknown as Record<string, unknown>).GIF as never);
     s.onerror = reject;
     document.head.appendChild(s);
   });
