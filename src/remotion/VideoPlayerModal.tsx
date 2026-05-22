@@ -241,37 +241,40 @@ export function VideoPlayerModal({
           <p style={{ fontSize: 12, color: "#f87171", textAlign: "center", margin: 0 }}>{errorMsg}</p>
         )}
 
-        <div style={{ display: "flex", gap: 10 }}>
-          <button
-            onClick={handleShare}
-            disabled={generating}
-            style={{
-              flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-              background: generating ? "rgba(34,211,238,0.25)" : "linear-gradient(135deg,#22d3ee,#3b82f6)",
-              border: "none", borderRadius: 16, padding: "16px",
-              fontSize: 15, fontWeight: 700, color: generating ? "#22d3ee" : "#060b14",
-              cursor: generating ? "wait" : "pointer",
-            }}
-          >
-            {generating ? <Loader2 size={18} className="animate-spin" /> : <Share2 size={18} />}
-            {generating ? `Gerando… ${progress}%` : shareLabel}
-          </button>
-          <button
-            onClick={handleDownload}
-            disabled={generating}
-            style={{
-              display: "flex", alignItems: "center", justifyContent: "center",
-              background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)",
-              borderRadius: 16, padding: "16px 20px",
-              color: "#94a3b8", cursor: generating ? "wait" : "pointer",
-            }}
-          >
-            {generating ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />}
-          </button>
-        </div>
+        {/* Salvar — ação principal */}
+        <button
+          onClick={handleDownload}
+          disabled={generating}
+          style={{
+            width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+            background: generating ? "rgba(34,211,238,0.25)" : "linear-gradient(135deg,#22d3ee,#3b82f6)",
+            border: "none", borderRadius: 16, padding: "17px",
+            fontSize: 15, fontWeight: 700, color: generating ? "#22d3ee" : "#060b14",
+            cursor: generating ? "wait" : "pointer",
+          }}
+        >
+          {generating ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />}
+          {generating ? `Gerando… ${progress}%` : "Salvar GIF"}
+        </button>
 
-        <p style={{ fontSize: 11, color: "rgba(148,163,184,0.3)", textAlign: "center", margin: 0 }}>
-          {formatLabel}
+        {/* Compartilhar direto — secundário */}
+        <button
+          onClick={handleShare}
+          disabled={generating}
+          style={{
+            width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+            background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)",
+            borderRadius: 16, padding: "14px",
+            fontSize: 14, fontWeight: 600, color: "#94a3b8",
+            cursor: generating ? "wait" : "pointer",
+          }}
+        >
+          <Share2 size={16} />
+          Compartilhar direto
+        </button>
+
+        <p style={{ fontSize: 11, color: "rgba(148,163,184,0.35)", textAlign: "center", margin: 0, lineHeight: 1.5 }}>
+          Salve e abra nos Stories do Instagram ou WhatsApp
         </p>
       </div>
     </div>
