@@ -112,8 +112,8 @@ export function ProfileEvolutionVideo({
             WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
           }}>{name}</div>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginTop: 14 }}>
-            <span style={{ fontSize: 13, color: "#22d3ee", fontWeight: 700, background: "rgba(34,211,238,0.12)", border: "1px solid rgba(34,211,238,0.3)", borderRadius: 999, padding: "5px 16px" }}>{level}</span>
-            <span style={{ fontSize: 13, color: "#fb923c", fontWeight: 700, background: "rgba(251,146,60,0.12)", border: "1px solid rgba(251,146,60,0.3)", borderRadius: 999, padding: "5px 16px" }}>{goal}</span>
+            <span style={{ fontSize: 17, color: "#22d3ee", fontWeight: 700, background: "rgba(34,211,238,0.12)", border: "1px solid rgba(34,211,238,0.3)", borderRadius: 999, padding: "7px 20px" }}>{level}</span>
+            <span style={{ fontSize: 17, color: "#fb923c", fontWeight: 700, background: "rgba(251,146,60,0.12)", border: "1px solid rgba(251,146,60,0.3)", borderRadius: 999, padding: "7px 20px" }}>{goal}</span>
           </div>
         </div>
       </div>
