@@ -30,6 +30,25 @@ async function captureCanvas(el: HTMLElement, w: number, h: number): Promise<HTM
   return c;
 }
 
+// Carrega gif.js via script tag — Vite nunca analisa isso como módulo, zero SSR
+function loadGifJs(): Promise<new (opts: Record<string, unknown>) => {
+  addFrame(c: HTMLCanvasElement, opts: Record<string, unknown>): void;
+  render(): void;
+  on(e: "finished", cb: (b: Blob) => void): void;
+}> {
+  return new Promise((resolve, reject) => {
+    if ((window as Record<string, unknown>).GIF) {
+      resolve((window as Record<string, unknown>).GIF as never);
+      return;
+    }
+    const s = document.createElement("script");
+    s.src = "/gif.js";
+    s.onload = () => resolve((window as Record<string, unknown>).GIF as never);
+    s.onerror = reject;
+    document.head.appendChild(s);
+  });
+}
+
 async function buildGif(
   containerEl: HTMLElement,
   player: PlayerRef,
@@ -37,8 +56,7 @@ async function buildGif(
   fps: number,
   onProgress: (n: number) => void,
 ): Promise<Blob> {
-  // gif.worker.js está em /public/gif.worker.js — sem new URL() para não quebrar SSR
-  const GIF = (await import("gif.js")).default;
+  const GIF = await loadGifJs();
   const w = containerEl.offsetWidth;
   const h = containerEl.offsetHeight;
   const frameCount = 20;
