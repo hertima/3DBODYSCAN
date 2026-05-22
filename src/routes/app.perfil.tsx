@@ -117,7 +117,7 @@ function Perfil() {
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,oklch(0.78_0.14_220_/_0.16),transparent_38%),radial-gradient(circle_at_bottom_left,oklch(0.74_0.17_53_/_0.18),transparent_35%)]" />
         <div className="relative flex flex-col items-center text-center gap-4">
           {/* Avatar */}
-          <div className="grid h-24 w-24 shrink-0 place-items-center overflow-hidden rounded-[1.8rem] bg-gradient-primary text-2xl font-black text-primary-foreground shadow-glow-primary">
+          <div className={`grid h-24 w-24 shrink-0 place-items-center overflow-hidden rounded-[1.8rem] text-2xl font-black text-primary-foreground ${profile.avatarUrl ? "bg-transparent shadow-none" : "bg-gradient-primary shadow-glow-primary"}`}>
             {profile.avatarUrl ? (
               <img src={profile.avatarUrl} alt={athleteProfile.name} className="h-full w-full object-cover" />
             ) : (
@@ -152,6 +152,7 @@ function Perfil() {
               xp: gamification.xp,
               streak: gamification.streakDays,
               badges: gamification.achievements.filter((a) => a.unlocked).slice(0, 6).map((a) => a.icon ?? "🏆"),
+              avatarUrl: profile.avatarUrl ?? undefined,
             }}
             durationInFrames={390}
             title={c.shareBtn}
