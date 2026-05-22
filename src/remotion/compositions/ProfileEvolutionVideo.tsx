@@ -162,10 +162,9 @@ export function ProfileEvolutionVideo({
           position: "absolute", top: 520, left: 48, right: 48,
           transform: `scale(${cardScale}) translateY(${cardY}px)`,
           opacity: cardOpacity,
-          background: "rgba(255,255,255,0.04)",
+          background: "rgba(14,22,42,0.85)",
           border: "1px solid rgba(251,146,60,0.25)",
           borderRadius: 26, padding: "26px 30px",
-          backdropFilter: "blur(12px)",
         }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
             <div>
