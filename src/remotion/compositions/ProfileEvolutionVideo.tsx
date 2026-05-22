@@ -194,7 +194,7 @@ export function ProfileEvolutionVideo({
           display: "flex", flexDirection: "column", alignItems: "center", gap: 14,
           transform: `scale(${avatarRevealScale})`, opacity: avatarRevealOpacity,
         }}>
-          <div style={{ fontSize: 90, lineHeight: 1, filter: "drop-shadow(0 0 24px rgba(34,211,238,0.4))" }}>🏋️</div>
+          <img src="/MASCOTE SEM FUNDO.png" style={{ width: 220, height: 220, objectFit: "contain", filter: "drop-shadow(0 0 28px rgba(34,211,238,0.45))" }} />
           <div style={{ width: 180, height: 1, background: "linear-gradient(90deg,transparent,rgba(34,211,238,0.4),transparent)" }} />
           <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: 3, textTransform: "uppercase", color: "rgba(148,163,184,0.3)" }}>
             {t.tagline}
