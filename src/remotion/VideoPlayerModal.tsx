@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { Player, type PlayerRef } from "@remotion/player";
-import { X, Share2, Download, Loader2 } from "lucide-react";
+import { X, Share2, Loader2 } from "lucide-react";
 import { type ComponentType } from "react";
 
 interface VideoPlayerModalProps {
@@ -156,19 +156,12 @@ export function VideoPlayerModal({
     if (!blob) return;
     const file = new File([blob], "3dbodyscanner.gif", { type: "image/gif" });
     try {
-      if (navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], title: "3D Body Scanner", text: shareText });
-        return;
-      }
+      await navigator.share({ files: [file], title: "3D Body Scanner", text: shareText });
     } catch (e: unknown) {
-      if ((e as Error)?.name === "AbortError") return;
+      if ((e as Error)?.name !== "AbortError") {
+        setErrorMsg("Não foi possível compartilhar. Tente outro app.");
+      }
     }
-    triggerDownload(blob, "3dbodyscanner.gif");
-  };
-
-  const handleDownload = async () => {
-    const blob = await generate();
-    if (blob) triggerDownload(blob, "3dbodyscanner.gif");
   };
 
   return (
@@ -241,40 +234,23 @@ export function VideoPlayerModal({
           <p style={{ fontSize: 12, color: "#f87171", textAlign: "center", margin: 0 }}>{errorMsg}</p>
         )}
 
-        {/* Salvar — ação principal */}
-        <button
-          onClick={handleDownload}
-          disabled={generating}
-          style={{
-            width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
-            background: generating ? "rgba(34,211,238,0.25)" : "linear-gradient(135deg,#22d3ee,#3b82f6)",
-            border: "none", borderRadius: 16, padding: "17px",
-            fontSize: 15, fontWeight: 700, color: generating ? "#22d3ee" : "#060b14",
-            cursor: generating ? "wait" : "pointer",
-          }}
-        >
-          {generating ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />}
-          {generating ? `Gerando… ${progress}%` : "Salvar GIF"}
-        </button>
-
-        {/* Compartilhar direto — secundário */}
         <button
           onClick={handleShare}
           disabled={generating}
           style={{
-            width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-            background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)",
-            borderRadius: 16, padding: "14px",
-            fontSize: 14, fontWeight: 600, color: "#94a3b8",
+            width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+            background: generating ? "rgba(34,211,238,0.25)" : "linear-gradient(135deg,#22d3ee,#3b82f6)",
+            border: "none", borderRadius: 16, padding: "20px",
+            fontSize: 17, fontWeight: 700, color: generating ? "#22d3ee" : "#060b14",
             cursor: generating ? "wait" : "pointer",
           }}
         >
-          <Share2 size={16} />
-          Compartilhar direto
+          {generating ? <Loader2 size={20} className="animate-spin" /> : <Share2 size={20} />}
+          {generating ? `Gerando… ${progress}%` : shareLabel}
         </button>
 
-        <p style={{ fontSize: 11, color: "rgba(148,163,184,0.35)", textAlign: "center", margin: 0, lineHeight: 1.5 }}>
-          Salve e abra nos Stories do Instagram ou WhatsApp
+        <p style={{ fontSize: 11, color: "rgba(148,163,184,0.3)", textAlign: "center", margin: 0 }}>
+          {formatLabel}
         </p>
       </div>
     </div>
