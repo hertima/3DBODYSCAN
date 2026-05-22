@@ -62,7 +62,7 @@ export function WorkoutCompleteVideo({
         display:"flex", alignItems:"center", justifyContent:"center", gap:14,
         opacity: headerOpacity,
       }}>
-        <img src="/logo favicton 3D Body Scanner.png" style={{ width:52, height:52, borderRadius:14, boxShadow:"0 0 24px rgba(34,211,238,0.6)" }} />
+        <img src="/logo favicton 3D Body Scan.png" style={{ width:52, height:52, borderRadius:14, boxShadow:"0 0 24px rgba(34,211,238,0.6)" }} />
         <span style={{ fontWeight:900, fontSize:24, letterSpacing:-0.5, background:"linear-gradient(90deg,#22d3ee,#fff,#fb923c)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent" }}>
           3D Body Scanner
         </span>
@@ -155,7 +155,7 @@ export function WorkoutCompleteVideo({
       <div style={{ position:"absolute", bottom:70, left:0, right:0, display:"flex", flexDirection:"column", alignItems:"center", gap:14, opacity:footerOpacity }}>
         <div style={{ width:200, height:1, background:"linear-gradient(90deg,transparent,rgba(34,211,238,0.4),transparent)" }} />
         <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-          <img src="/logo favicton 3D Body Scanner.png" style={{ width:40, height:40, borderRadius:11, boxShadow:"0 0 16px rgba(34,211,238,0.5)" }} />
+          <img src="/logo favicton 3D Body Scan.png" style={{ width:40, height:40, borderRadius:11, boxShadow:"0 0 16px rgba(34,211,238,0.5)" }} />
           <span style={{ fontWeight:900, fontSize:20, letterSpacing:-0.5, background:"linear-gradient(90deg,#22d3ee,#fff,#fb923c)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent" }}>
             3D Body Scanner
           </span>

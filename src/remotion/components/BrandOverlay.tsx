@@ -23,7 +23,7 @@ export function BrandOverlay({ position = "bottom" }: { position?: "top" | "bott
       <div style={style}>
         {/* Logo real do app */}
         <img
-          src="/logo favicton 3D Body Scanner.png"
+          src="/logo favicton 3D Body Scan.png"
           style={{
             width: 52,
             height: 52,

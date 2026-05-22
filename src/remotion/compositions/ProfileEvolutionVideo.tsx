@@ -128,7 +128,7 @@ export function ProfileEvolutionVideo({
         opacity: headerOpacity,
       }}>
         <img
-          src="/logo favicton 3D Body Scanner.png"
+          src="/logo favicton 3D Body Scan.png"
           style={{ width: 56, height: 56, borderRadius: 14, boxShadow: "0 0 24px rgba(34,211,238,0.6)" }}
         />
         <span style={{
@@ -305,7 +305,7 @@ export function ProfileEvolutionVideo({
         }} />
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <img
-            src="/logo favicton 3D Body Scanner.png"
+            src="/logo favicton 3D Body Scan.png"
             style={{ width: 40, height: 40, borderRadius: 11, boxShadow: "0 0 16px rgba(34,211,238,0.5)" }}
           />
           <span style={{

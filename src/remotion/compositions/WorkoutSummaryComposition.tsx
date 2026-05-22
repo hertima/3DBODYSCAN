@@ -155,7 +155,7 @@ export function WorkoutSummaryComposition({ exerciseCount = 8, durationMinutes =
         opacity: ctaOpacity,
       }}>
         <img
-          src="/logo favicton 3D Body Scanner.png"
+          src="/logo favicton 3D Body Scan.png"
           style={{ width: 28, height: 28, borderRadius: 8, boxShadow: "0 0 12px rgba(34,211,238,0.5)" }}
         />
         <span style={{
