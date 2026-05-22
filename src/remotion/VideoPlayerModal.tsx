@@ -126,35 +126,35 @@ export function VideoPlayerModal({
   const [progress, setProgress] = useState(0);
   const [generating, setGenerating] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [readyBlob, setReadyBlob] = useState<Blob | null>(null);
 
   if (!open) return null;
 
-  const generate = async (): Promise<Blob | null> => {
-    if (!containerRef.current || !playerRef.current) return null;
+  const handleGenerate = async () => {
+    if (!containerRef.current || !playerRef.current) return;
     setGenerating(true);
     setProgress(0);
     setErrorMsg(null);
+    setReadyBlob(null);
     try {
       const blob = await buildGif(
         containerRef.current, playerRef.current,
         durationInFrames, fps, compositionWidth, compositionHeight, setProgress,
       );
-      setProgress(100);
-      return blob;
+      setReadyBlob(blob);
     } catch (e) {
       console.error("gif error", e);
       setErrorMsg("Falha ao gerar GIF. Tente novamente.");
-      return null;
     } finally {
       playerRef.current?.play();
       setGenerating(false);
     }
   };
 
+  // Chamado em gesto direto do utilizador — sem async antes do share
   const handleShare = async () => {
-    const blob = await generate();
-    if (!blob) return;
-    const file = new File([blob], "3dbodyscanner.gif", { type: "image/gif" });
+    if (!readyBlob) return;
+    const file = new File([readyBlob], "3dbodyscanner.gif", { type: "image/gif" });
     try {
       await navigator.share({ files: [file], title: "3D Body Scanner", text: shareText });
     } catch (e: unknown) {
@@ -234,23 +234,43 @@ export function VideoPlayerModal({
           <p style={{ fontSize: 12, color: "#f87171", textAlign: "center", margin: 0 }}>{errorMsg}</p>
         )}
 
-        <button
-          onClick={handleShare}
-          disabled={generating}
-          style={{
-            width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
-            background: generating ? "rgba(34,211,238,0.25)" : "linear-gradient(135deg,#22d3ee,#3b82f6)",
-            border: "none", borderRadius: 16, padding: "20px",
-            fontSize: 17, fontWeight: 700, color: generating ? "#22d3ee" : "#060b14",
-            cursor: generating ? "wait" : "pointer",
-          }}
-        >
-          {generating ? <Loader2 size={20} className="animate-spin" /> : <Share2 size={20} />}
-          {generating ? `Gerando… ${progress}%` : shareLabel}
-        </button>
+        {!readyBlob ? (
+          /* Passo 1: gerar */
+          <button
+            onClick={handleGenerate}
+            disabled={generating}
+            style={{
+              width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+              background: generating ? "rgba(34,211,238,0.15)" : "linear-gradient(135deg,#22d3ee,#3b82f6)",
+              border: generating ? "1px solid rgba(34,211,238,0.3)" : "none",
+              borderRadius: 16, padding: "20px",
+              fontSize: 17, fontWeight: 700,
+              color: generating ? "#22d3ee" : "#060b14",
+              cursor: generating ? "default" : "pointer",
+            }}
+          >
+            {generating ? <Loader2 size={20} className="animate-spin" /> : <Share2 size={20} />}
+            {generating ? `Gerando… ${progress}%` : shareLabel}
+          </button>
+        ) : (
+          /* Passo 2: compartilhar (gesto direto → iOS aceita) */
+          <button
+            onClick={handleShare}
+            style={{
+              width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+              background: "linear-gradient(135deg,#4ade80,#22d3ee)",
+              border: "none", borderRadius: 16, padding: "20px",
+              fontSize: 17, fontWeight: 700, color: "#060b14",
+              cursor: "pointer",
+            }}
+          >
+            <Share2 size={20} />
+            Compartilhar agora
+          </button>
+        )}
 
         <p style={{ fontSize: 11, color: "rgba(148,163,184,0.3)", textAlign: "center", margin: 0 }}>
-          {formatLabel}
+          {readyBlob ? "GIF pronto! Toque para abrir o menu de compartilhar" : formatLabel}
         </p>
       </div>
     </div>
