@@ -77,7 +77,7 @@ async function buildGif(
   player.pause();
   for (let i = 0; i < frameCount; i++) {
     player.seekTo(i * step);
-    await new Promise((r) => setTimeout(r, 150));
+    await new Promise((r) => setTimeout(r, 300));
     const canvas = await captureFrame(container, outW, outH);
     gif.addFrame(canvas, { delay, copy: true });
     onProgress(Math.round(((i + 1) / frameCount) * 90));

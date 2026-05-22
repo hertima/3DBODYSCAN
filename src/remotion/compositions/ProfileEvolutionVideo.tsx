@@ -1,5 +1,4 @@
 import { AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoConfig } from "remotion";
-import { GradientBackground } from "../components/GradientBackground";
 import { AnimatedCounter } from "../components/AnimatedCounter";
 import { AnimatedBar } from "../components/AnimatedBar";
 
@@ -18,61 +17,11 @@ export interface ProfileEvolutionVideoProps {
 }
 
 const copy = {
-  pt: {
-    xpTotal: "XP Total",
-    streak: "Sequência",
-    nextLevel: "para o próximo nível",
-    sessions: "Sessões",
-    week: "Semana",
-    consist: "Consistência",
-    achievements: "Conquistas",
-    athlete: "Atleta 3D Body Scanner",
-    tagline: "Evolução em progresso",
-  },
-  es: {
-    xpTotal: "XP Total",
-    streak: "Racha",
-    nextLevel: "para el siguiente nivel",
-    sessions: "Sesiones",
-    week: "Semana",
-    consist: "Consistencia",
-    achievements: "Logros",
-    athlete: "Atleta 3D Body Scanner",
-    tagline: "Evolución en progreso",
-  },
-  en: {
-    xpTotal: "Total XP",
-    streak: "Streak",
-    nextLevel: "to next level",
-    sessions: "Sessions",
-    week: "Week",
-    consist: "Consistency",
-    achievements: "Achievements",
-    athlete: "3D Body Scanner Athlete",
-    tagline: "Evolution in progress",
-  },
-  fr: {
-    xpTotal: "XP Total",
-    streak: "Série",
-    nextLevel: "pour le prochain niveau",
-    sessions: "Séances",
-    week: "Semaine",
-    consist: "Régularité",
-    achievements: "Succès",
-    athlete: "Athlète 3D Body Scanner",
-    tagline: "Évolution en cours",
-  },
-  de: {
-    xpTotal: "XP Gesamt",
-    streak: "Serie",
-    nextLevel: "zum nächsten Level",
-    sessions: "Sessions",
-    week: "Woche",
-    consist: "Konstanz",
-    achievements: "Erfolge",
-    athlete: "3D Body Scanner Athlet",
-    tagline: "Evolution im Gange",
-  },
+  pt: { xpTotal: "XP Total", streak: "Sequência", sessions: "Sessões", week: "Semana", consist: "Consistência", achievements: "Conquistas", tagline: "Evolução em progresso" },
+  es: { xpTotal: "XP Total", streak: "Racha", sessions: "Sesiones", week: "Semana", consist: "Consistencia", achievements: "Logros", tagline: "Evolución en progreso" },
+  en: { xpTotal: "Total XP", streak: "Streak", sessions: "Sessions", week: "Week", consist: "Consistency", achievements: "Achievements", tagline: "Evolution in progress" },
+  fr: { xpTotal: "XP Total", streak: "Série", sessions: "Séances", week: "Semaine", consist: "Régularité", achievements: "Succès", tagline: "Évolution en cours" },
+  de: { xpTotal: "XP Gesamt", streak: "Serie", sessions: "Sessions", week: "Woche", consist: "Konstanz", achievements: "Erfolge", tagline: "Evolution im Gange" },
 };
 
 export function ProfileEvolutionVideo({
@@ -92,146 +41,119 @@ export function ProfileEvolutionVideo({
   const { fps } = useVideoConfig();
   const t = copy[locale] ?? copy.pt;
 
-  const headerOpacity = interpolate(frame, [0, 20], [0, 1], { extrapolateRight: "clamp" });
-  const mascotScale = spring({ frame, fps, config: { damping: 14, stiffness: 80 } });
-  const avatarScale = spring({ frame: frame - 10, fps, config: { damping: 12, stiffness: 100 } });
-  const xpScale = spring({ frame: frame - 30, fps, config: { damping: 14, stiffness: 120 } });
-  const xpBar = interpolate(frame, [30, 80], [0, Math.min(100, (xp % 1000) / 10)], { extrapolateRight: "clamp" });
-  const statsOpacity = interpolate(frame, [50, 70], [0, 1], { extrapolateRight: "clamp" });
+  const fadeIn = interpolate(frame, [0, 20], [0, 1], { extrapolateRight: "clamp" });
+  const heroScale = spring({ frame, fps, config: { damping: 16, stiffness: 90 } });
+  const cardScale = spring({ frame: frame - 25, fps, config: { damping: 14, stiffness: 110 } });
+  const statsOpacity = interpolate(frame, [45, 65], [0, 1], { extrapolateRight: "clamp" });
   const badgesOpacity = interpolate(frame, [65, 85], [0, 1], { extrapolateRight: "clamp" });
-  const footerOpacity = interpolate(frame, [80, 100], [0, 1], { extrapolateRight: "clamp" });
 
   const initials = name.split(" ").slice(0, 2).map(p => p[0]?.toUpperCase() ?? "").join("");
+  const xpBar = Math.min(100, (xp % 1000) / 10);
 
   return (
-    <AbsoluteFill style={{ fontFamily: "sans-serif", overflow: "hidden" }}>
-      <GradientBackground variant="dark" />
+    <AbsoluteFill style={{ fontFamily: "'Space Grotesk', sans-serif", overflow: "hidden" }}>
 
-      {/* Glow de fundo */}
+      {/* Fundo gradiente */}
       <div style={{
-        position: "absolute", top: -100, left: -100,
-        width: 600, height: 600, borderRadius: "50%",
-        background: "radial-gradient(circle, rgba(34,211,238,0.12) 0%, transparent 70%)",
+        position: "absolute", inset: 0,
+        background: "linear-gradient(160deg, #0a0f1e 0%, #0d1a2e 40%, #0a1520 100%)",
+      }} />
+
+      {/* Glow cyan topo */}
+      <div style={{
+        position: "absolute", top: -200, left: "50%", transform: "translateX(-50%)",
+        width: 700, height: 700, borderRadius: "50%",
+        background: "radial-gradient(circle, rgba(34,211,238,0.18) 0%, transparent 65%)",
         filter: "blur(40px)",
       }} />
+
+      {/* Glow laranja baixo */}
       <div style={{
-        position: "absolute", bottom: 200, right: -100,
+        position: "absolute", bottom: -100, right: -100,
         width: 500, height: 500, borderRadius: "50%",
-        background: "radial-gradient(circle, rgba(251,146,60,0.1) 0%, transparent 70%)",
+        background: "radial-gradient(circle, rgba(251,146,60,0.14) 0%, transparent 65%)",
         filter: "blur(40px)",
       }} />
 
-      {/* ─── TOP BRANDING ─── */}
+      {/* ─── LOGO TOPO ─── */}
       <div style={{
-        position: "absolute", top: 80, left: 0, right: 0,
-        display: "flex", alignItems: "center", justifyContent: "center", gap: 16,
-        opacity: headerOpacity,
+        position: "absolute", top: 72, left: 0, right: 0,
+        display: "flex", alignItems: "center", justifyContent: "center", gap: 14,
+        opacity: fadeIn,
       }}>
-        <img
-          src="/logo favicton 3D Body Scan.png"
-          style={{ width: 56, height: 56, borderRadius: 14, boxShadow: "0 0 24px rgba(34,211,238,0.6)" }}
-        />
+        <img src="/logo favicton 3D Body Scan.png" style={{ width: 48, height: 48, borderRadius: 12, boxShadow: "0 0 20px rgba(34,211,238,0.5)" }} />
         <span style={{
-          fontWeight: 900, fontSize: 26, letterSpacing: -0.5,
-          background: "linear-gradient(90deg, #22d3ee, #ffffff, #fb923c)",
+          fontWeight: 900, fontSize: 24, letterSpacing: -0.5,
+          background: "linear-gradient(90deg,#22d3ee,#fff,#fb923c)",
           WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
-        }}>
-          3D Body Scanner
-        </span>
+        }}>3D Body Scanner</span>
       </div>
 
-      {/* ─── MASCOTE ─── */}
+      {/* ─── HERO: AVATAR + NOME ─── */}
       <div style={{
         position: "absolute", top: 170, left: 0, right: 0,
-        display: "flex", justifyContent: "center",
-        transform: `scale(${mascotScale})`,
-        filter: "drop-shadow(0 0 60px rgba(34,211,238,0.45)) drop-shadow(0 0 30px rgba(251,146,60,0.35))",
+        display: "flex", flexDirection: "column", alignItems: "center", gap: 20,
+        transform: `scale(${heroScale})`, opacity: fadeIn,
       }}>
-        <img src="/mascote.png" style={{ width: 420, height: 420, objectFit: "contain" }} />
-      </div>
+        {/* Avatar */}
+        <div style={{
+          width: 140, height: 140,
+          borderRadius: 38,
+          overflow: "hidden",
+          background: avatarUrl ? "transparent" : "linear-gradient(135deg,#22d3ee,#3b82f6,#fb923c)",
+          boxShadow: "0 0 50px rgba(34,211,238,0.45), 0 0 0 4px rgba(34,211,238,0.3)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          fontSize: 52, fontWeight: 900, color: "#fff",
+        }}>
+          {avatarUrl
+            ? <img src={avatarUrl} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} />
+            : initials || "🏋️"}
+        </div>
 
-      {/* ─── AVATAR + NOME ─── */}
-      <div style={{
-        position: "absolute", top: 600, left: 0, right: 0,
-        display: "flex", flexDirection: "column", alignItems: "center",
-        transform: `scale(${avatarScale})`,
-      }}>
-        {avatarUrl ? (
-          <img
-            src={avatarUrl}
-            style={{
-              width: 96, height: 96, borderRadius: 30,
-              objectFit: "cover", marginBottom: 18,
-              boxShadow: "0 0 40px rgba(34,211,238,0.5), 0 0 0 3px rgba(34,211,238,0.4)",
-            }}
-          />
-        ) : (
-          <div style={{
-            width: 96, height: 96, borderRadius: 30,
-            background: "linear-gradient(135deg,#22d3ee,#3b82f6,#fb923c)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            boxShadow: "0 0 40px rgba(34,211,238,0.5)",
-            fontSize: 38, fontWeight: 900, color: "#fff", marginBottom: 18,
-          }}>
-            {initials || "🏋️"}
-          </div>
-        )}
-
+        {/* Nome */}
         <div style={{ textAlign: "center" }}>
           <div style={{
-            fontSize: 42, fontWeight: 900, letterSpacing: -1,
+            fontSize: 52, fontWeight: 900, letterSpacing: -1, lineHeight: 1,
             background: "linear-gradient(90deg,#22d3ee,#fff,#fb923c)",
             WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
-          }}>
-            {name}
-          </div>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, marginTop: 12 }}>
-            <span style={{ fontSize: 14, color: "#22d3ee", fontWeight: 700, background: "rgba(34,211,238,0.12)", border: "1px solid rgba(34,211,238,0.3)", borderRadius: 999, padding: "5px 16px" }}>
-              {level}
-            </span>
-            <span style={{ fontSize: 14, color: "#fb923c", fontWeight: 700, background: "rgba(251,146,60,0.12)", border: "1px solid rgba(251,146,60,0.3)", borderRadius: 999, padding: "5px 16px" }}>
-              {goal}
-            </span>
+          }}>{name}</div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginTop: 14 }}>
+            <span style={{ fontSize: 13, color: "#22d3ee", fontWeight: 700, background: "rgba(34,211,238,0.12)", border: "1px solid rgba(34,211,238,0.3)", borderRadius: 999, padding: "5px 16px" }}>{level}</span>
+            <span style={{ fontSize: 13, color: "#fb923c", fontWeight: 700, background: "rgba(251,146,60,0.12)", border: "1px solid rgba(251,146,60,0.3)", borderRadius: 999, padding: "5px 16px" }}>{goal}</span>
           </div>
         </div>
       </div>
 
-      {/* ─── XP BAR ─── */}
-      <Sequence from={30}>
-        <div style={{ position: "absolute", top: 880, left: 48, right: 48 }}>
-          <div style={{
-            transform: `scale(${xpScale})`,
-            background: "rgba(255,255,255,0.04)", border: "1.5px solid rgba(251,146,60,0.25)",
-            borderRadius: 28, padding: "28px 32px",
-            boxShadow: "0 0 40px rgba(251,146,60,0.08)",
-          }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-              <div>
-                <div style={{ fontSize: 12, color: "rgba(148,163,184,0.5)", letterSpacing: 3, textTransform: "uppercase", marginBottom: 4 }}>
-                  {t.xpTotal}
-                </div>
-                <AnimatedCounter from={0} to={xp} startFrame={0} endFrame={50} suffix=" XP" style={{ fontSize: 44, fontWeight: 900, color: "#fb923c" }} />
-              </div>
-              <div style={{ textAlign: "right" }}>
-                <div style={{ fontSize: 12, color: "rgba(148,163,184,0.5)", letterSpacing: 2, textTransform: "uppercase", marginBottom: 4 }}>
-                  {t.streak}
-                </div>
-                <div style={{ fontSize: 32, fontWeight: 900, color: "#4ade80" }}>🔥 {streak}</div>
-              </div>
+      {/* ─── XP CARD ─── */}
+      <Sequence from={25}>
+        <div style={{
+          position: "absolute", top: 530, left: 48, right: 48,
+          transform: `scale(${cardScale})`,
+          background: "rgba(255,255,255,0.05)", border: "1.5px solid rgba(251,146,60,0.3)",
+          borderRadius: 28, padding: "28px 32px",
+        }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
+            <div>
+              <div style={{ fontSize: 11, color: "rgba(148,163,184,0.5)", letterSpacing: 3, textTransform: "uppercase", marginBottom: 6 }}>{t.xpTotal}</div>
+              <AnimatedCounter from={0} to={xp} startFrame={0} endFrame={45} suffix=" XP" style={{ fontSize: 48, fontWeight: 900, color: "#fb923c" }} />
             </div>
-            <AnimatedBar pct={xpBar} startFrame={0} color="linear-gradient(90deg,#fb923c,#fbbf24)" height={12} />
-            <div style={{ marginTop: 8, fontSize: 12, color: "rgba(148,163,184,0.35)" }}>
-              {xp % 1000}/1000 XP {t.nextLevel}
+            <div style={{ textAlign: "right" }}>
+              <div style={{ fontSize: 11, color: "rgba(148,163,184,0.5)", letterSpacing: 2, textTransform: "uppercase", marginBottom: 6 }}>{t.streak}</div>
+              <div style={{ fontSize: 36, fontWeight: 900, color: "#4ade80" }}>🔥 {streak}</div>
             </div>
+          </div>
+          <AnimatedBar pct={xpBar} startFrame={0} color="linear-gradient(90deg,#fb923c,#fbbf24)" height={10} />
+          <div style={{ marginTop: 8, fontSize: 11, color: "rgba(148,163,184,0.35)", letterSpacing: 0.3 }}>
+            {xp % 1000}/1000 XP
           </div>
         </div>
       </Sequence>
 
-      {/* ─── STATS ─── */}
-      <Sequence from={50}>
+      {/* ─── STATS 3 CARDS ─── */}
+      <Sequence from={45}>
         <div style={{
-          position: "absolute", top: 1120, left: 48, right: 48,
-          display: "flex", gap: 18, opacity: statsOpacity,
+          position: "absolute", top: 790, left: 48, right: 48,
+          display: "flex", gap: 16, opacity: statsOpacity,
         }}>
           {[
             { label: t.sessions, value: String(totalSessions), color: "#22d3ee" },
@@ -240,13 +162,10 @@ export function ProfileEvolutionVideo({
           ].map((s, i) => (
             <div key={i} style={{
               flex: 1, background: "rgba(255,255,255,0.05)", border: `1.5px solid ${s.color}30`,
-              borderRadius: 22, padding: "22px 10px", textAlign: "center",
-              boxShadow: `0 0 24px ${s.color}14`,
+              borderRadius: 22, padding: "22px 8px", textAlign: "center",
             }}>
-              <div style={{ fontSize: 11, color: "rgba(148,163,184,0.5)", letterSpacing: 2.5, textTransform: "uppercase", marginBottom: 8 }}>
-                {s.label}
-              </div>
-              <div style={{ fontSize: 30, fontWeight: 900, color: s.color }}>{s.value}</div>
+              <div style={{ fontSize: 10, color: "rgba(148,163,184,0.5)", letterSpacing: 2.5, textTransform: "uppercase", marginBottom: 8 }}>{s.label}</div>
+              <div style={{ fontSize: 28, fontWeight: 900, color: s.color }}>{s.value}</div>
             </div>
           ))}
         </div>
@@ -255,24 +174,18 @@ export function ProfileEvolutionVideo({
       {/* ─── CONQUISTAS ─── */}
       {badges.length > 0 && (
         <Sequence from={65}>
-          <div style={{ position: "absolute", top: 1330, left: 48, right: 48, opacity: badgesOpacity }}>
-            <div style={{ fontSize: 12, color: "rgba(148,163,184,0.4)", letterSpacing: 3.5, textTransform: "uppercase", marginBottom: 20 }}>
-              {t.achievements}
-            </div>
-            <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+          <div style={{ position: "absolute", top: 990, left: 48, right: 48, opacity: badgesOpacity }}>
+            <div style={{ fontSize: 11, color: "rgba(148,163,184,0.4)", letterSpacing: 3.5, textTransform: "uppercase", marginBottom: 18 }}>{t.achievements}</div>
+            <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
               {badges.slice(0, 6).map((b, i) => {
-                const bScale = spring({ frame: frame - 65 - i * 6, fps, config: { damping: 14, stiffness: 130 } });
+                const s = spring({ frame: frame - 65 - i * 5, fps, config: { damping: 14, stiffness: 130 } });
                 return (
                   <div key={i} style={{
-                    transform: `scale(${bScale})`,
-                    width: 80, height: 80, borderRadius: 24,
+                    transform: `scale(${s})`,
+                    width: 84, height: 84, borderRadius: 24,
                     background: "rgba(255,255,255,0.06)", border: "1.5px solid rgba(255,255,255,0.1)",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: 36,
-                    boxShadow: "0 0 16px rgba(34,211,238,0.08)",
-                  }}>
-                    {b}
-                  </div>
+                    display: "flex", alignItems: "center", justifyContent: "center", fontSize: 38,
+                  }}>{b}</div>
                 );
               })}
             </div>
@@ -280,44 +193,18 @@ export function ProfileEvolutionVideo({
         </Sequence>
       )}
 
-      {/* ─── TAGLINE ─── */}
+      {/* ─── TAGLINE + FOOTER ─── */}
       <div style={{
-        position: "absolute", top: 1580, left: 48, right: 48, textAlign: "center",
+        position: "absolute", bottom: 60, left: 0, right: 0,
+        display: "flex", flexDirection: "column", alignItems: "center", gap: 14,
         opacity: badgesOpacity,
       }}>
-        <div style={{
-          fontSize: 20, fontWeight: 700, letterSpacing: 2,
-          textTransform: "uppercase", color: "rgba(148,163,184,0.35)",
-        }}>
+        <div style={{ width: 180, height: 1, background: "linear-gradient(90deg,transparent,rgba(34,211,238,0.4),transparent)" }} />
+        <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: 3, textTransform: "uppercase", color: "rgba(148,163,184,0.3)" }}>
           {t.tagline}
         </div>
       </div>
 
-      {/* ─── FOOTER BRANDING ─── */}
-      <div style={{
-        position: "absolute", bottom: 80, left: 0, right: 0,
-        display: "flex", flexDirection: "column", alignItems: "center", gap: 16,
-        opacity: footerOpacity,
-      }}>
-        <div style={{
-          width: 200, height: 1,
-          background: "linear-gradient(90deg, transparent, rgba(34,211,238,0.4), transparent)",
-        }} />
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <img
-            src="/logo favicton 3D Body Scan.png"
-            style={{ width: 40, height: 40, borderRadius: 11, boxShadow: "0 0 16px rgba(34,211,238,0.5)" }}
-          />
-          <span style={{
-            fontWeight: 900, fontSize: 20, letterSpacing: -0.5,
-            background: "linear-gradient(90deg, #22d3ee, #ffffff, #fb923c)",
-            WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
-          }}>
-            3D Body Scanner
-          </span>
-        </div>
-        <div style={{ fontSize: 12, color: "rgba(148,163,184,0.3)", letterSpacing: 2 }}>zyrox.app</div>
-      </div>
     </AbsoluteFill>
   );
 }
