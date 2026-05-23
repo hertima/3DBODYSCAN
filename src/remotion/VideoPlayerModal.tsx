@@ -17,76 +17,214 @@ interface VideoPlayerModalProps {
   shareText?: string;
 }
 
-async function imgToDataUrl(src: string): Promise<string | null> {
-  return new Promise((resolve) => {
-    const fresh = new Image();
-    fresh.crossOrigin = "anonymous";
-    fresh.onload = () => {
-      try {
-        const c = document.createElement("canvas");
-        c.width = fresh.naturalWidth || 1;
-        c.height = fresh.naturalHeight || 1;
-        c.getContext("2d")!.drawImage(fresh, 0, 0);
-        resolve(c.toDataURL());
-      } catch { resolve(null); }
-    };
-    fresh.onerror = () => resolve(null);
-    const sep = src.includes("?") ? "&" : "?";
-    fresh.src = src + sep + "_cb=" + Date.now();
+// ─── helpers canvas ───────────────────────────────────────────────────────────
+
+function rr(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y); ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r); ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h); ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r); ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+function loadImg(src: string, cors = false): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    if (cors) img.crossOrigin = "anonymous";
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
   });
 }
 
-async function inlineImages(container: HTMLElement): Promise<() => void> {
-  const imgs = Array.from(container.querySelectorAll("img")) as HTMLImageElement[];
-  const origSrcs: string[] = [];
-  const origFilters: string[] = [];
-  await Promise.all(imgs.map(async (img, i) => {
-    origSrcs[i] = img.src;
-    origFilters[i] = img.style.filter;
-    img.style.filter = "none"; // CSS filter no SVG foreignObject não renderiza em todos os browsers
-    if (!img.src || img.src.startsWith("data:")) return;
-    if (!img.complete || img.naturalWidth === 0) {
-      await new Promise<void>((resolve) => {
-        const t = setTimeout(resolve, 4000);
-        img.addEventListener("load", () => { clearTimeout(t); resolve(); }, { once: true });
-        img.addEventListener("error", () => { clearTimeout(t); resolve(); }, { once: true });
-      });
-    }
-    if (img.naturalWidth === 0) return;
+// ─── PNG gerado 100% em Canvas 2D — sem html-to-image ────────────────────────
+
+async function buildPng(inputProps: Record<string, unknown>): Promise<Blob> {
+  const W = 540, H = 960;
+  const c = document.createElement("canvas");
+  c.width = W; c.height = H;
+  const ctx = c.getContext("2d")!;
+
+  const name       = String(inputProps.name       ?? "Atleta");
+  const xp         = Number(inputProps.xp         ?? 0);
+  const streak     = Number(inputProps.streak      ?? 0);
+  const sessions   = Number(inputProps.totalSessions ?? 0);
+  const week       = Number(inputProps.weekNumber  ?? 1);
+  const consist    = Number(inputProps.consistency ?? 0);
+  const level      = String(inputProps.level       ?? "Iniciante");
+  const goal       = String(inputProps.goal        ?? "Hipertrofia");
+  const badges     = Array.isArray(inputProps.badges) ? inputProps.badges as string[] : [];
+  const avatarUrl  = String(inputProps.avatarUrl   ?? "");
+
+  // ── fundo ──────────────────────────────────────────────────────────────────
+  const bg = ctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, "#080e1c"); bg.addColorStop(.45, "#0c1829"); bg.addColorStop(1, "#090f1a");
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+
+  const glow1 = ctx.createRadialGradient(W / 2, 0, 0, W / 2, 0, 320);
+  glow1.addColorStop(0, "rgba(34,211,238,0.1)"); glow1.addColorStop(1, "transparent");
+  ctx.fillStyle = glow1; ctx.fillRect(0, 0, W, 400);
+
+  // ── logo + título ──────────────────────────────────────────────────────────
+  try {
+    const logo = await loadImg("/logo favicton 3D Body Scan.png");
+    const lS = 32, lX = W / 2 - 90, lY = 36;
+    ctx.save(); rr(ctx, lX, lY, lS, lS, 8); ctx.clip();
+    ctx.drawImage(logo, lX, lY, lS, lS); ctx.restore();
+  } catch { /**/ }
+  ctx.font = "800 16px sans-serif"; ctx.fillStyle = "#e2e8f0";
+  ctx.textAlign = "left"; ctx.textBaseline = "middle";
+  ctx.fillText("3D Body Scanner", W / 2 - 50, 52);
+
+  // ── avatar ─────────────────────────────────────────────────────────────────
+  const aR = 60, aX = W / 2, aY = 140;
+  // anel externo
+  ctx.save(); ctx.beginPath(); ctx.arc(aX, aY, aR + 14, 0, Math.PI * 2);
+  ctx.strokeStyle = "rgba(34,211,238,0.5)"; ctx.lineWidth = 2.5; ctx.stroke(); ctx.restore();
+  ctx.save(); ctx.beginPath(); ctx.arc(aX, aY, aR + 22, 0, Math.PI * 2);
+  ctx.strokeStyle = "rgba(34,211,238,0.2)"; ctx.lineWidth = 1.5; ctx.stroke(); ctx.restore();
+  // avatar
+  ctx.save(); ctx.beginPath(); ctx.arc(aX, aY, aR, 0, Math.PI * 2); ctx.clip();
+  if (avatarUrl) {
     try {
-      const c = document.createElement("canvas");
-      c.width = img.naturalWidth;
-      c.height = img.naturalHeight;
-      c.getContext("2d")!.drawImage(img, 0, 0);
-      img.src = c.toDataURL();
-      await new Promise((r) => setTimeout(r, 60));
+      const av = await loadImg(avatarUrl, true);
+      ctx.drawImage(av, aX - aR, aY - aR, aR * 2, aR * 2);
     } catch {
-      const dataUrl = await imgToDataUrl(origSrcs[i]);
-      if (dataUrl) { img.src = dataUrl; await new Promise((r) => setTimeout(r, 60)); }
+      const ag = ctx.createLinearGradient(aX - aR, aY - aR, aX + aR, aY + aR);
+      ag.addColorStop(0, "#22d3ee"); ag.addColorStop(1, "#fb923c");
+      ctx.fillStyle = ag; ctx.fillRect(aX - aR, aY - aR, aR * 2, aR * 2);
     }
-  }));
-  return () => imgs.forEach((img, i) => {
-    if (origSrcs[i]) img.src = origSrcs[i];
-    img.style.filter = origFilters[i] ?? "";
+  } else {
+    const ag = ctx.createLinearGradient(aX - aR, aY - aR, aX + aR, aY + aR);
+    ag.addColorStop(0, "#22d3ee"); ag.addColorStop(1, "#fb923c");
+    ctx.fillStyle = ag; ctx.fillRect(aX - aR, aY - aR, aR * 2, aR * 2);
+  }
+  ctx.restore();
+
+  // ── nome ───────────────────────────────────────────────────────────────────
+  const nameY = aY + aR + 36;
+  const nameGrad = ctx.createLinearGradient(0, 0, W, 0);
+  nameGrad.addColorStop(0, "#22d3ee"); nameGrad.addColorStop(.5, "#f1f5f9"); nameGrad.addColorStop(1, "#fb923c");
+  ctx.font = "900 40px sans-serif"; ctx.fillStyle = nameGrad;
+  ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
+  ctx.fillText(name, W / 2, nameY);
+
+  // ── chips level / goal ─────────────────────────────────────────────────────
+  const chipY = nameY + 22;
+  [[level, "#22d3ee", -80], [goal, "#fb923c", 80]].forEach(([txt, color, offset]) => {
+    const t = String(txt), col = String(color), off = Number(offset);
+    ctx.font = "700 13px sans-serif";
+    const tw = ctx.measureText(t).width + 32;
+    const cx = W / 2 + off - tw / 2;
+    ctx.fillStyle = col + "1a"; rr(ctx, cx, chipY, tw, 30, 15); ctx.fill();
+    ctx.strokeStyle = col + "66"; ctx.lineWidth = 1; rr(ctx, cx, chipY, tw, 30, 15); ctx.stroke();
+    ctx.fillStyle = col; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText(t, cx + tw / 2, chipY + 15);
   });
+
+  // ── divisória ──────────────────────────────────────────────────────────────
+  const divY = chipY + 48;
+  const dl = ctx.createLinearGradient(30, 0, W - 30, 0);
+  dl.addColorStop(0, "transparent"); dl.addColorStop(.4, "rgba(34,211,238,0.3)");
+  dl.addColorStop(.7, "rgba(251,146,60,0.2)"); dl.addColorStop(1, "transparent");
+  ctx.beginPath(); ctx.moveTo(30, divY); ctx.lineTo(W - 30, divY);
+  ctx.strokeStyle = dl; ctx.lineWidth = 1; ctx.stroke();
+
+  // ── card XP ────────────────────────────────────────────────────────────────
+  const cardY = divY + 14;
+  ctx.fillStyle = "rgba(14,22,42,0.9)"; ctx.strokeStyle = "rgba(251,146,60,0.3)"; ctx.lineWidth = 1;
+  rr(ctx, 30, cardY, W - 60, 120, 18); ctx.fill(); ctx.stroke();
+
+  ctx.font = "900 38px sans-serif"; ctx.fillStyle = "#fb923c";
+  ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+  ctx.fillText(`${xp} XP`, 54, cardY + 52);
+
+  ctx.font = "900 30px sans-serif"; ctx.fillStyle = "#4ade80";
+  ctx.textAlign = "right";
+  ctx.fillText(`🔥 ${streak}`, W - 54, cardY + 52);
+
+  const barY = cardY + 76, barW = W - 108;
+  ctx.fillStyle = "rgba(255,255,255,0.07)"; rr(ctx, 54, barY, barW, 8, 4); ctx.fill();
+  const pct = Math.min(1, (xp % 1000) / 1000);
+  if (pct > 0) {
+    const bg2 = ctx.createLinearGradient(54, 0, 54 + barW, 0);
+    bg2.addColorStop(0, "#fb923c"); bg2.addColorStop(.5, "#fbbf24"); bg2.addColorStop(1, "#fb923c");
+    ctx.fillStyle = bg2; rr(ctx, 54, barY, barW * pct, 8, 4); ctx.fill();
+  }
+  ctx.font = "400 11px sans-serif"; ctx.fillStyle = "rgba(148,163,184,0.4)";
+  ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+  ctx.fillText(`${xp % 1000} / 1000 XP`, 54, barY + 22);
+
+  // ── stats ──────────────────────────────────────────────────────────────────
+  const statsY = cardY + 136;
+  const sData = [
+    { v: String(sessions), l: "SESSÕES",   col: "#22d3ee" },
+    { v: `${week}/12`,     l: "SEMANA",    col: "#a78bfa" },
+    { v: `${consist}%`,   l: "CONSIST.",  col: "#4ade80" },
+  ];
+  const sW = (W - 76) / 3;
+  sData.forEach((s, i) => {
+    const sx = 30 + i * (sW + 8);
+    ctx.fillStyle = "rgba(255,255,255,0.04)"; ctx.strokeStyle = s.col + "22"; ctx.lineWidth = 1.5;
+    rr(ctx, sx, statsY, sW, 76, 16); ctx.fill(); ctx.stroke();
+    ctx.font = "900 26px sans-serif"; ctx.fillStyle = s.col;
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText(s.v, sx + sW / 2, statsY + 34);
+    ctx.font = "500 9px sans-serif"; ctx.fillStyle = "rgba(148,163,184,0.45)";
+    ctx.fillText(s.l, sx + sW / 2, statsY + 60);
+  });
+
+  // ── badges ─────────────────────────────────────────────────────────────────
+  if (badges.length > 0) {
+    const bY = statsY + 96;
+    ctx.font = "500 9px sans-serif"; ctx.fillStyle = "rgba(148,163,184,0.35)";
+    ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+    ctx.fillText("CONQUISTAS", 30, bY);
+    const bSz = 62;
+    badges.slice(0, 6).forEach((b, i) => {
+      const bx = 30 + i * (bSz + 10);
+      ctx.fillStyle = "rgba(255,255,255,0.05)"; ctx.strokeStyle = "rgba(255,255,255,0.1)"; ctx.lineWidth = 1;
+      rr(ctx, bx, bY + 10, bSz, bSz, 14); ctx.fill(); ctx.stroke();
+      ctx.font = `${bSz * 0.48}px serif`;
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillStyle = "#fff";
+      ctx.fillText(String(b), bx + bSz / 2, bY + 10 + bSz / 2);
+    });
+  }
+
+  // ── mascote ────────────────────────────────────────────────────────────────
+  try {
+    const mascote = await loadImg("/MASCOTE SEM FUNDO.png");
+    const mS = 220, mX = W / 2 - mS / 2, mY = H - mS - 52;
+    ctx.save();
+    ctx.shadowColor = "rgba(34,211,238,0.3)"; ctx.shadowBlur = 24;
+    ctx.drawImage(mascote, mX, mY, mS, mS);
+    ctx.restore();
+  } catch { /**/ }
+
+  // ── tagline ────────────────────────────────────────────────────────────────
+  ctx.font = "700 9px sans-serif"; ctx.fillStyle = "rgba(148,163,184,0.28)";
+  ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
+  ctx.fillText("EVOLUÇÃO EM PROGRESSO", W / 2, H - 24);
+
+  return new Promise((resolve) => c.toBlob((b) => resolve(b!), "image/png"));
 }
+
+// ─── GIF (html-to-image) ─────────────────────────────────────────────────────
 
 async function captureFrame(container: HTMLElement, outW: number, outH: number): Promise<HTMLCanvasElement> {
   const { toPng } = await import("html-to-image");
   const pixelRatio = Math.max(2, Math.ceil(outW / (container.offsetWidth || outW)));
-  const dataUrl = await toPng(container, {
-    pixelRatio,
-    cacheBust: true,
-    style: { borderRadius: "0", overflow: "hidden" },
-    fetchRequestInit: { mode: "cors" as RequestMode, credentials: "omit" as RequestCredentials },
-  });
+  const dataUrl = await toPng(container, { pixelRatio, cacheBust: false, style: { borderRadius: "0", overflow: "hidden" } });
   const img = new Image();
   img.src = dataUrl;
   await new Promise<void>((res) => { img.onload = () => res(); });
-  const c = document.createElement("canvas");
-  c.width = outW; c.height = outH;
-  c.getContext("2d")!.drawImage(img, 0, 0, img.width, img.height, 0, 0, outW, outH);
-  return c;
+  const cv = document.createElement("canvas");
+  cv.width = outW; cv.height = outH;
+  cv.getContext("2d")!.drawImage(img, 0, 0, img.width, img.height, 0, 0, outW, outH);
+  return cv;
 }
 
 function loadGifJs(): Promise<new (opts: Record<string, unknown>) => {
@@ -115,7 +253,7 @@ async function buildGif(
   onProgress: (n: number) => void,
 ): Promise<Blob> {
   const GIF = await loadGifJs();
-  const outW = 540; const outH = 960;
+  const outW = 540, outH = 960;
   const frameCount = 24;
   const step = Math.max(1, Math.floor(durationInFrames / frameCount));
   const delay = Math.round((step / fps) * 1000);
@@ -131,59 +269,6 @@ async function buildGif(
   return new Promise((resolve) => {
     gif.on("finished", (blob: Blob) => resolve(blob));
     gif.render();
-  });
-}
-
-// PNG: captura o div interno do Remotion (tamanho nativo) sem o transform scale
-async function buildPng(
-  captureContainer: HTMLElement,
-  capturePlayer: PlayerRef,
-  durationInFrames: number,
-  compositionWidth: number,
-  compositionHeight: number,
-): Promise<Blob> {
-  const targetFrame = Math.floor(durationInFrames * 0.72);
-  capturePlayer.pause();
-  for (const f of [0, 90, targetFrame]) {
-    capturePlayer.seekTo(f);
-    await new Promise((r) => setTimeout(r, 400));
-  }
-  await new Promise((r) => setTimeout(r, 1500));
-
-  // Localiza o div interno do Remotion Player (dimensões nativas + transform scale)
-  const nativeW = `${compositionWidth}px`;
-  const nativeH = `${compositionHeight}px`;
-  let compositionEl: HTMLElement | null = null;
-  for (const el of captureContainer.querySelectorAll<HTMLElement>("div")) {
-    if (el.style.width === nativeW && el.style.height === nativeH && el.style.transform) {
-      compositionEl = el;
-      break;
-    }
-  }
-
-  // Remove transform para capturar em tamanho nativo — CSS scale não funciona em SVG foreignObject
-  const origTransform = compositionEl?.style.transform ?? "";
-  if (compositionEl) compositionEl.style.transform = "none";
-  await new Promise((r) => setTimeout(r, 80));
-
-  const target = compositionEl ?? captureContainer;
-  const restore = await inlineImages(target);
-
-  const { toBlob } = await import("html-to-image");
-  // pixelRatio 0.5 sobre 1080×1920 = canvas final 540×960
-  const blob = await toBlob(target, {
-    pixelRatio: compositionEl ? (540 / compositionWidth) : 2,
-    cacheBust: true,
-    style: { borderRadius: "0", overflow: "hidden" },
-    fetchRequestInit: { mode: "cors" as RequestMode, credentials: "omit" as RequestCredentials },
-  });
-
-  restore();
-  if (compositionEl) compositionEl.style.transform = origTransform;
-
-  return blob ?? new Promise((resolve) => {
-    const c = document.createElement("canvas"); c.width = 540; c.height = 960;
-    c.toBlob((b) => resolve(b!), "image/png");
   });
 }
 
@@ -204,8 +289,6 @@ export function VideoPlayerModal({
 }: VideoPlayerModalProps) {
   const playerRef = useRef<PlayerRef>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const capturePlayerRef = useRef<PlayerRef>(null);
-  const captureContainerRef = useRef<HTMLDivElement>(null);
   const [progress, setProgress] = useState(0);
   const [mode, setMode] = useState<"gif" | "png" | null>(null);
   const [generating, setGenerating] = useState(false);
@@ -227,8 +310,7 @@ export function VideoPlayerModal({
         if (!containerRef.current || !playerRef.current) return;
         blob = await buildGif(containerRef.current, playerRef.current, durationInFrames, fps, setProgress);
       } else {
-        if (!captureContainerRef.current || !capturePlayerRef.current) return;
-        blob = await buildPng(captureContainerRef.current, capturePlayerRef.current, durationInFrames, compositionWidth, compositionHeight);
+        blob = await buildPng(inputProps);
       }
       setReadyBlob(blob!);
     } catch (e) {
@@ -262,74 +344,54 @@ export function VideoPlayerModal({
   };
 
   return (
-    <>
-      {/* Player oculto a 540×960 — usado exclusivamente para captura do PNG */}
-      <div
-        ref={captureContainerRef}
-        style={{ position: "fixed", left: "-9999px", top: 0, width: 540, height: 960, overflow: "hidden", pointerEvents: "none", zIndex: -1 }}
-      >
-        <Player
-          ref={capturePlayerRef}
-          component={composition}
-          inputProps={inputProps}
-          durationInFrames={durationInFrames}
-          fps={fps}
-          compositionWidth={compositionWidth}
-          compositionHeight={compositionHeight}
-          style={{ width: "100%", height: "100%" }}
-          initiallyMuted
-        />
+    <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.96)", display: "flex", flexDirection: "column", fontFamily: "sans-serif" }} onClick={!generating ? onClose : undefined}>
+
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
+        <span style={{ fontSize: 15, fontWeight: 700, color: "#e2e8f0" }}>{title}</span>
+        <button onClick={onClose} disabled={generating} style={{ background: "rgba(255,255,255,0.08)", border: "none", borderRadius: 10, padding: "8px", cursor: "pointer", color: "#94a3b8", display: "flex", alignItems: "center" }}>
+          <X size={20} />
+        </button>
       </div>
 
-      <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.96)", display: "flex", flexDirection: "column", fontFamily: "sans-serif" }} onClick={!generating ? onClose : undefined}>
-
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
-          <span style={{ fontSize: 15, fontWeight: 700, color: "#e2e8f0" }}>{title}</span>
-          <button onClick={onClose} disabled={generating} style={{ background: "rgba(255,255,255,0.08)", border: "none", borderRadius: 10, padding: "8px", cursor: "pointer", color: "#94a3b8", display: "flex", alignItems: "center" }}>
-            <X size={20} />
-          </button>
+      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", padding: "0 12px" }} onClick={(e) => e.stopPropagation()}>
+        <div ref={containerRef} style={{ height: "100%", aspectRatio: `${compositionWidth}/${compositionHeight}`, maxWidth: "100%", borderRadius: 20, overflow: "hidden", boxShadow: "0 0 60px rgba(34,211,238,0.18)" }}>
+          <Player ref={playerRef} component={composition} inputProps={inputProps} durationInFrames={durationInFrames} fps={fps} compositionWidth={compositionWidth} compositionHeight={compositionHeight} style={{ width: "100%", height: "100%" }} autoPlay loop />
         </div>
+      </div>
 
-        <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", padding: "0 12px" }} onClick={(e) => e.stopPropagation()}>
-          <div ref={containerRef} style={{ height: "100%", aspectRatio: `${compositionWidth}/${compositionHeight}`, maxWidth: "100%", borderRadius: 20, overflow: "hidden", boxShadow: "0 0 60px rgba(34,211,238,0.18)" }}>
-            <Player ref={playerRef} component={composition} inputProps={inputProps} durationInFrames={durationInFrames} fps={fps} compositionWidth={compositionWidth} compositionHeight={compositionHeight} style={{ width: "100%", height: "100%" }} autoPlay loop />
+      <div style={{ flexShrink: 0, padding: "16px 20px 40px", display: "flex", flexDirection: "column", gap: 10 }} onClick={(e) => e.stopPropagation()}>
+
+        {generating && (
+          <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: 8, overflow: "hidden", height: 5 }}>
+            <div style={{ height: "100%", width: `${mode === "gif" ? progress : 60}%`, background: "linear-gradient(90deg,#22d3ee,#3b82f6)", transition: "width 0.3s", borderRadius: 8 }} />
           </div>
-        </div>
+        )}
 
-        <div style={{ flexShrink: 0, padding: "16px 20px 40px", display: "flex", flexDirection: "column", gap: 10 }} onClick={(e) => e.stopPropagation()}>
+        {errorMsg && <p style={{ fontSize: 12, color: "#f87171", textAlign: "center", margin: 0 }}>{errorMsg}</p>}
 
-          {generating && (
-            <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: 8, overflow: "hidden", height: 5 }}>
-              <div style={{ height: "100%", width: `${mode === "gif" ? progress : 60}%`, background: "linear-gradient(90deg,#22d3ee,#3b82f6)", transition: "width 0.3s", borderRadius: 8 }} />
-            </div>
-          )}
-
-          {errorMsg && <p style={{ fontSize: 12, color: "#f87171", textAlign: "center", margin: 0 }}>{errorMsg}</p>}
-
-          {!readyBlob ? (
-            <>
-              <button onClick={() => generate("gif")} disabled={generating} style={{ ...btn, background: generating && mode === "gif" ? "rgba(34,211,238,0.12)" : "linear-gradient(135deg,#22d3ee,#3b82f6)", color: generating && mode === "gif" ? "#22d3ee" : "#060b14", border: generating && mode === "gif" ? "1px solid rgba(34,211,238,0.3)" : "none", cursor: generating ? "default" : "pointer" }}>
-                {generating && mode === "gif" ? <Loader2 size={20} className="animate-spin" /> : <Share2 size={20} />}
-                {generating && mode === "gif" ? `Gerando GIF… ${progress}%` : "GIF animado · WhatsApp"}
-              </button>
-
-              <button onClick={() => generate("png")} disabled={generating} style={{ ...btn, padding: "14px", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: generating && mode === "png" ? "#c084fc" : "#94a3b8", fontSize: 14, cursor: generating ? "default" : "pointer" }}>
-                {generating && mode === "png" ? <Loader2 size={18} className="animate-spin" /> : <Share2 size={18} />}
-                {generating && mode === "png" ? "Gerando imagem…" : "Imagem · Instagram / Stories"}
-              </button>
-            </>
-          ) : (
-            <button onClick={share} style={{ ...btn, background: "linear-gradient(135deg,#4ade80,#22d3ee)", color: "#060b14" }}>
-              <Share2 size={20} />
-              {mode === "gif" ? "Compartilhar GIF" : "Compartilhar imagem"}
+        {!readyBlob ? (
+          <>
+            <button onClick={() => generate("gif")} disabled={generating} style={{ ...btn, background: generating && mode === "gif" ? "rgba(34,211,238,0.12)" : "linear-gradient(135deg,#22d3ee,#3b82f6)", color: generating && mode === "gif" ? "#22d3ee" : "#060b14", border: generating && mode === "gif" ? "1px solid rgba(34,211,238,0.3)" : "none", cursor: generating ? "default" : "pointer" }}>
+              {generating && mode === "gif" ? <Loader2 size={20} className="animate-spin" /> : <Share2 size={20} />}
+              {generating && mode === "gif" ? `Gerando GIF… ${progress}%` : "GIF animado · WhatsApp"}
             </button>
-          )}
 
-          <p style={{ fontSize: 11, color: "rgba(148,163,184,0.22)", textAlign: "center", margin: 0 }}>
-            {readyBlob ? "Pronto · toque para abrir o menu" : "GIF animado para WhatsApp · Imagem para Instagram"}
-          </p>
-        </div>
+            <button onClick={() => generate("png")} disabled={generating} style={{ ...btn, padding: "14px", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: generating && mode === "png" ? "#c084fc" : "#94a3b8", fontSize: 14, cursor: generating ? "default" : "pointer" }}>
+              {generating && mode === "png" ? <Loader2 size={18} className="animate-spin" /> : <Share2 size={18} />}
+              {generating && mode === "png" ? "Gerando imagem…" : "Imagem · Instagram / Stories"}
+            </button>
+          </>
+        ) : (
+          <button onClick={share} style={{ ...btn, background: "linear-gradient(135deg,#4ade80,#22d3ee)", color: "#060b14" }}>
+            <Share2 size={20} />
+            {mode === "gif" ? "Compartilhar GIF" : "Compartilhar imagem"}
+          </button>
+        )}
+
+        <p style={{ fontSize: 11, color: "rgba(148,163,184,0.22)", textAlign: "center", margin: 0 }}>
+          {readyBlob ? "Pronto · toque para abrir o menu" : "GIF animado para WhatsApp · Imagem para Instagram"}
+        </p>
       </div>
-    </>
+    </div>
   );
 }
