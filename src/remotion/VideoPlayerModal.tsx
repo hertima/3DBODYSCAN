@@ -81,8 +81,12 @@ async function buildGif(
 
 async function buildPng(container: HTMLElement, player: PlayerRef, durationInFrames: number): Promise<Blob> {
   player.pause();
-  player.seekTo(Math.floor(durationInFrames * 0.72));
-  await new Promise((r) => setTimeout(r, 300));
+  // Passa pelos frames chave para o browser cachear as imagens (avatar + mascote)
+  for (const f of [0, 30, 90, Math.floor(durationInFrames * 0.72)]) {
+    player.seekTo(f);
+    await new Promise((r) => setTimeout(r, 250));
+  }
+  await new Promise((r) => setTimeout(r, 400));
   const canvas = await captureFrame(container, 540, 960);
   return new Promise((resolve) => canvas.toBlob((b) => resolve(b!), "image/png"));
 }

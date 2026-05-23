@@ -122,7 +122,7 @@ export function ProfileEvolutionVideo({
             fontSize: 56, fontWeight: 900, color: "#fff",
           }}>
             {avatarUrl
-              ? <img src={avatarUrl} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} />
+              ? <img src={avatarUrl} crossOrigin="anonymous" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} />
               : initials || "💪"}
           </div>
         </div>
