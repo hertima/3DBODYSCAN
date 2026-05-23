@@ -32,7 +32,7 @@ export function Logo({ className, withText = true, size = 40 }: { className?: st
       {withText && (
         <span
           className="font-display font-black tracking-tight"
-          style={{ fontSize: size * 0.38, background: "linear-gradient(90deg,#22d3ee,#ffffff,#fb923c)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}
+          style={{ fontSize: size * 0.38, background: "linear-gradient(90deg, var(--color-cyan), var(--color-foreground), var(--color-primary))", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}
         >
           3D Body Scanner
         </span>
