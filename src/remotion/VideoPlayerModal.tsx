@@ -38,9 +38,21 @@ async function captureFrame(container: HTMLElement, outW: number, outH: number):
 async function buildPng(container: HTMLElement, player: PlayerRef, durationInFrames: number): Promise<Blob> {
   player.pause();
   player.seekTo(Math.floor(durationInFrames * 0.72));
-  await new Promise((r) => setTimeout(r, 600));
-  const canvas = await captureFrame(container, 1080, 1920);
-  return new Promise((resolve) => canvas.toBlob((b) => resolve(b!), "image/png"));
+  await new Promise((r) => setTimeout(r, 500));
+
+  // Captura na resolução que funciona (igual ao GIF)
+  const base = await captureFrame(container, 540, 960);
+
+  // Escala via canvas para 1080x1920 com qualidade alta
+  const scaled = document.createElement("canvas");
+  scaled.width = 1080;
+  scaled.height = 1920;
+  const ctx = scaled.getContext("2d")!;
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(base, 0, 0, 1080, 1920);
+
+  return new Promise((resolve) => scaled.toBlob((b) => resolve(b!), "image/png"));
 }
 
 function triggerDownload(blob: Blob, name: string) {
