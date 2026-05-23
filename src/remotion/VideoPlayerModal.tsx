@@ -18,7 +18,6 @@ interface VideoPlayerModalProps {
 }
 
 async function imgToDataUrl(src: string): Promise<string | null> {
-  // Carrega imagem fresh com crossOrigin="anonymous" e converte via canvas
   return new Promise((resolve) => {
     const fresh = new Image();
     fresh.crossOrigin = "anonymous";
@@ -33,7 +32,7 @@ async function imgToDataUrl(src: string): Promise<string | null> {
     };
     fresh.onerror = () => resolve(null);
     const sep = src.includes("?") ? "&" : "?";
-    fresh.src = src + sep + "_cb=" + Date.now(); // cache-bust para forçar resposta com CORS
+    fresh.src = src + sep + "_cb=" + Date.now();
   });
 }
 
@@ -44,10 +43,8 @@ async function inlineImages(container: HTMLElement): Promise<() => void> {
   await Promise.all(imgs.map(async (img, i) => {
     origSrcs[i] = img.src;
     origFilters[i] = img.style.filter;
-    // Remove CSS filter — filter em foreignObject do SVG não renderiza em todos os browsers
-    img.style.filter = "none";
+    img.style.filter = "none"; // CSS filter no SVG foreignObject não renderiza em todos os browsers
     if (!img.src || img.src.startsWith("data:")) return;
-    // Aguarda carregar
     if (!img.complete || img.naturalWidth === 0) {
       await new Promise<void>((resolve) => {
         const t = setTimeout(resolve, 4000);
@@ -55,10 +52,8 @@ async function inlineImages(container: HTMLElement): Promise<() => void> {
         img.addEventListener("error", () => { clearTimeout(t); resolve(); }, { once: true });
       });
     }
-    // Não sobrescreve com canvas em branco se imagem não carregou
     if (img.naturalWidth === 0) return;
     try {
-      // Tenta drawImage do elemento já carregado (same-origin: nunca tinta canvas)
       const c = document.createElement("canvas");
       c.width = img.naturalWidth;
       c.height = img.naturalHeight;
@@ -66,7 +61,6 @@ async function inlineImages(container: HTMLElement): Promise<() => void> {
       img.src = c.toDataURL();
       await new Promise((r) => setTimeout(r, 60));
     } catch {
-      // Canvas taintado (cross-origin sem CORS): recarrega fresh com crossOrigin="anonymous"
       const dataUrl = await imgToDataUrl(origSrcs[i]);
       if (dataUrl) { img.src = dataUrl; await new Promise((r) => setTimeout(r, 60)); }
     }
@@ -82,8 +76,9 @@ async function captureFrame(container: HTMLElement, outW: number, outH: number):
   const pixelRatio = Math.max(2, Math.ceil(outW / (container.offsetWidth || outW)));
   const dataUrl = await toPng(container, {
     pixelRatio,
-    cacheBust: false,
+    cacheBust: true,
     style: { borderRadius: "0", overflow: "hidden" },
+    fetchRequestInit: { mode: "cors" as RequestMode, credentials: "omit" as RequestCredentials },
   });
   const img = new Image();
   img.src = dataUrl;
@@ -139,16 +134,23 @@ async function buildGif(
   });
 }
 
-async function buildPng(container: HTMLElement, player: PlayerRef, durationInFrames: number): Promise<Blob> {
-  player.pause();
-  // Passa pelos frames chave para o browser cachear as imagens (avatar + mascote)
-  for (const f of [0, 30, 90, Math.floor(durationInFrames * 0.72)]) {
-    player.seekTo(f);
-    await new Promise((r) => setTimeout(r, 250));
+// PNG usa um Player oculto dedicado a 540×960 — sem os transforms do Player principal
+async function buildPng(
+  captureContainer: HTMLElement,
+  capturePlayer: PlayerRef,
+  durationInFrames: number,
+): Promise<Blob> {
+  const targetFrame = Math.floor(durationInFrames * 0.72);
+  capturePlayer.pause();
+  // Aquece frames para garantir que imagens condicionais (Sequence) sejam montadas
+  for (const f of [0, 90, targetFrame]) {
+    capturePlayer.seekTo(f);
+    await new Promise((r) => setTimeout(r, 400));
   }
-  await new Promise((r) => setTimeout(r, 400));
-  const restore = await inlineImages(container);
-  const canvas = await captureFrame(container, 540, 960);
+  // Aguarda images carregar completamente
+  await new Promise((r) => setTimeout(r, 1500));
+  const restore = await inlineImages(captureContainer);
+  const canvas = await captureFrame(captureContainer, 540, 960);
   restore();
   return new Promise((resolve) => canvas.toBlob((b) => resolve(b!), "image/png"));
 }
@@ -170,6 +172,8 @@ export function VideoPlayerModal({
 }: VideoPlayerModalProps) {
   const playerRef = useRef<PlayerRef>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const capturePlayerRef = useRef<PlayerRef>(null);
+  const captureContainerRef = useRef<HTMLDivElement>(null);
   const [progress, setProgress] = useState(0);
   const [mode, setMode] = useState<"gif" | "png" | null>(null);
   const [generating, setGenerating] = useState(false);
@@ -179,17 +183,22 @@ export function VideoPlayerModal({
   if (!open) return null;
 
   const generate = async (type: "gif" | "png") => {
-    if (!containerRef.current || !playerRef.current) return;
     setMode(type);
     setGenerating(true);
     setProgress(0);
     setErrorMsg(null);
     setReadyBlob(null);
+    playerRef.current?.pause();
     try {
-      const blob = type === "gif"
-        ? await buildGif(containerRef.current, playerRef.current, durationInFrames, fps, setProgress)
-        : await buildPng(containerRef.current, playerRef.current, durationInFrames);
-      setReadyBlob(blob);
+      let blob: Blob;
+      if (type === "gif") {
+        if (!containerRef.current || !playerRef.current) return;
+        blob = await buildGif(containerRef.current, playerRef.current, durationInFrames, fps, setProgress);
+      } else {
+        if (!captureContainerRef.current || !capturePlayerRef.current) return;
+        blob = await buildPng(captureContainerRef.current, capturePlayerRef.current, durationInFrames);
+      }
+      setReadyBlob(blob!);
     } catch (e) {
       console.error(e);
       setErrorMsg("Falha ao gerar. Tente novamente.");
@@ -221,56 +230,74 @@ export function VideoPlayerModal({
   };
 
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.96)", display: "flex", flexDirection: "column", fontFamily: "sans-serif" }} onClick={!generating ? onClose : undefined}>
-
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
-        <span style={{ fontSize: 15, fontWeight: 700, color: "#e2e8f0" }}>{title}</span>
-        <button onClick={onClose} disabled={generating} style={{ background: "rgba(255,255,255,0.08)", border: "none", borderRadius: 10, padding: "8px", cursor: "pointer", color: "#94a3b8", display: "flex", alignItems: "center" }}>
-          <X size={20} />
-        </button>
+    <>
+      {/* Player oculto a 540×960 — usado exclusivamente para captura do PNG */}
+      <div
+        ref={captureContainerRef}
+        style={{ position: "fixed", left: "-9999px", top: 0, width: 540, height: 960, overflow: "hidden", pointerEvents: "none", zIndex: -1 }}
+      >
+        <Player
+          ref={capturePlayerRef}
+          component={composition}
+          inputProps={inputProps}
+          durationInFrames={durationInFrames}
+          fps={fps}
+          compositionWidth={compositionWidth}
+          compositionHeight={compositionHeight}
+          style={{ width: "100%", height: "100%" }}
+          initiallyMuted
+        />
       </div>
 
-      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", padding: "0 12px" }} onClick={(e) => e.stopPropagation()}>
-        <div ref={containerRef} style={{ height: "100%", aspectRatio: `${compositionWidth}/${compositionHeight}`, maxWidth: "100%", borderRadius: 20, overflow: "hidden", boxShadow: "0 0 60px rgba(34,211,238,0.18)" }}>
-          <Player ref={playerRef} component={composition} inputProps={inputProps} durationInFrames={durationInFrames} fps={fps} compositionWidth={compositionWidth} compositionHeight={compositionHeight} style={{ width: "100%", height: "100%" }} autoPlay loop />
+      <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.96)", display: "flex", flexDirection: "column", fontFamily: "sans-serif" }} onClick={!generating ? onClose : undefined}>
+
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
+          <span style={{ fontSize: 15, fontWeight: 700, color: "#e2e8f0" }}>{title}</span>
+          <button onClick={onClose} disabled={generating} style={{ background: "rgba(255,255,255,0.08)", border: "none", borderRadius: 10, padding: "8px", cursor: "pointer", color: "#94a3b8", display: "flex", alignItems: "center" }}>
+            <X size={20} />
+          </button>
+        </div>
+
+        <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", padding: "0 12px" }} onClick={(e) => e.stopPropagation()}>
+          <div ref={containerRef} style={{ height: "100%", aspectRatio: `${compositionWidth}/${compositionHeight}`, maxWidth: "100%", borderRadius: 20, overflow: "hidden", boxShadow: "0 0 60px rgba(34,211,238,0.18)" }}>
+            <Player ref={playerRef} component={composition} inputProps={inputProps} durationInFrames={durationInFrames} fps={fps} compositionWidth={compositionWidth} compositionHeight={compositionHeight} style={{ width: "100%", height: "100%" }} autoPlay loop />
+          </div>
+        </div>
+
+        <div style={{ flexShrink: 0, padding: "16px 20px 40px", display: "flex", flexDirection: "column", gap: 10 }} onClick={(e) => e.stopPropagation()}>
+
+          {generating && (
+            <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: 8, overflow: "hidden", height: 5 }}>
+              <div style={{ height: "100%", width: `${mode === "gif" ? progress : 60}%`, background: "linear-gradient(90deg,#22d3ee,#3b82f6)", transition: "width 0.3s", borderRadius: 8 }} />
+            </div>
+          )}
+
+          {errorMsg && <p style={{ fontSize: 12, color: "#f87171", textAlign: "center", margin: 0 }}>{errorMsg}</p>}
+
+          {!readyBlob ? (
+            <>
+              <button onClick={() => generate("gif")} disabled={generating} style={{ ...btn, background: generating && mode === "gif" ? "rgba(34,211,238,0.12)" : "linear-gradient(135deg,#22d3ee,#3b82f6)", color: generating && mode === "gif" ? "#22d3ee" : "#060b14", border: generating && mode === "gif" ? "1px solid rgba(34,211,238,0.3)" : "none", cursor: generating ? "default" : "pointer" }}>
+                {generating && mode === "gif" ? <Loader2 size={20} className="animate-spin" /> : <Share2 size={20} />}
+                {generating && mode === "gif" ? `Gerando GIF… ${progress}%` : "GIF animado · WhatsApp"}
+              </button>
+
+              <button onClick={() => generate("png")} disabled={generating} style={{ ...btn, padding: "14px", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: generating && mode === "png" ? "#c084fc" : "#94a3b8", fontSize: 14, cursor: generating ? "default" : "pointer" }}>
+                {generating && mode === "png" ? <Loader2 size={18} className="animate-spin" /> : <Share2 size={18} />}
+                {generating && mode === "png" ? "Gerando imagem…" : "Imagem · Instagram / Stories"}
+              </button>
+            </>
+          ) : (
+            <button onClick={share} style={{ ...btn, background: "linear-gradient(135deg,#4ade80,#22d3ee)", color: "#060b14" }}>
+              <Share2 size={20} />
+              {mode === "gif" ? "Compartilhar GIF" : "Compartilhar imagem"}
+            </button>
+          )}
+
+          <p style={{ fontSize: 11, color: "rgba(148,163,184,0.22)", textAlign: "center", margin: 0 }}>
+            {readyBlob ? "Pronto · toque para abrir o menu" : "GIF animado para WhatsApp · Imagem para Instagram"}
+          </p>
         </div>
       </div>
-
-      <div style={{ flexShrink: 0, padding: "16px 20px 40px", display: "flex", flexDirection: "column", gap: 10 }} onClick={(e) => e.stopPropagation()}>
-
-        {generating && (
-          <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: 8, overflow: "hidden", height: 5 }}>
-            <div style={{ height: "100%", width: `${mode === "gif" ? progress : 60}%`, background: "linear-gradient(90deg,#22d3ee,#3b82f6)", transition: "width 0.3s", borderRadius: 8 }} />
-          </div>
-        )}
-
-        {errorMsg && <p style={{ fontSize: 12, color: "#f87171", textAlign: "center", margin: 0 }}>{errorMsg}</p>}
-
-        {!readyBlob ? (
-          <>
-            {/* GIF - WhatsApp */}
-            <button onClick={() => generate("gif")} disabled={generating} style={{ ...btn, background: generating && mode === "gif" ? "rgba(34,211,238,0.12)" : "linear-gradient(135deg,#22d3ee,#3b82f6)", color: generating && mode === "gif" ? "#22d3ee" : "#060b14", border: generating && mode === "gif" ? "1px solid rgba(34,211,238,0.3)" : "none", cursor: generating ? "default" : "pointer" }}>
-              {generating && mode === "gif" ? <Loader2 size={20} className="animate-spin" /> : <Share2 size={20} />}
-              {generating && mode === "gif" ? `Gerando GIF… ${progress}%` : "GIF animado · WhatsApp"}
-            </button>
-
-            {/* PNG - Instagram */}
-            <button onClick={() => generate("png")} disabled={generating} style={{ ...btn, padding: "14px", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: generating && mode === "png" ? "#c084fc" : "#94a3b8", fontSize: 14, cursor: generating ? "default" : "pointer" }}>
-              {generating && mode === "png" ? <Loader2 size={18} className="animate-spin" /> : <Share2 size={18} />}
-              {generating && mode === "png" ? "Gerando imagem…" : "Imagem · Instagram / Stories"}
-            </button>
-          </>
-        ) : (
-          <button onClick={share} style={{ ...btn, background: "linear-gradient(135deg,#4ade80,#22d3ee)", color: "#060b14" }}>
-            <Share2 size={20} />
-            {mode === "gif" ? "Compartilhar GIF" : "Compartilhar imagem"}
-          </button>
-        )}
-
-        <p style={{ fontSize: 11, color: "rgba(148,163,184,0.22)", textAlign: "center", margin: 0 }}>
-          {readyBlob ? "Pronto · toque para abrir o menu" : "GIF animado para WhatsApp · Imagem para Instagram"}
-        </p>
-      </div>
-    </div>
+    </>
   );
 }
