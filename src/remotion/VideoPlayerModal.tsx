@@ -37,8 +37,8 @@ async function captureFrame(container: HTMLElement, outW: number, outH: number):
 async function buildPng(container: HTMLElement, player: PlayerRef, durationInFrames: number): Promise<Blob> {
   player.pause();
   player.seekTo(Math.floor(durationInFrames * 0.72));
-  await new Promise((r) => setTimeout(r, 450));
-  const canvas = await captureFrame(container, 1080, 1920);
+  await new Promise((r) => setTimeout(r, 600));
+  const canvas = await captureFrame(container, 540, 960);
   return new Promise((resolve) => canvas.toBlob((b) => resolve(b!), "image/png"));
 }
 
