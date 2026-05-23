@@ -86,7 +86,7 @@ export function ProfileEvolutionVideo({
         display: "flex", alignItems: "center", justifyContent: "center", gap: 14,
         opacity: fadeIn,
       }}>
-        <img src="/logo favicton 3D Body Scan.png" style={{ width: 46, height: 46, borderRadius: 12, boxShadow: "0 0 18px rgba(34,211,238,0.45)" }} />
+        <img src="/logo favicton 3D Body Scan.png" crossOrigin="anonymous" style={{ width: 46, height: 46, borderRadius: 12, boxShadow: "0 0 18px rgba(34,211,238,0.45)" }} />
         <span style={{
           fontWeight: 900, fontSize: 22, letterSpacing: 0.2,
           background: "linear-gradient(90deg,#22d3ee,#e2e8f0,#fb923c)",
@@ -243,6 +243,7 @@ export function ProfileEvolutionVideo({
           <div style={{ width: 220, height: 1, background: "linear-gradient(90deg,transparent,rgba(34,211,238,0.35),rgba(251,146,60,0.25),transparent)", marginBottom: 8 }} />
           <img
             src="/MASCOTE SEM FUNDO.png"
+            crossOrigin="anonymous"
             style={{ width: 400, height: 400, objectFit: "contain", filter: "drop-shadow(0 0 24px rgba(34,211,238,0.28))" }}
           />
           <div style={{

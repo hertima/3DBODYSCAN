@@ -17,13 +17,37 @@ interface VideoPlayerModalProps {
   shareText?: string;
 }
 
+async function imgToDataUrl(src: string): Promise<string | null> {
+  // Carrega imagem fresh com crossOrigin="anonymous" e converte via canvas
+  return new Promise((resolve) => {
+    const fresh = new Image();
+    fresh.crossOrigin = "anonymous";
+    fresh.onload = () => {
+      try {
+        const c = document.createElement("canvas");
+        c.width = fresh.naturalWidth || 1;
+        c.height = fresh.naturalHeight || 1;
+        c.getContext("2d")!.drawImage(fresh, 0, 0);
+        resolve(c.toDataURL());
+      } catch { resolve(null); }
+    };
+    fresh.onerror = () => resolve(null);
+    const sep = src.includes("?") ? "&" : "?";
+    fresh.src = src + sep + "_cb=" + Date.now(); // cache-bust para forçar resposta com CORS
+  });
+}
+
 async function inlineImages(container: HTMLElement): Promise<() => void> {
   const imgs = Array.from(container.querySelectorAll("img")) as HTMLImageElement[];
   const origSrcs: string[] = [];
+  const origFilters: string[] = [];
   await Promise.all(imgs.map(async (img, i) => {
     origSrcs[i] = img.src;
+    origFilters[i] = img.style.filter;
+    // Remove CSS filter — filter em foreignObject do SVG não renderiza em todos os browsers
+    img.style.filter = "none";
     if (!img.src || img.src.startsWith("data:")) return;
-    // Aguarda imagem carregar completamente
+    // Aguarda carregar
     if (!img.complete || img.naturalWidth === 0) {
       await new Promise<void>((resolve) => {
         const t = setTimeout(resolve, 4000);
@@ -31,29 +55,26 @@ async function inlineImages(container: HTMLElement): Promise<() => void> {
         img.addEventListener("error", () => { clearTimeout(t); resolve(); }, { once: true });
       });
     }
+    // Não sobrescreve com canvas em branco se imagem não carregou
+    if (img.naturalWidth === 0) return;
     try {
-      // drawImage direto do elemento já carregado (funciona para same-origin e crossOrigin="anonymous" + CORS)
+      // Tenta drawImage do elemento já carregado (same-origin: nunca tinta canvas)
       const c = document.createElement("canvas");
-      c.width = img.naturalWidth || 400;
-      c.height = img.naturalHeight || 400;
+      c.width = img.naturalWidth;
+      c.height = img.naturalHeight;
       c.getContext("2d")!.drawImage(img, 0, 0);
       img.src = c.toDataURL();
       await new Promise((r) => setTimeout(r, 60));
     } catch {
-      try {
-        const res = await fetch(origSrcs[i], { mode: "cors", credentials: "omit" });
-        const blob = await res.blob();
-        const dataUrl = await new Promise<string>((resolve) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as string);
-          reader.readAsDataURL(blob);
-        });
-        img.src = dataUrl;
-        await new Promise((r) => setTimeout(r, 60));
-      } catch { /* mantém original */ }
+      // Canvas taintado (cross-origin sem CORS): recarrega fresh com crossOrigin="anonymous"
+      const dataUrl = await imgToDataUrl(origSrcs[i]);
+      if (dataUrl) { img.src = dataUrl; await new Promise((r) => setTimeout(r, 60)); }
     }
   }));
-  return () => imgs.forEach((img, i) => { if (origSrcs[i]) img.src = origSrcs[i]; });
+  return () => imgs.forEach((img, i) => {
+    if (origSrcs[i]) img.src = origSrcs[i];
+    img.style.filter = origFilters[i] ?? "";
+  });
 }
 
 async function captureFrame(container: HTMLElement, outW: number, outH: number): Promise<HTMLCanvasElement> {
