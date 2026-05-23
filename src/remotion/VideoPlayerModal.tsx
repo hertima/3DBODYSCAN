@@ -38,21 +38,32 @@ async function captureFrame(container: HTMLElement, outW: number, outH: number):
 async function buildPng(container: HTMLElement, player: PlayerRef, durationInFrames: number): Promise<Blob> {
   player.pause();
   player.seekTo(Math.floor(durationInFrames * 0.72));
-  await new Promise((r) => setTimeout(r, 500));
+  await new Promise((r) => setTimeout(r, 450));
 
-  // Captura na resolução que funciona (igual ao GIF)
-  const base = await captureFrame(container, 540, 960);
+  // Expande o container para 540x960 → pixelRatio 2 → captura exata 1080x1920 sem upscale
+  const prevWidth = container.style.width;
+  const prevHeight = container.style.height;
+  const prevBorderRadius = container.style.borderRadius;
+  container.style.width = "540px";
+  container.style.height = "960px";
+  container.style.borderRadius = "0";
+  await new Promise((r) => setTimeout(r, 350));
 
-  // Escala via canvas para 1080x1920 com qualidade alta
-  const scaled = document.createElement("canvas");
-  scaled.width = 1080;
-  scaled.height = 1920;
-  const ctx = scaled.getContext("2d")!;
-  ctx.imageSmoothingEnabled = true;
-  ctx.imageSmoothingQuality = "high";
-  ctx.drawImage(base, 0, 0, 1080, 1920);
+  const { toPng } = await import("html-to-image");
+  const dataUrl = await toPng(container, { pixelRatio: 2, cacheBust: false });
 
-  return new Promise((resolve) => scaled.toBlob((b) => resolve(b!), "image/png"));
+  // Restaura container
+  container.style.width = prevWidth;
+  container.style.height = prevHeight;
+  container.style.borderRadius = prevBorderRadius;
+
+  const img = new Image();
+  img.src = dataUrl;
+  await new Promise<void>((res) => { img.onload = () => res(); });
+  const c = document.createElement("canvas");
+  c.width = 1080; c.height = 1920;
+  c.getContext("2d")!.drawImage(img, 0, 0, img.width, img.height, 0, 0, 1080, 1920);
+  return new Promise((resolve) => c.toBlob((b) => resolve(b!), "image/png"));
 }
 
 function triggerDownload(blob: Blob, name: string) {
