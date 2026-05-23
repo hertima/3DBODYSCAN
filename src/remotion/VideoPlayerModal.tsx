@@ -53,16 +53,30 @@ function blobToBase64(blob: Blob): Promise<string> {
 
 // ─── PNG: clone do elemento Remotion interno + data URLs ──────────────────────
 
+async function imgToDataUrl(liveImg: HTMLImageElement, src: string): Promise<string> {
+  // Tenta canvas com imagem já carregada (sem re-fetch, sem CORS issue)
+  if (liveImg.complete && liveImg.naturalWidth > 0) {
+    try {
+      const cv = document.createElement("canvas");
+      cv.width = liveImg.naturalWidth; cv.height = liveImg.naturalHeight;
+      cv.getContext("2d")!.drawImage(liveImg, 0, 0);
+      const du = cv.toDataURL("image/png");
+      if (du && du.length > 100) return du;
+    } catch { /* canvas tainted, tenta fetch */ }
+  }
+  // Fallback: fetch blob → base64 (só usa cors para URLs absolutas)
+  return toDataUrl(src, !src.startsWith("/") && !src.startsWith("."));
+}
+
 async function buildPng(
   container: HTMLElement,
   player: PlayerRef,
   compositionWidth: number,
   compositionHeight: number,
 ): Promise<Blob> {
-  // Seek para frame onde todos os elementos estão visíveis (mascote aparece em frame 82)
   player.pause();
   player.seekTo(130);
-  await new Promise((r) => setTimeout(r, 500));
+  await new Promise((r) => setTimeout(r, 600));
 
   // Encontra o elemento interno da composição Remotion (1080×1920)
   const allDivs = Array.from(container.querySelectorAll("div")) as HTMLElement[];
@@ -71,22 +85,29 @@ async function buildPng(
   );
   if (!compositionEl) throw new Error(`compositionEl ${compositionWidth}×${compositionHeight} não encontrado`);
 
+  // Lê data URLs das imgs já carregadas no player (evita re-fetch e problemas de CORS)
+  const liveImgs = Array.from(compositionEl.querySelectorAll("img")) as HTMLImageElement[];
+  const srcMap = new Map<string, string>();
+  await Promise.all(liveImgs.map(async (liveImg) => {
+    const src = liveImg.getAttribute("src") || "";
+    if (!src || src.startsWith("data:") || srcMap.has(src)) return;
+    const du = await imgToDataUrl(liveImg, src);
+    if (du) srcMap.set(src, du);
+  }));
+  console.log("[buildPng] imgs live:", liveImgs.length, "resolvidas:", srcMap.size);
+
   // Clona para não modificar o DOM gerenciado pelo React
   const clone = compositionEl.cloneNode(true) as HTMLElement;
 
-  // Inline todas as imagens como data URLs no clone → elimina CORS no html-to-image
-  const imgs = Array.from(clone.querySelectorAll("img")) as HTMLImageElement[];
-  await Promise.all(
-    imgs.map(async (img) => {
-      const src = img.getAttribute("src") || "";
-      img.style.filter = "none"; // drop-shadow quebra SVG foreignObject
-      if (src && !src.startsWith("data:")) {
-        const isCors = img.getAttribute("crossorigin") === "anonymous" && !src.startsWith("/");
-        const dataUrl = await toDataUrl(src, isCors);
-        if (dataUrl) img.setAttribute("src", dataUrl);
-      }
-    })
-  );
+  // Aplica data URLs no clone e remove atributos que interferem no html-to-image
+  Array.from(clone.querySelectorAll("img")).forEach((el) => {
+    const img = el as HTMLImageElement;
+    img.style.filter = "none";
+    img.removeAttribute("crossorigin");
+    const src = img.getAttribute("src") || "";
+    const du = srcMap.get(src);
+    if (du) img.setAttribute("src", du);
+  });
 
   // Posiciona clone dentro do viewport (atrás do modal), remove transform
   clone.style.cssText += ";position:fixed;left:0;top:0;z-index:8000;transform:none;pointer-events:none;";
