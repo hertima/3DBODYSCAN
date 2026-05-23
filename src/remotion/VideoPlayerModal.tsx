@@ -51,31 +51,30 @@ function blobToBase64(blob: Blob): Promise<string> {
   });
 }
 
-// ─── PNG: clone do elemento Remotion interno + data URLs ──────────────────────
+// ─── PNG: composição manual (html-to-image para background/texto + canvas para imgs) ──
 
-function srcToDataUrl(src: string): Promise<string> {
+function loadImg(src: string, useCors: boolean): Promise<HTMLImageElement> {
   return new Promise((resolve) => {
-    if (!src || src.startsWith("data:")) { resolve(src); return; }
-    const isExternal = /^https?:\/\//.test(src) && !src.startsWith(window.location.origin);
     const img = new Image();
-    // URLs externas (avatar Google etc) precisam de CORS; URLs locais não precisam
-    // e sem crossOrigin o canvas não fica tainted para assets same-origin
-    if (isExternal) img.crossOrigin = "anonymous";
-    img.onload = () => {
-      try {
-        const cv = document.createElement("canvas");
-        cv.width = img.naturalWidth || 400;
-        cv.height = img.naturalHeight || 400;
-        cv.getContext("2d")!.drawImage(img, 0, 0);
-        resolve(cv.toDataURL("image/png"));
-      } catch {
-        resolve(""); // canvas tainted (avatar sem CORS do servidor)
-      }
-    };
-    img.onerror = () => resolve("");
-    // Garante URL sem espaços literais
+    if (useCors) img.crossOrigin = "anonymous";
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(img); // resolve mesmo com erro; naturalWidth será 0
     img.src = src.startsWith("http") ? src : encodeURI(src);
+    setTimeout(() => resolve(img), 5000); // timeout 5s
   });
+}
+
+function canDrawSafe(img: HTMLImageElement): boolean {
+  if (!img.complete || img.naturalWidth === 0) return false;
+  try {
+    const tc = document.createElement("canvas");
+    tc.width = 1; tc.height = 1;
+    tc.getContext("2d")!.drawImage(img, 0, 0, 1, 1);
+    tc.toDataURL(); // lança SecurityError se tainted
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 async function buildPng(
@@ -88,52 +87,78 @@ async function buildPng(
   player.seekTo(130);
   await new Promise((r) => setTimeout(r, 600));
 
-  // Encontra o elemento interno da composição Remotion (1080×1920)
   const allDivs = Array.from(container.querySelectorAll("div")) as HTMLElement[];
   const compositionEl = allDivs.find(
     (d) => d.style.width === `${compositionWidth}px` && d.style.height === `${compositionHeight}px`
   );
   if (!compositionEl) throw new Error(`compositionEl ${compositionWidth}×${compositionHeight} não encontrado`);
 
-  // Clona para não modificar o DOM gerenciado pelo React
   const clone = compositionEl.cloneNode(true) as HTMLElement;
-
-  // Converte cada img para data URL com novo Image() — sem crossOrigin para assets locais
-  // (same-origin sem crossOrigin = canvas não fica tainted = toDataURL funciona)
-  const cloneImgs = Array.from(clone.querySelectorAll("img")) as HTMLImageElement[];
-  await Promise.all(cloneImgs.map(async (img) => {
-    img.style.filter = "none";
-    img.removeAttribute("crossorigin");
-    const src = img.getAttribute("src") || "";
-    if (!src || src.startsWith("data:")) return;
-    const du = await srcToDataUrl(src);
-    if (du && du.length > 100) img.setAttribute("src", du);
-  }));
-
-  // Posiciona clone dentro do viewport (atrás do modal), remove transform
   clone.style.position = "fixed";
   clone.style.left = "0";
   clone.style.top = "0";
   clone.style.zIndex = "8000";
   clone.style.transform = "none";
   clone.style.pointerEvents = "none";
-  document.body.appendChild(clone);
 
-  try {
-    const { toBlob } = await import("html-to-image");
-    // pixelRatio 0.5 em 1080×1920 → saída 540×960
-    const blob = await toBlob(clone, {
-      pixelRatio: 0.5,
-      cacheBust: false,
-      width: compositionWidth,
-      height: compositionHeight,
-    });
-    if (!blob) throw new Error("html-to-image retornou null");
-    return blob;
-  } finally {
-    document.body.removeChild(clone);
-    player.play();
+  // Coleta srcs e esconde imgs no clone — html-to-image captura fundo/texto sem imgs
+  const cloneImgs = Array.from(clone.querySelectorAll("img")) as HTMLImageElement[];
+  const imgMeta = cloneImgs.map((img) => {
+    const src = img.getAttribute("src") || "";
+    img.style.filter = "none";
+    img.removeAttribute("crossorigin");
+    img.style.visibility = "hidden"; // esconde para a captura base
+    return { src };
+  });
+
+  document.body.appendChild(clone);
+  await new Promise((r) => setTimeout(r, 80)); // layout settle
+
+  // Pega posições reais das imgs no espaço 1080×1920 do clone
+  const cloneRect = clone.getBoundingClientRect();
+  const imgPositions = cloneImgs.map((img) => {
+    const r = img.getBoundingClientRect();
+    return { x: r.left - cloneRect.left, y: r.top - cloneRect.top, w: r.width, h: r.height };
+  });
+
+  // Captura base (fundo + texto) com html-to-image
+  const { toBlob } = await import("html-to-image");
+  const baseBlob = await toBlob(clone, {
+    pixelRatio: 0.5, cacheBust: false,
+    width: compositionWidth, height: compositionHeight,
+  });
+  document.body.removeChild(clone);
+  if (!baseBlob) throw new Error("html-to-image retornou null");
+
+  // Canvas final 540×960
+  const outW = Math.round(compositionWidth * 0.5);
+  const outH = Math.round(compositionHeight * 0.5);
+  const fc = document.createElement("canvas");
+  fc.width = outW; fc.height = outH;
+  const ctx = fc.getContext("2d")!;
+
+  // Desenha base
+  const base = await loadImg(URL.createObjectURL(baseBlob), false);
+  ctx.drawImage(base, 0, 0);
+  URL.revokeObjectURL(base.src);
+
+  // Desenha cada imagem em cima na posição correta
+  for (let i = 0; i < imgMeta.length; i++) {
+    const { src } = imgMeta[i];
+    if (!src || src.startsWith("data:")) continue;
+    const { x, y, w, h } = imgPositions[i];
+    const isExternal = /^https?:\/\//.test(src) && !src.startsWith(window.location.origin);
+    const img = await loadImg(src, isExternal);
+    if (canDrawSafe(img)) {
+      ctx.drawImage(img, x * 0.5, y * 0.5, w * 0.5, h * 0.5);
+    }
   }
+
+  player.play();
+
+  return new Promise<Blob>((resolve, reject) =>
+    fc.toBlob((b) => (b ? resolve(b) : reject(new Error("canvas.toBlob null"))), "image/png")
+  );
 }
 
 // ─── GIF ──────────────────────────────────────────────────────────────────────
