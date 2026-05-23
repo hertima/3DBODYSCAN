@@ -17,6 +17,26 @@ interface VideoPlayerModalProps {
   shareText?: string;
 }
 
+async function inlineImages(container: HTMLElement): Promise<() => void> {
+  const imgs = Array.from(container.querySelectorAll("img")) as HTMLImageElement[];
+  const origSrcs: string[] = [];
+  await Promise.all(imgs.map(async (img, i) => {
+    origSrcs[i] = img.src;
+    try {
+      const res = await fetch(img.src, { mode: "cors", credentials: "omit" });
+      const blob = await res.blob();
+      const dataUrl = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.readAsDataURL(blob);
+      });
+      img.src = dataUrl;
+      await new Promise((r) => setTimeout(r, 50));
+    } catch { /* mantém original se falhar */ }
+  }));
+  return () => imgs.forEach((img, i) => { img.src = origSrcs[i]; });
+}
+
 async function captureFrame(container: HTMLElement, outW: number, outH: number): Promise<HTMLCanvasElement> {
   const { toPng } = await import("html-to-image");
   const pixelRatio = Math.max(2, Math.ceil(outW / (container.offsetWidth || outW)));
@@ -87,7 +107,9 @@ async function buildPng(container: HTMLElement, player: PlayerRef, durationInFra
     await new Promise((r) => setTimeout(r, 250));
   }
   await new Promise((r) => setTimeout(r, 400));
+  const restore = await inlineImages(container);
   const canvas = await captureFrame(container, 540, 960);
+  restore();
   return new Promise((resolve) => canvas.toBlob((b) => resolve(b!), "image/png"));
 }
 
