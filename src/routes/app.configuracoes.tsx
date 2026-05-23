@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ArrowLeft, Bell, Camera, CheckCircle2, Database, KeyRound, Loader2, Shield, SlidersHorizontal, Sparkles, XCircle } from "lucide-react";
+import { ArrowLeft, Bell, Camera, CheckCircle2, Database, KeyRound, Loader2, Moon, Shield, SlidersHorizontal, Sparkles, Sun, XCircle } from "lucide-react";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
@@ -8,6 +8,7 @@ import { LocaleSwitcher } from "@/components/LocaleSwitcher";
 import { getSettingsCopy } from "@/lib/app-copy";
 import { SUPPORTED_LOCALES, getStoredLocale, setStoredLocale } from "@/lib/locale";
 import { loadOnboarding } from "@/lib/onboarding";
+import { type AppTheme, getStoredTheme, setStoredTheme } from "@/lib/theme";
 
 type ConnStatus = "checking" | "ok" | "error";
 
@@ -98,6 +99,7 @@ function ConfiguracoesPage() {
               </div>
             </div>
           </div>
+          <ThemeToggleRow />
           <SettingRow icon={Bell} title={copy.notificationsTitle} description={copy.notificationsDescription} status={copy.activeStatus} />
           <SettingRow icon={Shield} title={copy.privacyTitle} description={copy.privacyDescription} status={copy.localStatus} />
           <SettingRow icon={Camera} title={copy.bodyScanTitle} description={copy.bodyScanDescription} status={hasCameraSetup ? copy.configuredStatus : copy.pendingStatus} />
@@ -144,6 +146,56 @@ function ConfiguracoesPage() {
           </div>
         </div>
       </section>
+    </div>
+  );
+}
+
+function ThemeToggleRow() {
+  const [theme, setTheme] = useState<AppTheme>(() => getStoredTheme());
+
+  const pick = (next: AppTheme) => {
+    setStoredTheme(next);
+    setTheme(next);
+  };
+
+  const themeLabels = {
+    title: { pt: "Aparência", es: "Apariencia", en: "Appearance", fr: "Apparence", de: "Darstellung" },
+    description: { pt: "Alterne entre o tema escuro e o claro.", es: "Cambia entre tema oscuro y claro.", en: "Switch between dark and light theme.", fr: "Basculez entre le thème sombre et clair.", de: "Zwischen dunklem und hellem Design wechseln." },
+    dark: { pt: "Escuro", es: "Oscuro", en: "Dark", fr: "Sombre", de: "Dunkel" },
+    light: { pt: "Claro", es: "Claro", en: "Light", fr: "Clair", de: "Hell" },
+  };
+  const locale = getStoredLocale();
+  const l = (obj: Record<string, string>) => obj[locale] ?? obj.pt;
+
+  return (
+    <div className="flex items-start gap-3 rounded-2xl border border-border bg-elevated/45 p-4">
+      <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-background/60 text-cyan">
+        {theme === "light" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0 flex-1">
+            <h3 className="text-sm font-semibold">{l(themeLabels.title)}</h3>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{l(themeLabels.description)}</p>
+          </div>
+          <div className="flex items-center gap-1 rounded-full border border-border bg-background p-1">
+            <button
+              onClick={() => pick("dark")}
+              className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-all ${theme === "dark" ? "bg-elevated text-foreground shadow-sm" : "text-muted-foreground"}`}
+            >
+              <Moon className="h-3 w-3" />
+              {l(themeLabels.dark)}
+            </button>
+            <button
+              onClick={() => pick("light")}
+              className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-all ${theme === "light" ? "bg-elevated text-foreground shadow-sm" : "text-muted-foreground"}`}
+            >
+              <Sun className="h-3 w-3" />
+              {l(themeLabels.light)}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

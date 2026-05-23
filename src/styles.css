@@ -121,6 +121,84 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
+/* ─── LIGHT THEME ──────────────────────────────────────────────────────────── */
+.light {
+  --background: oklch(0.98 0.004 250);
+  --foreground: oklch(0.13 0.03 260);
+  --surface: oklch(0.95 0.007 255);
+  --elevated: oklch(1 0 0);
+
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.13 0.03 260);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.13 0.03 260);
+
+  --primary: oklch(0.64 0.19 50);
+  --primary-foreground: oklch(1 0 0);
+  --primary-soft: oklch(0.74 0.16 54);
+
+  --secondary: oklch(0.92 0.01 255);
+  --secondary-foreground: oklch(0.13 0.03 260);
+  --muted: oklch(0.92 0.01 255);
+  --muted-foreground: oklch(0.46 0.04 256);
+  --accent: oklch(0.90 0.012 255);
+  --accent-foreground: oklch(0.13 0.03 260);
+
+  --cyan: oklch(0.58 0.18 209);
+  --blue-accent: oklch(0.48 0.21 255);
+  --gold: oklch(0.68 0.16 72);
+
+  --destructive: oklch(0.52 0.23 16);
+  --destructive-foreground: oklch(1 0 0);
+  --success: oklch(0.55 0.18 145);
+
+  --border: oklch(0 0 0 / 9%);
+  --input: oklch(0 0 0 / 6%);
+  --ring: oklch(0.64 0.19 50 / 50%);
+
+  --gradient-primary: linear-gradient(180deg, oklch(0.70 0.18 53) 0%, oklch(0.64 0.19 50) 100%);
+  --gradient-ai: linear-gradient(135deg, oklch(0.58 0.18 209) 0%, oklch(0.48 0.21 255) 100%);
+  --gradient-surface: linear-gradient(180deg, oklch(0.97 0.005 255) 0%, oklch(0.93 0.009 255) 100%);
+  --gradient-hero: radial-gradient(80% 50% at 15% 30%, oklch(0.58 0.18 209 / 0.08) 0%, transparent 60%), radial-gradient(70% 50% at 85% 70%, oklch(0.64 0.19 50 / 0.07) 0%, transparent 60%);
+
+  --shadow-elevated: 0 4px 14px rgba(0, 0, 0, 0.08);
+  --shadow-glow-primary: 0 0 20px oklch(0.64 0.19 50 / 0.18);
+  --shadow-glow-cyan: 0 0 20px oklch(0.58 0.18 209 / 0.15);
+  --shadow-glow-brand: 0 0 30px oklch(0.58 0.18 209 / 0.08), 0 0 30px oklch(0.64 0.19 50 / 0.08);
+
+  --chart-1: oklch(0.64 0.19 50);
+  --chart-2: oklch(0.58 0.18 209);
+  --chart-3: oklch(0.48 0.21 255);
+  --chart-4: oklch(0.74 0.16 54);
+  --chart-5: oklch(0.55 0.18 145);
+}
+
+/* utilitários override no light */
+.light .glass {
+  background: oklch(1 0 0 / 0.80);
+  backdrop-filter: blur(14px);
+  border: 1px solid var(--color-border);
+}
+.light .text-gradient-brand {
+  background: linear-gradient(90deg, var(--cyan) 0%, oklch(0.22 0.04 260) 45%, var(--primary) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.light .card-interactive:hover {
+  border-color: oklch(0 0 0 / 13%);
+}
+.light .shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    oklch(0.58 0.18 209 / 0.12) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.8s linear infinite;
+}
+
 @layer base {
   * {
     border-color: var(--color-border);

@@ -7,9 +7,10 @@ import {
   createRootRouteWithContext,
   useRouter,
 } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Toaster } from "sonner";
 import { InstallBanner } from "@/components/InstallBanner";
+import { type AppTheme, applyTheme, getStoredTheme } from "@/lib/theme";
 
 import appCss from "../styles.css?url";
 
@@ -175,6 +176,7 @@ function RootShell({ children }: { children: React.ReactNode }) {
     <html lang="pt-BR">
       <head>
         <HeadContent />
+        <script dangerouslySetInnerHTML={{ __html: `(function(){var t=localStorage.getItem('zyrox.theme');if(t==='light'){document.documentElement.classList.add('light')}})();` }} />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
@@ -211,16 +213,29 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   useAppHeight();
 
+  const [theme, setTheme] = useState<AppTheme>(() =>
+    typeof window !== "undefined" ? getStoredTheme() : "dark"
+  );
+
+  useEffect(() => {
+    applyTheme(theme);
+    const handler = (e: Event) => setTheme((e as CustomEvent<AppTheme>).detail);
+    window.addEventListener("zyrox-theme-change", handler);
+    return () => window.removeEventListener("zyrox-theme-change", handler);
+  }, []);
+
+  const toastStyle = theme === "light"
+    ? { background: "#ffffff", border: "1px solid rgba(0,0,0,0.09)", color: "oklch(0.13 0.03 260)" }
+    : { background: "oklch(0.24 0.04 262)", border: "1px solid oklch(0.30 0.04 262)", color: "oklch(0.98 0.01 250)" };
+
   return (
     <QueryClientProvider client={queryClient}>
       <Outlet />
       <InstallBanner />
       <Toaster
-        theme="dark"
+        theme={theme}
         position="bottom-center"
-        toastOptions={{
-          style: { background: "oklch(0.24 0.04 262)", border: "1px solid oklch(0.30 0.04 262)", color: "oklch(0.98 0.01 250)" },
-        }}
+        toastOptions={{ style: toastStyle }}
       />
     </QueryClientProvider>
   );
