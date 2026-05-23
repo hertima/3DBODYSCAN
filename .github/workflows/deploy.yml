@@ -45,3 +45,7 @@ jobs:
           wranglerVersion: "4.92.0"
           workingDirectory: dist/server
           command: deploy --config wrangler.json
+          secrets: |
+            OPENAI_API_KEY
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
