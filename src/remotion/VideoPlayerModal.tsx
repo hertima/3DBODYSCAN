@@ -22,7 +22,7 @@ interface VideoPlayerModalProps {
 async function toDataUrl(src: string, cors = false): Promise<string> {
   if (!src || src.startsWith("data:")) return src;
   try {
-    const res = await fetch(src, { mode: cors ? "cors" : "same-origin", cache: "no-store" });
+    const res = await fetch(src, { mode: cors ? "cors" : "same-origin" });
     if (res.ok) return blobToBase64(res.blob ? await res.blob() : new Blob());
   } catch { /* fallback */ }
   return new Promise((resolve) => {
@@ -81,7 +81,7 @@ async function buildPng(
       const src = img.getAttribute("src") || "";
       img.style.filter = "none"; // drop-shadow quebra SVG foreignObject
       if (src && !src.startsWith("data:")) {
-        const isCors = img.getAttribute("crossorigin") === "anonymous";
+        const isCors = img.getAttribute("crossorigin") === "anonymous" && !src.startsWith("/");
         const dataUrl = await toDataUrl(src, isCors);
         if (dataUrl) img.setAttribute("src", dataUrl);
       }
