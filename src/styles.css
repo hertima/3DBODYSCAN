@@ -121,82 +121,133 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
-/* ─── LIGHT THEME ──────────────────────────────────────────────────────────── */
+/* ─── LIGHT THEME — Solar Athletic Premium ─────────────────────────────────── */
 .light {
-  --background: oklch(0.98 0.004 250);
-  --foreground: oklch(0.13 0.03 260);
-  --surface: oklch(0.95 0.007 255);
-  --elevated: oklch(1 0 0);
+  /* Camadas de fundo — contraste real entre níveis */
+  --background: oklch(0.955 0.010 252);   /* #E8EEF8 — cool slate */
+  --foreground: oklch(0.10 0.035 262);    /* #08112A — deep navy-black */
+  --surface: oklch(0.975 0.006 253);      /* #F2F5FB — quase branco */
+  --elevated: oklch(1 0 0);              /* #FFFFFF — cards */
 
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.13 0.03 260);
+  --card-foreground: oklch(0.10 0.035 262);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.13 0.03 260);
+  --popover-foreground: oklch(0.10 0.035 262);
 
-  --primary: oklch(0.64 0.19 50);
+  /* Laranja — rico, quente, legível no branco */
+  --primary: oklch(0.60 0.21 47);         /* #D4560A */
   --primary-foreground: oklch(1 0 0);
-  --primary-soft: oklch(0.74 0.16 54);
+  --primary-soft: oklch(0.70 0.19 52);    /* #F07420 */
 
-  --secondary: oklch(0.92 0.01 255);
-  --secondary-foreground: oklch(0.13 0.03 260);
-  --muted: oklch(0.92 0.01 255);
-  --muted-foreground: oklch(0.46 0.04 256);
-  --accent: oklch(0.90 0.012 255);
-  --accent-foreground: oklch(0.13 0.03 260);
+  --secondary: oklch(0.93 0.015 255);
+  --secondary-foreground: oklch(0.10 0.035 262);
+  --muted: oklch(0.92 0.012 254);
+  --muted-foreground: oklch(0.42 0.06 258);  /* #3D4F6E — legível */
+  --accent: oklch(0.88 0.020 255);
+  --accent-foreground: oklch(0.10 0.035 262);
 
-  --cyan: oklch(0.58 0.18 209);
-  --blue-accent: oklch(0.48 0.21 255);
-  --gold: oklch(0.68 0.16 72);
+  /* Cyan — deep teal, máxima legibilidade */
+  --cyan: oklch(0.52 0.19 213);           /* #0A7EA4 */
+  --blue-accent: oklch(0.45 0.22 258);    /* #1D4ED8 */
+  --gold: oklch(0.66 0.18 68);            /* #A16207 */
 
-  --destructive: oklch(0.52 0.23 16);
+  --destructive: oklch(0.50 0.24 16);
   --destructive-foreground: oklch(1 0 0);
-  --success: oklch(0.55 0.18 145);
+  --success: oklch(0.50 0.20 148);        /* #166534 */
 
-  --border: oklch(0 0 0 / 9%);
-  --input: oklch(0 0 0 / 6%);
-  --ring: oklch(0.64 0.19 50 / 50%);
+  /* Bordas sólidas — mais visíveis que opacity hack */
+  --border: oklch(0.86 0.014 253);        /* #CBD5E8 */
+  --input: oklch(0.90 0.012 253);         /* #D8DFF0 */
+  --ring: oklch(0.60 0.21 47 / 50%);
 
-  --gradient-primary: linear-gradient(180deg, oklch(0.70 0.18 53) 0%, oklch(0.64 0.19 50) 100%);
-  --gradient-ai: linear-gradient(135deg, oklch(0.58 0.18 209) 0%, oklch(0.48 0.21 255) 100%);
-  --gradient-surface: linear-gradient(180deg, oklch(0.97 0.005 255) 0%, oklch(0.93 0.009 255) 100%);
-  --gradient-hero: radial-gradient(80% 50% at 15% 30%, oklch(0.58 0.18 209 / 0.08) 0%, transparent 60%), radial-gradient(70% 50% at 85% 70%, oklch(0.64 0.19 50 / 0.07) 0%, transparent 60%);
+  /* Gradientes redesenhados */
+  --gradient-primary: linear-gradient(135deg, oklch(0.66 0.20 52) 0%, oklch(0.58 0.22 45) 100%);
+  --gradient-ai: linear-gradient(135deg, oklch(0.52 0.19 213) 0%, oklch(0.45 0.22 258) 100%);
+  --gradient-surface: linear-gradient(180deg, oklch(0.985 0.004 252) 0%, oklch(0.950 0.012 254) 100%);
+  --gradient-hero:
+    radial-gradient(ellipse 75% 55% at 8% 15%, oklch(0.52 0.19 213 / 0.13) 0%, transparent 55%),
+    radial-gradient(ellipse 65% 50% at 92% 85%, oklch(0.60 0.21 47 / 0.11) 0%, transparent 55%),
+    radial-gradient(ellipse 45% 35% at 50% 50%, oklch(0.45 0.22 258 / 0.06) 0%, transparent 65%);
 
-  --shadow-elevated: 0 4px 14px rgba(0, 0, 0, 0.08);
-  --shadow-glow-primary: 0 0 20px oklch(0.64 0.19 50 / 0.18);
-  --shadow-glow-cyan: 0 0 20px oklch(0.58 0.18 209 / 0.15);
-  --shadow-glow-brand: 0 0 30px oklch(0.58 0.18 209 / 0.08), 0 0 30px oklch(0.64 0.19 50 / 0.08);
+  /* Sombras — a chave do modo claro premium */
+  --shadow-elevated:
+    0 1px 3px rgba(10, 24, 58, 0.08),
+    0 6px 20px rgba(10, 24, 58, 0.07),
+    0 18px 40px rgba(10, 24, 58, 0.04);
+  --shadow-glow-primary:
+    0 0 0 1px oklch(0.60 0.21 47 / 0.15),
+    0 4px 18px oklch(0.60 0.21 47 / 0.30);
+  --shadow-glow-cyan:
+    0 0 0 1px oklch(0.52 0.19 213 / 0.15),
+    0 4px 18px oklch(0.52 0.19 213 / 0.28);
+  --shadow-glow-brand:
+    0 6px 28px oklch(0.52 0.19 213 / 0.14),
+    0 6px 28px oklch(0.60 0.21 47 / 0.12);
 
-  --chart-1: oklch(0.64 0.19 50);
-  --chart-2: oklch(0.58 0.18 209);
-  --chart-3: oklch(0.48 0.21 255);
-  --chart-4: oklch(0.74 0.16 54);
-  --chart-5: oklch(0.55 0.18 145);
+  /* Charts */
+  --chart-1: oklch(0.60 0.21 47);
+  --chart-2: oklch(0.52 0.19 213);
+  --chart-3: oklch(0.45 0.22 258);
+  --chart-4: oklch(0.70 0.19 52);
+  --chart-5: oklch(0.50 0.20 148);
 }
 
-/* utilitários override no light */
+/* Fundo do body com gradiente atmosférico */
+.light body {
+  background-color: oklch(0.955 0.010 252);
+  background-image:
+    radial-gradient(ellipse 80% 45% at 12% -5%, oklch(0.52 0.19 213 / 0.07) 0%, transparent 55%),
+    radial-gradient(ellipse 70% 45% at 88% 105%, oklch(0.60 0.21 47 / 0.06) 0%, transparent 55%);
+}
+
+/* Utilitários override */
 .light .glass {
-  background: oklch(1 0 0 / 0.80);
-  backdrop-filter: blur(14px);
-  border: 1px solid var(--color-border);
+  background: oklch(1 0 0 / 0.82);
+  backdrop-filter: blur(16px) saturate(1.4);
+  border: 1px solid oklch(0.88 0.012 253);
+  box-shadow: 0 2px 12px rgba(10,24,58,0.07);
 }
 .light .text-gradient-brand {
-  background: linear-gradient(90deg, var(--cyan) 0%, oklch(0.22 0.04 260) 45%, var(--primary) 100%);
+  background: linear-gradient(90deg, oklch(0.52 0.19 213) 0%, oklch(0.18 0.04 262) 42%, oklch(0.60 0.21 47) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.light .text-gradient-gold {
+  background: linear-gradient(90deg, oklch(0.66 0.18 68) 0%, oklch(0.60 0.21 47) 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
 .light .card-interactive:hover {
-  border-color: oklch(0 0 0 / 13%);
+  border-color: oklch(0.80 0.018 253);
+  box-shadow: var(--shadow-elevated);
+}
+.light .shadow-elevated {
+  box-shadow: var(--shadow-elevated);
+}
+.light .shadow-glow-primary {
+  box-shadow: var(--shadow-glow-primary);
+}
+.light .shadow-glow-cyan {
+  box-shadow: var(--shadow-glow-cyan);
+}
+.light .shadow-glow-brand {
+  box-shadow: var(--shadow-glow-brand);
 }
 .light .shimmer {
   background: linear-gradient(
     90deg,
     transparent 0%,
-    oklch(0.58 0.18 209 / 0.12) 50%,
+    oklch(0.52 0.19 213 / 0.14) 50%,
     transparent 100%
   );
   background-size: 200% 100%;
   animation: shimmer 1.8s linear infinite;
+}
+.light .streak-glow {
+  animation: none;
+  filter: drop-shadow(0 0 5px oklch(0.60 0.21 47 / 0.50));
 }
 
 @layer base {
