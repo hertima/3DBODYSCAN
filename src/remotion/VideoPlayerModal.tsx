@@ -19,7 +19,8 @@ interface VideoPlayerModalProps {
 
 async function captureFrame(container: HTMLElement, outW: number, outH: number): Promise<HTMLCanvasElement> {
   const { toPng } = await import("html-to-image");
-  const pixelRatio = Math.max(2, Math.ceil(outW / (container.offsetWidth || outW)));
+  const natural = Math.ceil(outW / (container.offsetWidth || outW));
+  const pixelRatio = Math.min(3, Math.max(2, natural));
   const dataUrl = await toPng(container, {
     pixelRatio,
     cacheBust: false,
@@ -38,7 +39,7 @@ async function buildPng(container: HTMLElement, player: PlayerRef, durationInFra
   player.pause();
   player.seekTo(Math.floor(durationInFrames * 0.72));
   await new Promise((r) => setTimeout(r, 600));
-  const canvas = await captureFrame(container, 540, 960);
+  const canvas = await captureFrame(container, 1080, 1920);
   return new Promise((resolve) => canvas.toBlob((b) => resolve(b!), "image/png"));
 }
 
