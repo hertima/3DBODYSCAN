@@ -51,31 +51,7 @@ function blobToBase64(blob: Blob): Promise<string> {
   });
 }
 
-// ─── PNG: composição manual (html-to-image para background/texto + canvas para imgs) ──
-
-function loadImg(src: string, useCors: boolean): Promise<HTMLImageElement> {
-  return new Promise((resolve) => {
-    const img = new Image();
-    if (useCors) img.crossOrigin = "anonymous";
-    img.onload = () => resolve(img);
-    img.onerror = () => resolve(img); // resolve mesmo com erro; naturalWidth será 0
-    img.src = src.startsWith("http") ? src : encodeURI(src);
-    setTimeout(() => resolve(img), 5000); // timeout 5s
-  });
-}
-
-function canDrawSafe(img: HTMLImageElement): boolean {
-  if (!img.complete || img.naturalWidth === 0) return false;
-  try {
-    const tc = document.createElement("canvas");
-    tc.width = 1; tc.height = 1;
-    tc.getContext("2d")!.drawImage(img, 0, 0, 1, 1);
-    tc.toDataURL(); // lança SecurityError se tainted
-    return true;
-  } catch {
-    return false;
-  }
-}
+// ─── PNG: html-to-image para background/texto + canvas direto para imgs ──────
 
 async function buildPng(
   container: HTMLElement,
@@ -85,7 +61,7 @@ async function buildPng(
 ): Promise<Blob> {
   player.pause();
   player.seekTo(130);
-  await new Promise((r) => setTimeout(r, 600));
+  await new Promise((r) => setTimeout(r, 500));
 
   const allDivs = Array.from(container.querySelectorAll("div")) as HTMLElement[];
   const compositionEl = allDivs.find(
@@ -93,35 +69,47 @@ async function buildPng(
   );
   if (!compositionEl) throw new Error(`compositionEl ${compositionWidth}×${compositionHeight} não encontrado`);
 
+  // Espera as imgs do player carregar (máx 4s cada)
+  const liveImgs = Array.from(compositionEl.querySelectorAll("img")) as HTMLImageElement[];
+  await Promise.all(liveImgs.map((img) => {
+    if (img.complete) return Promise.resolve();
+    return new Promise<void>((res) => {
+      const t = setTimeout(res, 4000);
+      img.addEventListener("load", () => { clearTimeout(t); res(); }, { once: true });
+      img.addEventListener("error", () => { clearTimeout(t); res(); }, { once: true });
+    });
+  }));
+
+  // Posição de cada img no espaço composição (1080×1920), contabilizando o scale do Remotion
+  const compRect = compositionEl.getBoundingClientRect();
+  const sx = compRect.width / compositionWidth;
+  const sy = compRect.height / compositionHeight;
+  const liveImgData = liveImgs.map((img) => {
+    const r = img.getBoundingClientRect();
+    return {
+      img,
+      cx: (r.left - compRect.left) / sx,
+      cy: (r.top  - compRect.top)  / sy,
+      cw: r.width  / sx,
+      ch: r.height / sy,
+    };
+  });
+
+  // Clone para capturar fundo/texto — imgs ficam ocultas
   const clone = compositionEl.cloneNode(true) as HTMLElement;
   clone.style.position = "fixed";
-  clone.style.left = "0";
-  clone.style.top = "0";
-  clone.style.zIndex = "8000";
-  clone.style.transform = "none";
+  clone.style.left = "0"; clone.style.top = "0";
+  clone.style.zIndex = "8000"; clone.style.transform = "none";
   clone.style.pointerEvents = "none";
-
-  // Coleta srcs e esconde imgs no clone — html-to-image captura fundo/texto sem imgs
-  const cloneImgs = Array.from(clone.querySelectorAll("img")) as HTMLImageElement[];
-  const imgMeta = cloneImgs.map((img) => {
-    const src = img.getAttribute("src") || "";
-    img.style.filter = "none";
+  Array.from(clone.querySelectorAll("img")).forEach((el) => {
+    const img = el as HTMLImageElement;
+    img.style.visibility = "hidden";
     img.removeAttribute("crossorigin");
-    img.style.visibility = "hidden"; // esconde para a captura base
-    return { src };
   });
 
   document.body.appendChild(clone);
-  await new Promise((r) => setTimeout(r, 80)); // layout settle
+  await new Promise((r) => setTimeout(r, 80));
 
-  // Pega posições reais das imgs no espaço 1080×1920 do clone
-  const cloneRect = clone.getBoundingClientRect();
-  const imgPositions = cloneImgs.map((img) => {
-    const r = img.getBoundingClientRect();
-    return { x: r.left - cloneRect.left, y: r.top - cloneRect.top, w: r.width, h: r.height };
-  });
-
-  // Captura base (fundo + texto) com html-to-image
   const { toBlob } = await import("html-to-image");
   const baseBlob = await toBlob(clone, {
     pixelRatio: 0.5, cacheBust: false,
@@ -137,21 +125,21 @@ async function buildPng(
   fc.width = outW; fc.height = outH;
   const ctx = fc.getContext("2d")!;
 
-  // Desenha base
-  const base = await loadImg(URL.createObjectURL(baseBlob), false);
-  ctx.drawImage(base, 0, 0);
-  URL.revokeObjectURL(base.src);
+  // Desenha base (fundo + texto)
+  const blobUrl = URL.createObjectURL(baseBlob);
+  await new Promise<void>((res, rej) => {
+    const img = new Image();
+    img.onload = () => { ctx.drawImage(img, 0, 0); URL.revokeObjectURL(blobUrl); res(); };
+    img.onerror = () => { URL.revokeObjectURL(blobUrl); rej(new Error("base load failed")); };
+    img.src = blobUrl;
+  });
 
-  // Desenha cada imagem em cima na posição correta
-  for (let i = 0; i < imgMeta.length; i++) {
-    const { src } = imgMeta[i];
-    if (!src || src.startsWith("data:")) continue;
-    const { x, y, w, h } = imgPositions[i];
-    const isExternal = /^https?:\/\//.test(src) && !src.startsWith(window.location.origin);
-    const img = await loadImg(src, isExternal);
-    if (canDrawSafe(img)) {
-      ctx.drawImage(img, x * 0.5, y * 0.5, w * 0.5, h * 0.5);
-    }
+  // Desenha imgs do player diretamente no canvas (sem crossOrigin = sem taint para assets locais)
+  for (const { img, cx, cy, cw, ch } of liveImgData) {
+    if (!img.complete || img.naturalWidth === 0) continue;
+    try {
+      ctx.drawImage(img, cx * 0.5, cy * 0.5, cw * 0.5, ch * 0.5);
+    } catch { /* avatar tainted sem CORS — pula */ }
   }
 
   player.play();
