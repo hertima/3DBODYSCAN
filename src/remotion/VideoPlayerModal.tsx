@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { Player, type PlayerRef } from "@remotion/player";
-import { X, Share2, Loader2 } from "lucide-react";
+import { X, Share2, Loader2, Download } from "lucide-react";
 import { type ComponentType } from "react";
 
 interface VideoPlayerModalProps {
@@ -29,17 +29,55 @@ function rr(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: n
   ctx.closePath();
 }
 
-function loadImg(src: string, cors = false): Promise<HTMLImageElement> {
+/**
+ * Carrega qualquer imagem via fetch → blob → createImageBitmap.
+ * Nunca taint o canvas. Nunca sofre com cache CORS do browser.
+ */
+async function fetchBitmap(src: string, corsMode: RequestMode = "same-origin"): Promise<ImageBitmap | null> {
+  try {
+    const res = await fetch(src, { mode: corsMode });
+    if (!res.ok) { console.warn(`fetchBitmap HTTP ${res.status}:`, src); return null; }
+    const blob = await res.blob();
+    return await createImageBitmap(blob);
+  } catch (e) {
+    console.warn(`fetchBitmap failed (${corsMode}):`, src, e);
+    return null;
+  }
+}
+
+/** Avatar: tenta CORS, senão tenta no-cors (opaque), senão retorna null */
+async function fetchAvatar(url: string): Promise<ImageBitmap | null> {
+  if (!url) return null;
+  // tenta CORS primeiro (Google, Firebase com CORS configurado)
+  const bm = await fetchBitmap(url, "cors");
+  if (bm) return bm;
+  // fallback: no-cors (opaque) — blob existe mas pode não ser desenhável no canvas
+  // neste caso retornamos null e desenhamos gradiente
+  return null;
+}
+
+/** canvas → Blob, com fallback toDataURL se toBlob retornar null */
+function canvasToBlob(c: HTMLCanvasElement): Promise<Blob> {
   return new Promise((resolve, reject) => {
-    const img = new Image();
-    if (cors) img.crossOrigin = "anonymous";
-    img.onload = () => resolve(img);
-    img.onerror = reject;
-    img.src = src;
+    try {
+      c.toBlob((b) => {
+        if (b) { resolve(b); return; }
+        // fallback via dataURL
+        try {
+          const du = c.toDataURL("image/png");
+          fetch(du).then((r) => r.blob()).then(resolve).catch(reject);
+        } catch (e) { reject(e); }
+      }, "image/png");
+    } catch (e) {
+      try {
+        const du = c.toDataURL("image/png");
+        fetch(du).then((r) => r.blob()).then(resolve).catch(reject);
+      } catch (e2) { reject(e2); }
+    }
   });
 }
 
-// ─── PNG gerado 100% em Canvas 2D — sem html-to-image ────────────────────────
+// ─── PNG 100% Canvas 2D ───────────────────────────────────────────────────────
 
 async function buildPng(inputProps: Record<string, unknown>): Promise<Blob> {
   const W = 540, H = 960;
@@ -47,122 +85,130 @@ async function buildPng(inputProps: Record<string, unknown>): Promise<Blob> {
   c.width = W; c.height = H;
   const ctx = c.getContext("2d")!;
 
-  const name       = String(inputProps.name       ?? "Atleta");
-  const xp         = Number(inputProps.xp         ?? 0);
-  const streak     = Number(inputProps.streak      ?? 0);
-  const sessions   = Number(inputProps.totalSessions ?? 0);
-  const week       = Number(inputProps.weekNumber  ?? 1);
-  const consist    = Number(inputProps.consistency ?? 0);
-  const level      = String(inputProps.level       ?? "Iniciante");
-  const goal       = String(inputProps.goal        ?? "Hipertrofia");
-  const badges     = Array.isArray(inputProps.badges) ? inputProps.badges as string[] : [];
-  const avatarUrl  = String(inputProps.avatarUrl   ?? "");
+  const name     = String(inputProps.name         ?? "Atleta");
+  const xp       = Number(inputProps.xp           ?? 0);
+  const streak   = Number(inputProps.streak        ?? 0);
+  const sessions = Number(inputProps.totalSessions ?? 0);
+  const week     = Number(inputProps.weekNumber    ?? 1);
+  const consist  = Number(inputProps.consistency  ?? 0);
+  const level    = String(inputProps.level         ?? "Iniciante");
+  const goal     = String(inputProps.goal          ?? "Hipertrofia");
+  const badges   = Array.isArray(inputProps.badges) ? inputProps.badges as string[] : [];
+  const avatarUrl = inputProps.avatarUrl ? String(inputProps.avatarUrl) : "";
+
+  console.log("[buildPng] iniciando", { name, xp, avatarUrl: avatarUrl.slice(0, 40) });
+
+  // carrega imagens em paralelo
+  const [logoBm, mascoteBm, avatarBm] = await Promise.all([
+    fetchBitmap("/logo favicton 3D Body Scan.png"),
+    fetchBitmap("/MASCOTE SEM FUNDO.png"),
+    fetchAvatar(avatarUrl),
+  ]);
+
+  console.log("[buildPng] bitmaps:", { logo: !!logoBm, mascote: !!mascoteBm, avatar: !!avatarBm });
 
   // ── fundo ──────────────────────────────────────────────────────────────────
   const bg = ctx.createLinearGradient(0, 0, 0, H);
-  bg.addColorStop(0, "#080e1c"); bg.addColorStop(.45, "#0c1829"); bg.addColorStop(1, "#090f1a");
+  bg.addColorStop(0, "#080e1c"); bg.addColorStop(0.45, "#0c1829"); bg.addColorStop(1, "#090f1a");
   ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
 
   const glow1 = ctx.createRadialGradient(W / 2, 0, 0, W / 2, 0, 320);
-  glow1.addColorStop(0, "rgba(34,211,238,0.1)"); glow1.addColorStop(1, "transparent");
+  glow1.addColorStop(0, "rgba(34,211,238,0.1)"); glow1.addColorStop(1, "rgba(0,0,0,0)");
   ctx.fillStyle = glow1; ctx.fillRect(0, 0, W, 400);
 
   // ── logo + título ──────────────────────────────────────────────────────────
-  try {
-    const logo = await loadImg("/logo favicton 3D Body Scan.png");
+  if (logoBm) {
     const lS = 32, lX = W / 2 - 90, lY = 36;
     ctx.save(); rr(ctx, lX, lY, lS, lS, 8); ctx.clip();
-    ctx.drawImage(logo, lX, lY, lS, lS); ctx.restore();
-  } catch { /**/ }
+    ctx.drawImage(logoBm, lX, lY, lS, lS); ctx.restore();
+    logoBm.close();
+  }
   ctx.font = "800 16px sans-serif"; ctx.fillStyle = "#e2e8f0";
   ctx.textAlign = "left"; ctx.textBaseline = "middle";
   ctx.fillText("3D Body Scanner", W / 2 - 50, 52);
 
   // ── avatar ─────────────────────────────────────────────────────────────────
-  const aR = 60, aX = W / 2, aY = 140;
-  // anel externo
+  const aR = 60, aX = W / 2, aY = 148;
   ctx.save(); ctx.beginPath(); ctx.arc(aX, aY, aR + 14, 0, Math.PI * 2);
   ctx.strokeStyle = "rgba(34,211,238,0.5)"; ctx.lineWidth = 2.5; ctx.stroke(); ctx.restore();
   ctx.save(); ctx.beginPath(); ctx.arc(aX, aY, aR + 22, 0, Math.PI * 2);
   ctx.strokeStyle = "rgba(34,211,238,0.2)"; ctx.lineWidth = 1.5; ctx.stroke(); ctx.restore();
-  // avatar
+
   ctx.save(); ctx.beginPath(); ctx.arc(aX, aY, aR, 0, Math.PI * 2); ctx.clip();
-  if (avatarUrl) {
-    try {
-      const av = await loadImg(avatarUrl, true);
-      ctx.drawImage(av, aX - aR, aY - aR, aR * 2, aR * 2);
-    } catch {
-      const ag = ctx.createLinearGradient(aX - aR, aY - aR, aX + aR, aY + aR);
-      ag.addColorStop(0, "#22d3ee"); ag.addColorStop(1, "#fb923c");
-      ctx.fillStyle = ag; ctx.fillRect(aX - aR, aY - aR, aR * 2, aR * 2);
-    }
+  if (avatarBm) {
+    ctx.drawImage(avatarBm, aX - aR, aY - aR, aR * 2, aR * 2);
+    avatarBm.close();
   } else {
     const ag = ctx.createLinearGradient(aX - aR, aY - aR, aX + aR, aY + aR);
     ag.addColorStop(0, "#22d3ee"); ag.addColorStop(1, "#fb923c");
     ctx.fillStyle = ag; ctx.fillRect(aX - aR, aY - aR, aR * 2, aR * 2);
+    const initials = name.split(" ").slice(0, 2).map((p) => p[0]?.toUpperCase() ?? "").join("");
+    ctx.font = `900 ${Math.round(aR * 0.7)}px sans-serif`; ctx.fillStyle = "#fff";
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText(initials || "?", aX, aY);
   }
   ctx.restore();
 
   // ── nome ───────────────────────────────────────────────────────────────────
-  const nameY = aY + aR + 36;
-  const nameGrad = ctx.createLinearGradient(0, 0, W, 0);
-  nameGrad.addColorStop(0, "#22d3ee"); nameGrad.addColorStop(.5, "#f1f5f9"); nameGrad.addColorStop(1, "#fb923c");
-  ctx.font = "900 40px sans-serif"; ctx.fillStyle = nameGrad;
+  const nameY = aY + aR + 40;
+  const ng = ctx.createLinearGradient(0, 0, W, 0);
+  ng.addColorStop(0, "#22d3ee"); ng.addColorStop(0.5, "#f1f5f9"); ng.addColorStop(1, "#fb923c");
+  ctx.font = "900 40px sans-serif"; ctx.fillStyle = ng;
   ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
   ctx.fillText(name, W / 2, nameY);
 
   // ── chips level / goal ─────────────────────────────────────────────────────
   const chipY = nameY + 22;
-  [[level, "#22d3ee", -80], [goal, "#fb923c", 80]].forEach(([txt, color, offset]) => {
-    const t = String(txt), col = String(color), off = Number(offset);
+  const chips: [string, string, number][] = [[level, "#22d3ee", -84], [goal, "#fb923c", 84]];
+  chips.forEach(([txt, col, off]) => {
     ctx.font = "700 13px sans-serif";
-    const tw = ctx.measureText(t).width + 32;
+    const tw = ctx.measureText(txt).width + 32;
     const cx = W / 2 + off - tw / 2;
     ctx.fillStyle = col + "1a"; rr(ctx, cx, chipY, tw, 30, 15); ctx.fill();
-    ctx.strokeStyle = col + "66"; ctx.lineWidth = 1; rr(ctx, cx, chipY, tw, 30, 15); ctx.stroke();
+    ctx.strokeStyle = col + "66"; ctx.lineWidth = 1; ctx.stroke();
     ctx.fillStyle = col; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    ctx.fillText(t, cx + tw / 2, chipY + 15);
+    ctx.fillText(txt, cx + tw / 2, chipY + 15);
   });
 
   // ── divisória ──────────────────────────────────────────────────────────────
-  const divY = chipY + 48;
+  const divY = chipY + 50;
   const dl = ctx.createLinearGradient(30, 0, W - 30, 0);
-  dl.addColorStop(0, "transparent"); dl.addColorStop(.4, "rgba(34,211,238,0.3)");
-  dl.addColorStop(.7, "rgba(251,146,60,0.2)"); dl.addColorStop(1, "transparent");
+  dl.addColorStop(0, "rgba(0,0,0,0)"); dl.addColorStop(0.4, "rgba(34,211,238,0.3)");
+  dl.addColorStop(0.7, "rgba(251,146,60,0.2)"); dl.addColorStop(1, "rgba(0,0,0,0)");
   ctx.beginPath(); ctx.moveTo(30, divY); ctx.lineTo(W - 30, divY);
   ctx.strokeStyle = dl; ctx.lineWidth = 1; ctx.stroke();
 
   // ── card XP ────────────────────────────────────────────────────────────────
   const cardY = divY + 14;
   ctx.fillStyle = "rgba(14,22,42,0.9)"; ctx.strokeStyle = "rgba(251,146,60,0.3)"; ctx.lineWidth = 1;
-  rr(ctx, 30, cardY, W - 60, 120, 18); ctx.fill(); ctx.stroke();
+  rr(ctx, 30, cardY, W - 60, 118, 18); ctx.fill(); ctx.stroke();
 
   ctx.font = "900 38px sans-serif"; ctx.fillStyle = "#fb923c";
   ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
   ctx.fillText(`${xp} XP`, 54, cardY + 52);
 
-  ctx.font = "900 30px sans-serif"; ctx.fillStyle = "#4ade80";
+  ctx.font = "900 28px sans-serif"; ctx.fillStyle = "#4ade80";
   ctx.textAlign = "right";
   ctx.fillText(`🔥 ${streak}`, W - 54, cardY + 52);
 
-  const barY = cardY + 76, barW = W - 108;
+  const barY = cardY + 74, barW = W - 108;
   ctx.fillStyle = "rgba(255,255,255,0.07)"; rr(ctx, 54, barY, barW, 8, 4); ctx.fill();
   const pct = Math.min(1, (xp % 1000) / 1000);
   if (pct > 0) {
-    const bg2 = ctx.createLinearGradient(54, 0, 54 + barW, 0);
-    bg2.addColorStop(0, "#fb923c"); bg2.addColorStop(.5, "#fbbf24"); bg2.addColorStop(1, "#fb923c");
-    ctx.fillStyle = bg2; rr(ctx, 54, barY, barW * pct, 8, 4); ctx.fill();
+    const barGrad = ctx.createLinearGradient(54, 0, 54 + barW, 0);
+    barGrad.addColorStop(0, "#fb923c"); barGrad.addColorStop(0.5, "#fbbf24"); barGrad.addColorStop(1, "#fb923c");
+    ctx.fillStyle = barGrad; rr(ctx, 54, barY, barW * pct, 8, 4); ctx.fill();
   }
   ctx.font = "400 11px sans-serif"; ctx.fillStyle = "rgba(148,163,184,0.4)";
   ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
   ctx.fillText(`${xp % 1000} / 1000 XP`, 54, barY + 22);
 
   // ── stats ──────────────────────────────────────────────────────────────────
-  const statsY = cardY + 136;
+  const statsY = cardY + 134;
   const sData = [
-    { v: String(sessions), l: "SESSÕES",   col: "#22d3ee" },
-    { v: `${week}/12`,     l: "SEMANA",    col: "#a78bfa" },
-    { v: `${consist}%`,   l: "CONSIST.",  col: "#4ade80" },
+    { v: String(sessions), l: "SESSÕES",  col: "#22d3ee" },
+    { v: `${week}/12`,     l: "SEMANA",   col: "#a78bfa" },
+    { v: `${consist}%`,   l: "CONSIST.", col: "#4ade80" },
   ];
   const sW = (W - 76) / 3;
   sData.forEach((s, i) => {
@@ -187,29 +233,29 @@ async function buildPng(inputProps: Record<string, unknown>): Promise<Blob> {
       const bx = 30 + i * (bSz + 10);
       ctx.fillStyle = "rgba(255,255,255,0.05)"; ctx.strokeStyle = "rgba(255,255,255,0.1)"; ctx.lineWidth = 1;
       rr(ctx, bx, bY + 10, bSz, bSz, 14); ctx.fill(); ctx.stroke();
-      ctx.font = `${bSz * 0.48}px serif`;
-      ctx.textAlign = "center"; ctx.textBaseline = "middle";
-      ctx.fillStyle = "#fff";
+      ctx.font = `${Math.round(bSz * 0.46)}px serif`;
+      ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillStyle = "#fff";
       ctx.fillText(String(b), bx + bSz / 2, bY + 10 + bSz / 2);
     });
   }
 
   // ── mascote ────────────────────────────────────────────────────────────────
-  try {
-    const mascote = await loadImg("/MASCOTE SEM FUNDO.png");
-    const mS = 220, mX = W / 2 - mS / 2, mY = H - mS - 52;
-    ctx.save();
-    ctx.shadowColor = "rgba(34,211,238,0.3)"; ctx.shadowBlur = 24;
-    ctx.drawImage(mascote, mX, mY, mS, mS);
-    ctx.restore();
-  } catch { /**/ }
+  if (mascoteBm) {
+    const mS = 200, mX = W / 2 - mS / 2, mY = H - mS - 60;
+    ctx.drawImage(mascoteBm, mX, mY, mS, mS);
+    mascoteBm.close();
+    console.log("[buildPng] mascote desenhado");
+  }
 
   // ── tagline ────────────────────────────────────────────────────────────────
   ctx.font = "700 9px sans-serif"; ctx.fillStyle = "rgba(148,163,184,0.28)";
   ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
-  ctx.fillText("EVOLUÇÃO EM PROGRESSO", W / 2, H - 24);
+  ctx.fillText("EVOLUÇÃO EM PROGRESSO", W / 2, H - 28);
 
-  return new Promise((resolve) => c.toBlob((b) => resolve(b!), "image/png"));
+  console.log("[buildPng] convertendo para blob...");
+  const blob = await canvasToBlob(c);
+  console.log("[buildPng] blob gerado:", blob.size, "bytes");
+  return blob;
 }
 
 // ─── GIF (html-to-image) ─────────────────────────────────────────────────────
@@ -276,7 +322,7 @@ function triggerDownload(blob: Blob, name: string) {
   const url = URL.createObjectURL(blob);
   const a = Object.assign(document.createElement("a"), { href: url, download: name });
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
 }
 
 export function VideoPlayerModal({
@@ -284,7 +330,6 @@ export function VideoPlayerModal({
   durationInFrames = 450, fps = 30,
   compositionWidth = 1080, compositionHeight = 1920,
   title = "Compartilhar",
-  shareLabel = "GIF · WhatsApp",
   shareText = "Minha evolução no 3D Body Scanner 🏋️",
 }: VideoPlayerModalProps) {
   const playerRef = useRef<PlayerRef>(null);
@@ -294,10 +339,12 @@ export function VideoPlayerModal({
   const [generating, setGenerating] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [readyBlob, setReadyBlob] = useState<Blob | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   if (!open) return null;
 
   const generate = async (type: "gif" | "png") => {
+    if (previewUrl) { URL.revokeObjectURL(previewUrl); setPreviewUrl(null); }
     setMode(type);
     setGenerating(true);
     setProgress(0);
@@ -312,10 +359,11 @@ export function VideoPlayerModal({
       } else {
         blob = await buildPng(inputProps);
       }
-      setReadyBlob(blob!);
+      setReadyBlob(blob);
+      if (type === "png") setPreviewUrl(URL.createObjectURL(blob));
     } catch (e) {
-      console.error(e);
-      setErrorMsg("Falha ao gerar. Tente novamente.");
+      console.error("generate error:", e);
+      setErrorMsg(`Erro: ${(e as Error)?.message ?? "falha ao gerar"}`);
     } finally {
       playerRef.current?.play();
       setGenerating(false);
@@ -325,15 +373,16 @@ export function VideoPlayerModal({
   const share = async () => {
     if (!readyBlob || !mode) return;
     const isGif = mode === "gif";
-    const file = new File([readyBlob], isGif ? "evolucao.gif" : "evolucao.png", { type: isGif ? "image/gif" : "image/png" });
+    const fileName = isGif ? "evolucao.gif" : "evolucao.png";
+    const file = new File([readyBlob], fileName, { type: isGif ? "image/gif" : "image/png" });
     try {
       if (navigator.canShare?.({ files: [file] })) {
         await navigator.share({ files: [file], title: "3D Body Scanner", text: shareText });
       } else {
-        triggerDownload(readyBlob, file.name);
+        triggerDownload(readyBlob, fileName);
       }
     } catch (e: unknown) {
-      if ((e as Error)?.name !== "AbortError") triggerDownload(readyBlob, file.name);
+      if ((e as Error)?.name !== "AbortError") triggerDownload(readyBlob, fileName);
     }
   };
 
@@ -353,10 +402,15 @@ export function VideoPlayerModal({
         </button>
       </div>
 
+      {/* preview PNG ou player */}
       <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", padding: "0 12px" }} onClick={(e) => e.stopPropagation()}>
-        <div ref={containerRef} style={{ height: "100%", aspectRatio: `${compositionWidth}/${compositionHeight}`, maxWidth: "100%", borderRadius: 20, overflow: "hidden", boxShadow: "0 0 60px rgba(34,211,238,0.18)" }}>
-          <Player ref={playerRef} component={composition} inputProps={inputProps} durationInFrames={durationInFrames} fps={fps} compositionWidth={compositionWidth} compositionHeight={compositionHeight} style={{ width: "100%", height: "100%" }} autoPlay loop />
-        </div>
+        {previewUrl ? (
+          <img src={previewUrl} style={{ height: "100%", maxWidth: "100%", objectFit: "contain", borderRadius: 20, boxShadow: "0 0 60px rgba(34,211,238,0.18)" }} />
+        ) : (
+          <div ref={containerRef} style={{ height: "100%", aspectRatio: `${compositionWidth}/${compositionHeight}`, maxWidth: "100%", borderRadius: 20, overflow: "hidden", boxShadow: "0 0 60px rgba(34,211,238,0.18)" }}>
+            <Player ref={playerRef} component={composition} inputProps={inputProps} durationInFrames={durationInFrames} fps={fps} compositionWidth={compositionWidth} compositionHeight={compositionHeight} style={{ width: "100%", height: "100%" }} autoPlay loop />
+          </div>
+        )}
       </div>
 
       <div style={{ flexShrink: 0, padding: "16px 20px 40px", display: "flex", flexDirection: "column", gap: 10 }} onClick={(e) => e.stopPropagation()}>
@@ -382,14 +436,26 @@ export function VideoPlayerModal({
             </button>
           </>
         ) : (
-          <button onClick={share} style={{ ...btn, background: "linear-gradient(135deg,#4ade80,#22d3ee)", color: "#060b14" }}>
-            <Share2 size={20} />
-            {mode === "gif" ? "Compartilhar GIF" : "Compartilhar imagem"}
-          </button>
+          <>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button onClick={share} style={{ ...btn, flex: 1, background: "linear-gradient(135deg,#4ade80,#22d3ee)", color: "#060b14" }}>
+                <Share2 size={20} />
+                {mode === "gif" ? "Compartilhar GIF" : "Compartilhar imagem"}
+              </button>
+              <button onClick={() => triggerDownload(readyBlob!, mode === "gif" ? "evolucao.gif" : "evolucao.png")} title="Baixar" style={{ ...btn, width: "auto", padding: "18px 20px", flex: "none", background: "rgba(255,255,255,0.07)", color: "#94a3b8", border: "1px solid rgba(255,255,255,0.12)" }}>
+                <Download size={20} />
+              </button>
+            </div>
+            {previewUrl && (
+              <button onClick={() => { setReadyBlob(null); URL.revokeObjectURL(previewUrl); setPreviewUrl(null); }} style={{ background: "none", border: "none", color: "rgba(148,163,184,0.4)", fontSize: 12, cursor: "pointer", padding: "4px" }}>
+                ← voltar ao vídeo
+              </button>
+            )}
+          </>
         )}
 
         <p style={{ fontSize: 11, color: "rgba(148,163,184,0.22)", textAlign: "center", margin: 0 }}>
-          {readyBlob ? "Pronto · toque para abrir o menu" : "GIF animado para WhatsApp · Imagem para Instagram"}
+          {readyBlob ? "Pronto · toque para compartilhar ou baixar" : "GIF animado para WhatsApp · Imagem estática para Instagram"}
         </p>
       </div>
     </div>
