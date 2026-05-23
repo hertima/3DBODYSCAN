@@ -22,19 +22,38 @@ async function inlineImages(container: HTMLElement): Promise<() => void> {
   const origSrcs: string[] = [];
   await Promise.all(imgs.map(async (img, i) => {
     origSrcs[i] = img.src;
-    try {
-      const res = await fetch(img.src, { mode: "cors", credentials: "omit" });
-      const blob = await res.blob();
-      const dataUrl = await new Promise<string>((resolve) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.readAsDataURL(blob);
+    if (!img.src || img.src.startsWith("data:")) return;
+    // Aguarda imagem carregar completamente
+    if (!img.complete || img.naturalWidth === 0) {
+      await new Promise<void>((resolve) => {
+        const t = setTimeout(resolve, 4000);
+        img.addEventListener("load", () => { clearTimeout(t); resolve(); }, { once: true });
+        img.addEventListener("error", () => { clearTimeout(t); resolve(); }, { once: true });
       });
-      img.src = dataUrl;
-      await new Promise((r) => setTimeout(r, 50));
-    } catch { /* mantém original se falhar */ }
+    }
+    try {
+      // drawImage direto do elemento já carregado (funciona para same-origin e crossOrigin="anonymous" + CORS)
+      const c = document.createElement("canvas");
+      c.width = img.naturalWidth || 400;
+      c.height = img.naturalHeight || 400;
+      c.getContext("2d")!.drawImage(img, 0, 0);
+      img.src = c.toDataURL();
+      await new Promise((r) => setTimeout(r, 60));
+    } catch {
+      try {
+        const res = await fetch(origSrcs[i], { mode: "cors", credentials: "omit" });
+        const blob = await res.blob();
+        const dataUrl = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.readAsDataURL(blob);
+        });
+        img.src = dataUrl;
+        await new Promise((r) => setTimeout(r, 60));
+      } catch { /* mantém original */ }
+    }
   }));
-  return () => imgs.forEach((img, i) => { img.src = origSrcs[i]; });
+  return () => imgs.forEach((img, i) => { if (origSrcs[i]) img.src = origSrcs[i]; });
 }
 
 async function captureFrame(container: HTMLElement, outW: number, outH: number): Promise<HTMLCanvasElement> {
