@@ -53,19 +53,29 @@ function blobToBase64(blob: Blob): Promise<string> {
 
 // ─── PNG: clone do elemento Remotion interno + data URLs ──────────────────────
 
-async function imgToDataUrl(liveImg: HTMLImageElement, src: string): Promise<string> {
-  // Tenta canvas com imagem já carregada (sem re-fetch, sem CORS issue)
-  if (liveImg.complete && liveImg.naturalWidth > 0) {
-    try {
-      const cv = document.createElement("canvas");
-      cv.width = liveImg.naturalWidth; cv.height = liveImg.naturalHeight;
-      cv.getContext("2d")!.drawImage(liveImg, 0, 0);
-      const du = cv.toDataURL("image/png");
-      if (du && du.length > 100) return du;
-    } catch { /* canvas tainted, tenta fetch */ }
-  }
-  // Fallback: fetch blob → base64 (só usa cors para URLs absolutas)
-  return toDataUrl(src, !src.startsWith("/") && !src.startsWith("."));
+function srcToDataUrl(src: string): Promise<string> {
+  return new Promise((resolve) => {
+    if (!src || src.startsWith("data:")) { resolve(src); return; }
+    const isExternal = /^https?:\/\//.test(src) && !src.startsWith(window.location.origin);
+    const img = new Image();
+    // URLs externas (avatar Google etc) precisam de CORS; URLs locais não precisam
+    // e sem crossOrigin o canvas não fica tainted para assets same-origin
+    if (isExternal) img.crossOrigin = "anonymous";
+    img.onload = () => {
+      try {
+        const cv = document.createElement("canvas");
+        cv.width = img.naturalWidth || 400;
+        cv.height = img.naturalHeight || 400;
+        cv.getContext("2d")!.drawImage(img, 0, 0);
+        resolve(cv.toDataURL("image/png"));
+      } catch {
+        resolve(""); // canvas tainted (avatar sem CORS do servidor)
+      }
+    };
+    img.onerror = () => resolve("");
+    // Garante URL sem espaços literais
+    img.src = src.startsWith("http") ? src : encodeURI(src);
+  });
 }
 
 async function buildPng(
@@ -85,40 +95,40 @@ async function buildPng(
   );
   if (!compositionEl) throw new Error(`compositionEl ${compositionWidth}×${compositionHeight} não encontrado`);
 
-  // Lê data URLs das imgs já carregadas no player (evita re-fetch e problemas de CORS)
-  const liveImgs = Array.from(compositionEl.querySelectorAll("img")) as HTMLImageElement[];
-  const srcMap = new Map<string, string>();
-  await Promise.all(liveImgs.map(async (liveImg) => {
-    const src = liveImg.getAttribute("src") || "";
-    if (!src || src.startsWith("data:") || srcMap.has(src)) return;
-    const du = await imgToDataUrl(liveImg, src);
-    if (du) srcMap.set(src, du);
-  }));
-  console.log("[buildPng] imgs live:", liveImgs.length, "resolvidas:", srcMap.size);
-
   // Clona para não modificar o DOM gerenciado pelo React
   const clone = compositionEl.cloneNode(true) as HTMLElement;
 
-  // Aplica data URLs no clone e remove atributos que interferem no html-to-image
-  Array.from(clone.querySelectorAll("img")).forEach((el) => {
-    const img = el as HTMLImageElement;
+  // Converte cada img para data URL com novo Image() — sem crossOrigin para assets locais
+  // (same-origin sem crossOrigin = canvas não fica tainted = toDataURL funciona)
+  const cloneImgs = Array.from(clone.querySelectorAll("img")) as HTMLImageElement[];
+  await Promise.all(cloneImgs.map(async (img) => {
     img.style.filter = "none";
     img.removeAttribute("crossorigin");
     const src = img.getAttribute("src") || "";
-    const du = srcMap.get(src);
-    if (du) img.setAttribute("src", du);
-  });
+    if (!src || src.startsWith("data:")) return;
+    const du = await srcToDataUrl(src);
+    if (du && du.length > 100) img.setAttribute("src", du);
+  }));
 
   // Posiciona clone dentro do viewport (atrás do modal), remove transform
-  clone.style.cssText += ";position:fixed;left:0;top:0;z-index:8000;transform:none;pointer-events:none;";
+  clone.style.position = "fixed";
+  clone.style.left = "0";
+  clone.style.top = "0";
+  clone.style.zIndex = "8000";
+  clone.style.transform = "none";
+  clone.style.pointerEvents = "none";
   document.body.appendChild(clone);
 
   try {
     const { toBlob } = await import("html-to-image");
     // pixelRatio 0.5 em 1080×1920 → saída 540×960
-    const blob = await toBlob(clone, { pixelRatio: 0.5, cacheBust: false });
+    const blob = await toBlob(clone, {
+      pixelRatio: 0.5,
+      cacheBust: false,
+      width: compositionWidth,
+      height: compositionHeight,
+    });
     if (!blob) throw new Error("html-to-image retornou null");
-    console.log("[buildPng] ok:", blob.size, "bytes");
     return blob;
   } finally {
     document.body.removeChild(clone);
