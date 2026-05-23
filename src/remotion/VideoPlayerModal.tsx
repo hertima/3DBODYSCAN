@@ -134,25 +134,57 @@ async function buildGif(
   });
 }
 
-// PNG usa um Player oculto dedicado a 540×960 — sem os transforms do Player principal
+// PNG: captura o div interno do Remotion (tamanho nativo) sem o transform scale
 async function buildPng(
   captureContainer: HTMLElement,
   capturePlayer: PlayerRef,
   durationInFrames: number,
+  compositionWidth: number,
+  compositionHeight: number,
 ): Promise<Blob> {
   const targetFrame = Math.floor(durationInFrames * 0.72);
   capturePlayer.pause();
-  // Aquece frames para garantir que imagens condicionais (Sequence) sejam montadas
   for (const f of [0, 90, targetFrame]) {
     capturePlayer.seekTo(f);
     await new Promise((r) => setTimeout(r, 400));
   }
-  // Aguarda images carregar completamente
   await new Promise((r) => setTimeout(r, 1500));
-  const restore = await inlineImages(captureContainer);
-  const canvas = await captureFrame(captureContainer, 540, 960);
+
+  // Localiza o div interno do Remotion Player (dimensões nativas + transform scale)
+  const nativeW = `${compositionWidth}px`;
+  const nativeH = `${compositionHeight}px`;
+  let compositionEl: HTMLElement | null = null;
+  for (const el of captureContainer.querySelectorAll<HTMLElement>("div")) {
+    if (el.style.width === nativeW && el.style.height === nativeH && el.style.transform) {
+      compositionEl = el;
+      break;
+    }
+  }
+
+  // Remove transform para capturar em tamanho nativo — CSS scale não funciona em SVG foreignObject
+  const origTransform = compositionEl?.style.transform ?? "";
+  if (compositionEl) compositionEl.style.transform = "none";
+  await new Promise((r) => setTimeout(r, 80));
+
+  const target = compositionEl ?? captureContainer;
+  const restore = await inlineImages(target);
+
+  const { toBlob } = await import("html-to-image");
+  // pixelRatio 0.5 sobre 1080×1920 = canvas final 540×960
+  const blob = await toBlob(target, {
+    pixelRatio: compositionEl ? (540 / compositionWidth) : 2,
+    cacheBust: true,
+    style: { borderRadius: "0", overflow: "hidden" },
+    fetchRequestInit: { mode: "cors" as RequestMode, credentials: "omit" as RequestCredentials },
+  });
+
   restore();
-  return new Promise((resolve) => canvas.toBlob((b) => resolve(b!), "image/png"));
+  if (compositionEl) compositionEl.style.transform = origTransform;
+
+  return blob ?? new Promise((resolve) => {
+    const c = document.createElement("canvas"); c.width = 540; c.height = 960;
+    c.toBlob((b) => resolve(b!), "image/png");
+  });
 }
 
 function triggerDownload(blob: Blob, name: string) {
@@ -196,7 +228,7 @@ export function VideoPlayerModal({
         blob = await buildGif(containerRef.current, playerRef.current, durationInFrames, fps, setProgress);
       } else {
         if (!captureContainerRef.current || !capturePlayerRef.current) return;
-        blob = await buildPng(captureContainerRef.current, capturePlayerRef.current, durationInFrames);
+        blob = await buildPng(captureContainerRef.current, capturePlayerRef.current, durationInFrames, compositionWidth, compositionHeight);
       }
       setReadyBlob(blob!);
     } catch (e) {
