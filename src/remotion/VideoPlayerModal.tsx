@@ -17,30 +17,24 @@ interface VideoPlayerModalProps {
   shareText?: string;
 }
 
-// ─── carrega imagem como data URL (inline) ───────────────────────────────────
-// Data URL é same-origin por definição → html-to-image nunca tem problema de CORS
+// ─── helpers ──────────────────────────────────────────────────────────────────
 
 async function toDataUrl(src: string, cors = false): Promise<string> {
-  // Tenta fetch primeiro
+  if (!src || src.startsWith("data:")) return src;
   try {
     const res = await fetch(src, { mode: cors ? "cors" : "same-origin", cache: "no-store" });
-    if (res.ok) {
-      const blob = await res.blob();
-      return await blobToBase64(blob);
-    }
-  } catch { /* segue para XHR */ }
-
-  // Fallback: XMLHttpRequest (mais compatível em alguns ambientes)
+    if (res.ok) return blobToBase64(res.blob ? await res.blob() : new Blob());
+  } catch { /* fallback */ }
   return new Promise((resolve) => {
     const xhr = new XMLHttpRequest();
-    xhr.open("GET", encodeURI(src));
+    xhr.open("GET", src);
     if (cors) xhr.withCredentials = false;
     xhr.responseType = "blob";
     xhr.timeout = 8000;
     xhr.onload = () => {
       if (xhr.status >= 200 && xhr.status < 300) {
         blobToBase64(xhr.response as Blob).then(resolve).catch(() => resolve(""));
-      } else { resolve(""); }
+      } else resolve("");
     };
     xhr.onerror = () => resolve("");
     xhr.ontimeout = () => resolve("");
@@ -57,265 +51,61 @@ function blobToBase64(blob: Blob): Promise<string> {
   });
 }
 
-// ─── monta HTML estático (sem Player, sem transforms) ────────────────────────
+// ─── PNG: clone do elemento Remotion interno + data URLs ──────────────────────
 
-function el(
-  tag: string,
-  css: Record<string, string>,
-  children?: (HTMLElement | Text)[],
-  attrs?: Record<string, string>,
-): HTMLElement {
-  const e = document.createElement(tag);
-  Object.assign(e.style, css);
-  if (attrs) Object.entries(attrs).forEach(([k, v]) => e.setAttribute(k, v));
-  children?.forEach((c) => e.appendChild(c));
-  return e;
-}
+async function buildPng(
+  container: HTMLElement,
+  player: PlayerRef,
+  compositionWidth: number,
+  compositionHeight: number,
+): Promise<Blob> {
+  // Seek para frame onde todos os elementos estão visíveis (mascote aparece em frame 82)
+  player.pause();
+  player.seekTo(130);
+  await new Promise((r) => setTimeout(r, 500));
 
-function txt(s: string): Text { return document.createTextNode(s); }
+  // Encontra o elemento interno da composição Remotion (1080×1920)
+  const allDivs = Array.from(container.querySelectorAll("div")) as HTMLElement[];
+  const compositionEl = allDivs.find(
+    (d) => d.style.width === `${compositionWidth}px` && d.style.height === `${compositionHeight}px`
+  );
+  if (!compositionEl) throw new Error(`compositionEl ${compositionWidth}×${compositionHeight} não encontrado`);
 
-function buildCard(inputProps: Record<string, unknown>, dataUrls: { logo: string; mascote: string; avatar: string }): HTMLElement {
-  const W = 540, H = 960;
-  const name     = String(inputProps.name         ?? "Atleta");
-  const xp       = Number(inputProps.xp           ?? 0);
-  const streak   = Number(inputProps.streak        ?? 0);
-  const sessions = Number(inputProps.totalSessions ?? 0);
-  const week     = Number(inputProps.weekNumber    ?? 1);
-  const consist  = Number(inputProps.consistency  ?? 0);
-  const level    = String(inputProps.level         ?? "Iniciante");
-  const goal     = String(inputProps.goal          ?? "Hipertrofia");
-  const badges   = Array.isArray(inputProps.badges) ? inputProps.badges as string[] : [];
-  const initials = name.split(" ").slice(0, 2).map((p) => p[0]?.toUpperCase() ?? "").join("");
+  // Clona para não modificar o DOM gerenciado pelo React
+  const clone = compositionEl.cloneNode(true) as HTMLElement;
 
-  const abs = (top: number, left: number, width: number, extra?: Record<string, string>): Record<string, string> => ({
-    position: "absolute", top: `${top}px`, left: `${left}px`, width: `${width}px`, ...extra,
-  });
+  // Inline todas as imagens como data URLs no clone → elimina CORS no html-to-image
+  const imgs = Array.from(clone.querySelectorAll("img")) as HTMLImageElement[];
+  await Promise.all(
+    imgs.map(async (img) => {
+      const src = img.getAttribute("src") || "";
+      img.style.filter = "none"; // drop-shadow quebra SVG foreignObject
+      if (src && !src.startsWith("data:")) {
+        const isCors = img.getAttribute("crossorigin") === "anonymous";
+        const dataUrl = await toDataUrl(src, isCors);
+        if (dataUrl) img.setAttribute("src", dataUrl);
+      }
+    })
+  );
 
-  const card = el("div", {
-    position: "fixed",
-    left: "-9999px",
-    top: "0",
-    width: `${W}px`,
-    height: `${H}px`,
-    overflow: "hidden",
-    fontFamily: "sans-serif",
-    background: "linear-gradient(175deg,#080e1c 0%,#0c1829 45%,#090f1a 100%)",
-    boxSizing: "border-box",
-  });
-
-  // glow topo
-  card.appendChild(el("div", {
-    position: "absolute", top: "-150px", left: "50%", transform: "translateX(-50%)",
-    width: "700px", height: "700px", borderRadius: "50%",
-    background: "radial-gradient(circle,rgba(34,211,238,0.08) 0%,transparent 65%)",
-    pointerEvents: "none",
-  }));
-
-  // ── logo + título ──────────────────────────────────────────────────────────
-  const logoRow = el("div", { ...abs(36, 0, W), display: "flex", alignItems: "center", justifyContent: "center", gap: "10px" });
-  if (dataUrls.logo) {
-    logoRow.appendChild(el("img", { width: "30px", height: "30px", borderRadius: "8px" }, [], { src: dataUrls.logo }));
-  }
-  logoRow.appendChild(el("span", { fontSize: "16px", fontWeight: "800", color: "#e2e8f0", letterSpacing: "0.2px" }, [txt("3D Body Scanner")]));
-  card.appendChild(logoRow);
-
-  // ── avatar ─────────────────────────────────────────────────────────────────
-  const aR = 60, aX = W / 2, aY = 148;
-  const avatarWrap = el("div", {
-    position: "absolute",
-    top: `${aY - aR - 24}px`,
-    left: `${aX - aR - 24}px`,
-    width: `${(aR + 24) * 2}px`,
-    height: `${(aR + 24) * 2}px`,
-    borderRadius: "50%",
-    border: "2px solid rgba(34,211,238,0.45)",
-    display: "flex", alignItems: "center", justifyContent: "center",
-    boxSizing: "border-box",
-  });
-  const avatarInner = el("div", {
-    width: `${aR * 2}px`,
-    height: `${aR * 2}px`,
-    borderRadius: "50%",
-    overflow: "hidden",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    background: dataUrls.avatar ? "transparent" : "linear-gradient(135deg,#22d3ee,#3b82f6,#fb923c)",
-    fontSize: `${Math.round(aR * 0.7)}px`,
-    fontWeight: "900",
-    color: "#fff",
-  });
-  if (dataUrls.avatar) {
-    avatarInner.appendChild(el("img", { width: "100%", height: "100%", objectFit: "cover" }, [], { src: dataUrls.avatar }));
-  } else {
-    avatarInner.appendChild(txt(initials || "?"));
-  }
-  avatarWrap.appendChild(avatarInner);
-  card.appendChild(avatarWrap);
-
-  // ── nome ───────────────────────────────────────────────────────────────────
-  const nameY = aY + aR + 40;
-  card.appendChild(el("div", {
-    ...abs(nameY, 0, W),
-    textAlign: "center",
-    fontSize: "40px",
-    fontWeight: "900",
-    letterSpacing: "-1px",
-    background: "linear-gradient(90deg,#22d3ee,#f1f5f9,#fb923c)",
-    WebkitBackgroundClip: "text",
-    WebkitTextFillColor: "transparent",
-    lineHeight: "1",
-  }, [txt(name)]));
-
-  // ── chips ──────────────────────────────────────────────────────────────────
-  const chipY = nameY + 52;
-  const chipRow = el("div", { ...abs(chipY, 0, W), display: "flex", justifyContent: "center", gap: "12px" });
-  [[level, "#22d3ee"], [goal, "#fb923c"]].forEach(([t, c]) => {
-    chipRow.appendChild(el("span", {
-      fontSize: "14px", fontWeight: "700", color: c,
-      background: c + "1a",
-      border: `1px solid ${c}55`,
-      borderRadius: "999px",
-      padding: "7px 20px",
-    }, [txt(t)]));
-  });
-  card.appendChild(chipRow);
-
-  // ── divisória ──────────────────────────────────────────────────────────────
-  const divY = chipY + 52;
-  card.appendChild(el("div", {
-    ...abs(divY, 30, W - 60),
-    height: "1px",
-    background: "linear-gradient(90deg,transparent,rgba(34,211,238,0.3),rgba(251,146,60,0.2),transparent)",
-  }));
-
-  // ── card XP ────────────────────────────────────────────────────────────────
-  const cardY = divY + 14;
-  const xpCard = el("div", {
-    ...abs(cardY, 30, W - 60),
-    background: "rgba(14,22,42,0.9)",
-    border: "1px solid rgba(251,146,60,0.3)",
-    borderRadius: "18px",
-    padding: "20px 24px",
-    boxSizing: "border-box",
-  });
-
-  // row: xp + streak
-  const xpRow = el("div", { display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: "14px" });
-  xpRow.appendChild(el("div", { fontSize: "38px", fontWeight: "900", color: "#fb923c", lineHeight: "1" }, [txt(`${xp} XP`)]));
-  xpRow.appendChild(el("div", { fontSize: "28px", fontWeight: "900", color: "#4ade80", lineHeight: "1" }, [txt(`🔥 ${streak}`)]));
-  xpCard.appendChild(xpRow);
-
-  // barra XP
-  const barWrap = el("div", { background: "rgba(255,255,255,0.07)", borderRadius: "4px", height: "8px", overflow: "hidden" });
-  const pct = Math.min(100, (xp % 1000) / 10);
-  barWrap.appendChild(el("div", {
-    height: "100%", width: `${pct}%`,
-    background: "linear-gradient(90deg,#fb923c,#fbbf24,#fb923c)",
-    borderRadius: "4px",
-  }));
-  xpCard.appendChild(barWrap);
-  xpCard.appendChild(el("div", { fontSize: "11px", color: "rgba(148,163,184,0.4)", marginTop: "8px" }, [txt(`${xp % 1000} / 1000 XP`)]));
-  card.appendChild(xpCard);
-
-  // ── stats ──────────────────────────────────────────────────────────────────
-  const statsY = cardY + 126;
-  const statsRow = el("div", { ...abs(statsY, 30, W - 60), display: "flex", gap: "8px" });
-  [
-    { v: String(sessions), l: "SESSÕES",  col: "#22d3ee" },
-    { v: `${week}/12`,     l: "SEMANA",   col: "#a78bfa" },
-    { v: `${consist}%`,   l: "CONSIST.", col: "#4ade80" },
-  ].forEach((s) => {
-    const statCard = el("div", {
-      flex: "1",
-      background: "rgba(255,255,255,0.04)",
-      border: `1.5px solid ${s.col}22`,
-      borderRadius: "16px",
-      padding: "16px 6px",
-      textAlign: "center",
-      boxSizing: "border-box",
-    });
-    statCard.appendChild(el("div", { fontSize: "26px", fontWeight: "900", color: s.col, lineHeight: "1.1" }, [txt(s.v)]));
-    statCard.appendChild(el("div", { fontSize: "9px", color: "rgba(148,163,184,0.45)", letterSpacing: "2px", textTransform: "uppercase", marginTop: "8px" }, [txt(s.l)]));
-    statsRow.appendChild(statCard);
-  });
-  card.appendChild(statsRow);
-
-  // ── badges ─────────────────────────────────────────────────────────────────
-  if (badges.length > 0) {
-    const badgesY = statsY + 90;
-    const badgesWrap = el("div", { ...abs(badgesY, 30, W - 60) });
-    badgesWrap.appendChild(el("div", { fontSize: "9px", color: "rgba(148,163,184,0.35)", letterSpacing: "4px", textTransform: "uppercase", marginBottom: "12px" }, [txt("CONQUISTAS")]));
-    const badgesRow = el("div", { display: "flex", flexWrap: "wrap", gap: "10px" });
-    badges.slice(0, 6).forEach((b) => {
-      badgesRow.appendChild(el("div", {
-        width: "62px", height: "62px", borderRadius: "14px",
-        background: "rgba(255,255,255,0.05)",
-        border: "1px solid rgba(255,255,255,0.1)",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        fontSize: "28px",
-      }, [txt(String(b))]));
-    });
-    badgesWrap.appendChild(badgesRow);
-    card.appendChild(badgesWrap);
-  }
-
-  // ── mascote ────────────────────────────────────────────────────────────────
-  if (dataUrls.mascote) {
-    const mS = 200;
-    card.appendChild(el("img", {
-      ...abs(H - mS - 60, (W - mS) / 2, mS),
-      height: `${mS}px`,
-      objectFit: "contain",
-    }, [], { src: dataUrls.mascote }));
-  }
-
-  // ── tagline ────────────────────────────────────────────────────────────────
-  card.appendChild(el("div", {
-    ...abs(H - 30, 0, W),
-    textAlign: "center",
-    fontSize: "9px",
-    fontWeight: "700",
-    letterSpacing: "4px",
-    textTransform: "uppercase",
-    color: "rgba(148,163,184,0.28)",
-  }, [txt("EVOLUÇÃO EM PROGRESSO")]));
-
-  return card;
-}
-
-// ─── PNG via html-to-image com HTML próprio (sem Player, sem transforms) ────────
-
-async function buildPng(inputProps: Record<string, unknown>): Promise<Blob> {
-  const avatarUrl = inputProps.avatarUrl ? String(inputProps.avatarUrl) : "";
-
-  const [logo, mascote, avatar] = await Promise.all([
-    toDataUrl("/logo favicton 3D Body Scan.png"),
-    toDataUrl("/MASCOTE SEM FUNDO.png"),
-    avatarUrl ? toDataUrl(avatarUrl, true) : Promise.resolve(""),
-  ]);
-
-  console.log("[buildPng] dataUrls:", { logo: logo.length, mascote: mascote.length, avatar: avatar.length });
-
-  const card = buildCard(inputProps, { logo, mascote, avatar });
-  document.body.appendChild(card);
+  // Posiciona clone dentro do viewport (atrás do modal), remove transform
+  clone.style.cssText += ";position:fixed;left:0;top:0;z-index:8000;transform:none;pointer-events:none;";
+  document.body.appendChild(clone);
 
   try {
     const { toBlob } = await import("html-to-image");
-    const blob = await toBlob(card, {
-      pixelRatio: 1,
-      cacheBust: false,
-      style: { overflow: "hidden" },
-    });
+    // pixelRatio 0.5 em 1080×1920 → saída 540×960
+    const blob = await toBlob(clone, { pixelRatio: 0.5, cacheBust: false });
     if (!blob) throw new Error("html-to-image retornou null");
     console.log("[buildPng] ok:", blob.size, "bytes");
     return blob;
   } finally {
-    document.body.removeChild(card);
+    document.body.removeChild(clone);
+    player.play();
   }
 }
 
-// ─── GIF (html-to-image via Player) ─────────────────────────────────────────
+// ─── GIF ──────────────────────────────────────────────────────────────────────
 
 async function captureFrame(container: HTMLElement, outW: number, outH: number): Promise<HTMLCanvasElement> {
   const { toPng } = await import("html-to-image");
@@ -382,7 +172,7 @@ function triggerDownload(blob: Blob, name: string) {
   setTimeout(() => URL.revokeObjectURL(url), 2000);
 }
 
-// ─── Modal ───────────────────────────────────────────────────────────────────
+// ─── Modal ────────────────────────────────────────────────────────────────────
 
 export function VideoPlayerModal({
   open, onClose, composition, inputProps,
@@ -416,7 +206,8 @@ export function VideoPlayerModal({
         if (!containerRef.current || !playerRef.current) return;
         blob = await buildGif(containerRef.current, playerRef.current, durationInFrames, fps, setProgress);
       } else {
-        blob = await buildPng(inputProps);
+        if (!containerRef.current || !playerRef.current) return;
+        blob = await buildPng(containerRef.current, playerRef.current, compositionWidth, compositionHeight);
       }
       setReadyBlob(blob);
       if (type === "png") setPreviewUrl(URL.createObjectURL(blob));
@@ -472,7 +263,6 @@ export function VideoPlayerModal({
       </div>
 
       <div style={{ flexShrink: 0, padding: "16px 20px 40px", display: "flex", flexDirection: "column", gap: 10 }} onClick={(e) => e.stopPropagation()}>
-
         {generating && (
           <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: 8, overflow: "hidden", height: 5 }}>
             <div style={{ height: "100%", width: `${mode === "gif" ? progress : 60}%`, background: "linear-gradient(90deg,#22d3ee,#3b82f6)", transition: "width 0.3s", borderRadius: 8 }} />
@@ -491,7 +281,6 @@ export function VideoPlayerModal({
               {generating && mode === "gif" ? <Loader2 size={20} className="animate-spin" /> : <Share2 size={20} />}
               {generating && mode === "gif" ? `Gerando GIF… ${progress}%` : "GIF animado · WhatsApp"}
             </button>
-
             <button onClick={() => generate("png")} disabled={generating} style={{ ...btn, padding: "14px", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: generating && mode === "png" ? "#c084fc" : "#94a3b8", fontSize: 14, cursor: generating ? "default" : "pointer" }}>
               {generating && mode === "png" ? <Loader2 size={18} className="animate-spin" /> : <Share2 size={18} />}
               {generating && mode === "png" ? "Gerando imagem…" : "Imagem · Instagram / Stories"}
@@ -504,11 +293,7 @@ export function VideoPlayerModal({
                 <Share2 size={20} />
                 {mode === "gif" ? "Compartilhar GIF" : "Compartilhar imagem"}
               </button>
-              <button
-                onClick={() => triggerDownload(readyBlob!, mode === "gif" ? "evolucao.gif" : "evolucao.png")}
-                title="Baixar"
-                style={{ ...btn, width: "auto", padding: "18px 20px", flex: "none", background: "rgba(255,255,255,0.07)", color: "#94a3b8", border: "1px solid rgba(255,255,255,0.12)" }}
-              >
+              <button onClick={() => triggerDownload(readyBlob!, mode === "gif" ? "evolucao.gif" : "evolucao.png")} title="Baixar" style={{ ...btn, width: "auto", padding: "18px 20px", flex: "none", background: "rgba(255,255,255,0.07)", color: "#94a3b8", border: "1px solid rgba(255,255,255,0.12)" }}>
                 <Download size={20} />
               </button>
             </div>
