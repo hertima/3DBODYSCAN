@@ -168,16 +168,12 @@ export function ProfileEvolutionVideo({
         }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
             <div>
-              <div style={{ fontSize: 10, color: "rgba(148,163,184,0.45)", letterSpacing: 3.5, textTransform: "uppercase", marginBottom: 8 }}>{t.xpTotal}</div>
+              <div style={{ fontSize: 10, color: "rgba(148,163,184,0.4)", letterSpacing: 3.5, textTransform: "uppercase", marginBottom: 8 }}>{t.xpTotal}</div>
               <AnimatedCounter from={0} to={xp} startFrame={0} endFrame={45} suffix=" XP" style={{ fontSize: 52, fontWeight: 900, color: "#fb923c", letterSpacing: -1 }} />
             </div>
-            <div style={{
-              display: "flex", flexDirection: "column", alignItems: "center",
-              background: "rgba(74,222,128,0.08)", border: "1px solid rgba(74,222,128,0.2)",
-              borderRadius: 20, padding: "14px 22px", gap: 4,
-            }}>
-              <span style={{ fontSize: 10, color: "rgba(148,163,184,0.45)", letterSpacing: 3, textTransform: "uppercase" }}>{t.streak}</span>
-              <span style={{ fontSize: 38, fontWeight: 900, color: "#4ade80", lineHeight: 1 }}>🔥 {streak}</span>
+            <div style={{ textAlign: "right" }}>
+              <div style={{ fontSize: 10, color: "rgba(148,163,184,0.4)", letterSpacing: 3, textTransform: "uppercase", marginBottom: 8 }}>{t.streak}</div>
+              <div style={{ fontSize: 40, fontWeight: 900, color: "#4ade80", lineHeight: 1 }}>🔥 {streak}</div>
             </div>
           </div>
           <AnimatedBar pct={xpBar} startFrame={0} color="linear-gradient(90deg,#fb923c,#fbbf24,#fb923c)" height={10} />
@@ -202,10 +198,9 @@ export function ProfileEvolutionVideo({
           ].map((s, i) => (
             <div key={i} style={{
               flex: 1,
-              background: `rgba(255,255,255,0.04)`,
-              border: `1px solid ${s.color}28`,
+              background: "rgba(255,255,255,0.04)",
+              border: `1.5px solid ${s.color}22`,
               borderRadius: 22, padding: "20px 6px", textAlign: "center",
-              boxShadow: `inset 0 1px 0 ${s.glow}`,
             }}>
               <div style={{ fontSize: 11, color: "rgba(148,163,184,0.45)", letterSpacing: 2.5, textTransform: "uppercase", marginBottom: 10 }}>{s.label}</div>
               <div style={{ fontSize: 34, fontWeight: 900, color: s.color, letterSpacing: -0.5 }}>{s.value}</div>
@@ -228,7 +223,6 @@ export function ProfileEvolutionVideo({
                     width: 90, height: 90, borderRadius: 26,
                     background: "rgba(255,255,255,0.05)",
                     border: "1px solid rgba(255,255,255,0.1)",
-                    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)",
                     display: "flex", alignItems: "center", justifyContent: "center", fontSize: 40,
                   }}>{b}</div>
                 );
@@ -249,7 +243,7 @@ export function ProfileEvolutionVideo({
           <div style={{ width: 220, height: 1, background: "linear-gradient(90deg,transparent,rgba(34,211,238,0.35),rgba(251,146,60,0.25),transparent)", marginBottom: 8 }} />
           <img
             src="/MASCOTE SEM FUNDO.png"
-            style={{ width: 400, height: 400, objectFit: "contain", filter: "drop-shadow(0 0 40px rgba(34,211,238,0.38))" }}
+            style={{ width: 400, height: 400, objectFit: "contain", filter: "drop-shadow(0 0 24px rgba(34,211,238,0.28))" }}
           />
           <div style={{
             fontSize: 12, fontWeight: 700, letterSpacing: 4, textTransform: "uppercase",
