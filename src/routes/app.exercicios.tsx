@@ -1,6 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { VideoPreviewCard, ProfileEvolutionVideo } from "@/remotion";
 import { loadOnboarding } from "@/lib/onboarding";
 import {
   BookOpen,
@@ -282,28 +281,6 @@ function Library() {
         </div>
       </section>
 
-      {/* VideoPreviewCard — perfil do atleta compartilhável */}
-      {(() => {
-        const profile = loadOnboarding();
-        return (
-          <div className="flex items-center gap-4 rounded-2xl border p-4" style={{ borderColor: "rgba(251,146,60,0.2)", background: "rgba(251,146,60,0.04)" }}>
-            <div style={{ width: 88, flexShrink: 0 }}>
-              <VideoPreviewCard
-                composition={ProfileEvolutionVideo as never}
-                inputProps={{ name: profile.name ?? "Atleta", goal: profile.goal ?? "wellness", avatarUrl: profile.avatarUrl ?? undefined }}
-                durationInFrames={360}
-                title="Compartilhar perfil"
-                previewFrame={60}
-              />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="text-sm font-bold text-foreground">Mostre sua evolução</div>
-              <div className="mt-0.5 text-xs text-muted-foreground">Gere um story com seu perfil de atleta e compartilhe</div>
-              <div className="mt-2 text-[10px] font-semibold uppercase tracking-widest" style={{ color: "#fb923c" }}>Story 9:16 · Instagram / WhatsApp</div>
-            </div>
-          </div>
-        );
-      })()}
 
       <section className="rounded-3xl border border-border bg-surface p-4">
         <div className="flex flex-col gap-3">

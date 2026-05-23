@@ -10,7 +10,6 @@ import { loadWorkoutsFromFirestore } from "@/lib/firestore-workouts";
 import { auth } from "@/lib/firebase";
 import { getCaloriesFromOnboarding } from "@/lib/calorie-calculator";
 import { cn } from "@/lib/utils";
-import { ShareVideoButton, WeeklyRecapVideo } from "@/remotion";
 import { getStoredLocale, type AppLocale } from "@/lib/locale";
 import { getModalityLabel, getPhaseLabel, getVolumeBiasLabel, translateWorkoutName, getWeekDayLabels, getCategoryLabel } from "@/lib/training-i18n";
 import { buildExerciseCatalog } from "@/domain/exercises/catalog";
@@ -329,23 +328,6 @@ function Analytics() {
             <h1 className="font-display text-3xl font-bold text-gradient-brand">Analytics</h1>
             <p className="text-sm text-muted-foreground">{copy.subtitle}</p>
           </div>
-          <ShareVideoButton
-            composition={WeeklyRecapVideo as never}
-            inputProps={{
-              name: onboarding.name ?? "Atleta",
-              weekNumber: periodization.currentWeek,
-              totalSessions: realWorkouts.length,
-              plannedSessions: (trainingState.profile as { daysPerWeek?: number }).daysPerWeek ?? 4,
-              totalVolume: Math.round(realVolumeTrend.reduce((a, d) => a + d.volume, 0) / 1000),
-              consistency: realRecoveryScore,
-              phase: currentWeek?.phase ?? "base",
-              muscleGroups: realMuscleRadar.map((m) => m.muscle),
-              goal: onboarding.goal ?? "wellness",
-            }}
-            durationInFrames={420}
-            title={copy.shareWeek}
-            variant="ghost"
-          />
         </div>
       </motion.div>
 

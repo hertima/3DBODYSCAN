@@ -3,7 +3,6 @@ import { ArrowLeft, Check, Clock, Dumbbell, Flame, Layers, Trophy } from "lucide
 import { getHistoryEntry } from "@/data/social";
 import { getWorkoutHistoryEntry } from "@/lib/workout-history";
 import { cleanLegacyText } from "@/lib/formatting";
-import { ShareVideoButton, SessionSummaryVideo } from "@/remotion";
 import { getHistoricoCopy } from "@/lib/app-copy";
 import { getStoredLocale } from "@/lib/locale";
 import { getExerciseName, getMuscleGroupLabel } from "@/lib/exercise-i18n";
@@ -49,31 +48,6 @@ function HistoryDetail() {
               <Trophy className="h-3.5 w-3.5" /> {hc.completedAll}
             </div>
           )}
-          <div className="mt-4 flex justify-end">
-            <ShareVideoButton
-              composition={SessionSummaryVideo as never}
-              inputProps={{
-                workoutName: saved.name,
-                date: saved.date,
-                duration: saved.duration,
-                completedSets: completedCount,
-                totalSets,
-                totalVolume,
-                calories: saved.calories,
-                locale,
-                exercises: saved.exercises.map((ex) => ({
-                  name: cleanLegacyText(ex.name),
-                  muscle: cleanLegacyText(ex.muscle),
-                  sets: ex.sets.length,
-                  completed: ex.sets.filter((s) => s.completed).length,
-                  topWeight: Math.max(...ex.sets.map((s) => s.weight ?? 0)),
-                })),
-              }}
-              durationInFrames={360}
-              title={hc.shareSession}
-              shareLabel={hc.shareSession}
-            />
-          </div>
         </div>
 
         <div className="space-y-3">

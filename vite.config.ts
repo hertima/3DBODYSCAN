@@ -542,11 +542,27 @@ function networkAccessPlugin(): Plugin {
 
 export default defineConfig({
   vite: {
+    define: {
+      // injeta a chave no bundle (lida do .env em dev, do secret do CI em prod)
+      "process.env.OPENAI_API_KEY": JSON.stringify(process.env.OPENAI_API_KEY ?? ""),
+    },
     plugins: [devApiPlugin(), networkAccessPlugin()],
     server: {
       host: "0.0.0.0",
       strictPort: false,
       allowedHosts: true,
+    },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks(id: string) {
+            if (id.includes("node_modules/firebase")) return "firebase";
+            if (id.includes("node_modules/framer-motion")) return "motion";
+            if (id.includes("node_modules/@remotion") || id.includes("node_modules/remotion")) return "remotion";
+            if (id.includes("node_modules/@tanstack")) return "tanstack";
+          },
+        },
+      },
     },
   },
   tanstackStart: {

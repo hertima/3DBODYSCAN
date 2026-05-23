@@ -1,5 +1,4 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { ShareVideoButton, ProfileEvolutionVideo } from "@/remotion";
 import { useEffect, useRef, useState } from "react";
 import {
   BadgeCheck,
@@ -184,26 +183,6 @@ function Perfil() {
             </p>
           </div>
 
-          {/* Share */}
-          <ShareVideoButton
-            composition={ProfileEvolutionVideo as never}
-            inputProps={{
-              name: athleteProfile.name,
-              goal: normalizedFocus ?? athleteProfile.goal,
-              level: normalizedExperience ?? athleteProfile.level,
-              totalSessions: trainingState.workouts.length,
-              weekNumber: trainingState.periodization.currentWeek,
-              consistency: gamification.workoutCompletionRate,
-              xp: gamification.xp,
-              streak: gamification.streakDays,
-              badges: gamification.achievements.filter((a) => a.unlocked).slice(0, 6).map((a) => a.icon ?? "🏆"),
-              avatarUrl: profile.avatarUrl ?? undefined,
-              locale: getStoredLocale(),
-            }}
-            durationInFrames={390}
-            title={c.shareBtn}
-            label={c.shareBtn}
-          />
 
           {/* 3 stats principais */}
           <div className="grid grid-cols-3 gap-3 w-full">
@@ -317,7 +296,7 @@ function RingProgress({ pct, color, size = 56 }: { pct: number; color: string; s
   const dash = (pct / 100) * circ;
   return (
     <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
-      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={4} />
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" style={{ stroke: "var(--border)" }} strokeWidth={4} />
       <circle
         cx={size / 2} cy={size / 2} r={r} fill="none"
         stroke={color} strokeWidth={4} strokeLinecap="round"
@@ -345,7 +324,7 @@ function MissoesSection({ missions, copy }: { missions: MissionMap; copy: Perfil
           <h2 className="font-display text-lg font-semibold">{copy.missionsTitle}</h2>
           <p className="text-[11px] text-muted-foreground">{copy.missionsSubtitle}</p>
         </div>
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-white/8 bg-white/4 px-4 py-2">
+        <div className="flex flex-col items-center justify-center rounded-2xl border border-border bg-muted/40 px-4 py-2">
           <span className="font-display text-2xl font-black" style={{ background: "linear-gradient(135deg,#22d3ee,#a78bfa)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
             {overall}%
           </span>
@@ -354,7 +333,7 @@ function MissoesSection({ missions, copy }: { missions: MissionMap; copy: Perfil
       </div>
 
       {/* Barra de jornada horizontal */}
-      <div className="relative h-2 w-full overflow-hidden rounded-full bg-white/6">
+      <div className="relative h-2 w-full overflow-hidden rounded-full bg-muted/60">
         <div
           className="h-full rounded-full transition-all"
           style={{ width: `${overall}%`, background: "linear-gradient(90deg,#22d3ee,#3b82f6,#a78bfa,#f59e0b,#f97316,#ec4899)" }}
@@ -447,7 +426,7 @@ function BlueprintSection({
       </div>
 
       {/* Score ring + Equalizer — visual único, distinto do radar de analytics */}
-      <div className="relative overflow-hidden rounded-2xl border border-cyan/15 bg-black/30 p-4">
+      <div className="relative overflow-hidden rounded-2xl border border-cyan/20 bg-muted/30 p-4">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_left,rgba(34,211,238,0.07),transparent_55%)]" />
         <div className="relative flex items-center gap-5">
           {/* Anel de score */}
@@ -464,7 +443,7 @@ function BlueprintSection({
                         <stop offset="100%" stopColor="#a78bfa" />
                       </linearGradient>
                     </defs>
-                    <circle cx={40} cy={40} r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={7} />
+                    <circle cx={40} cy={40} r={r} fill="none" style={{ stroke: "var(--border)" }} strokeWidth={7} />
                     <circle cx={40} cy={40} r={r} fill="none" stroke="url(#bpGrad)" strokeWidth={7}
                       strokeLinecap="round" strokeDasharray={`${dash} ${circ}`}
                       style={{ filter: "drop-shadow(0 0 6px rgba(34,211,238,0.55))", transition: "stroke-dasharray 0.7s ease" }}
@@ -474,7 +453,7 @@ function BlueprintSection({
                     <span className="font-display text-xl font-black" style={{ background: "linear-gradient(135deg,#22d3ee,#a78bfa)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
                       {score}
                     </span>
-                    <span className="text-[7px] font-bold uppercase tracking-widest text-white/25">score</span>
+                    <span className="text-[7px] font-bold uppercase tracking-widest text-muted-foreground/60">score</span>
                   </div>
                 </>
               );
@@ -523,7 +502,7 @@ function BlueprintSection({
           { icon: MapPin,       label: copy.attrGym,         value: gymContext,                                                        color: "#06b6d4" },
           ...(athleteProfile.sex === "feminino" ? [{ icon: Moon, label: copy.attrCycle, value: cycleSummary, color: "#e879f9" }] : []),
         ].map(({ icon: Icon, label, value, color }) => (
-          <div key={label} className="flex items-start gap-2.5 rounded-2xl border bg-white/3 p-3" style={{ borderColor: `${color}20` }}>
+          <div key={label} className="flex items-start gap-2.5 rounded-2xl border bg-muted/20 p-3" style={{ borderColor: `${color}20` }}>
             <div className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-xl" style={{ background: `${color}15` }}>
               <Icon className="h-3.5 w-3.5" style={{ color }} />
             </div>

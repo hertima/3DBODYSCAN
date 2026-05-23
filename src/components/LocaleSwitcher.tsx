@@ -1,4 +1,4 @@
-﻿import { ChevronDown, Check, Sparkles } from "lucide-react";
+import { ChevronDown, Check, Sparkles } from "lucide-react";
 import type { AppLocale } from "@/lib/training-i18n";
 import { SUPPORTED_LOCALES, detectBrowserLocale } from "@/lib/locale";
 import {
@@ -13,6 +13,7 @@ type LocaleSwitcherProps = {
   value: AppLocale;
   onChange: (locale: AppLocale) => void;
   compact?: boolean;
+  tiny?: boolean;
   align?: "start" | "center" | "end";
 };
 
@@ -24,31 +25,38 @@ function FlagBadge({ src, alt }: { src: string; alt: string }) {
   );
 }
 
-export function LocaleSwitcher({ value, onChange, compact = false, align = "end" }: LocaleSwitcherProps) {
+export function LocaleSwitcher({ value, onChange, compact = false, tiny = false, align = "end" }: LocaleSwitcherProps) {
   const activeLocale = SUPPORTED_LOCALES.find((item) => item.code === value) ?? SUPPORTED_LOCALES[0];
   const detectedLocale = detectBrowserLocale();
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-          <button
-            type="button"
-            className={cn(
-              "inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-2 text-left text-foreground transition hover:border-primary/30 hover:bg-elevated",
-              compact
+        <button
+          type="button"
+          className={cn(
+            "inline-flex items-center gap-1.5 rounded-full border border-border bg-surface text-left text-foreground transition hover:border-primary/30 hover:bg-elevated",
+            tiny
+              ? "px-2 py-1.5"
+              : compact
                 ? "min-w-[142px] px-2.5 py-1.5 text-[11px] sm:min-w-[176px] sm:px-3 sm:py-2 sm:text-xs"
-                : "min-w-[220px] sm:min-w-[240px]"
-            )}
-            aria-label="Trocar idioma"
-          >
-            <FlagBadge src={activeLocale.flagSrc} alt={activeLocale.nativeLabel} />
+                : "min-w-[220px] px-3 py-2 sm:min-w-[240px]"
+          )}
+          aria-label="Trocar idioma"
+        >
+          <FlagBadge src={activeLocale.flagSrc} alt={activeLocale.nativeLabel} />
+          {!tiny && (
             <span className="min-w-0 flex-1">
               <span className="hidden text-[10px] uppercase tracking-[0.16em] text-muted-foreground sm:block">Idioma</span>
               <span className="block truncate text-[12px] font-semibold text-foreground sm:text-sm">{activeLocale.nativeLabel}</span>
             </span>
-            <ChevronDown className="h-3.5 w-3.5 text-muted-foreground sm:h-4 sm:w-4" />
-          </button>
-        </DropdownMenuTrigger>
+          )}
+          {tiny && (
+            <span className="text-[11px] font-bold uppercase text-foreground">{activeLocale.code.toUpperCase()}</span>
+          )}
+          <ChevronDown className="h-3 w-3 text-muted-foreground" />
+        </button>
+      </DropdownMenuTrigger>
       <DropdownMenuContent align={align} className="w-[300px] rounded-2xl border-border bg-surface p-2 text-foreground shadow-2xl">
         {SUPPORTED_LOCALES.map((item) => {
           const selected = item.code === value;

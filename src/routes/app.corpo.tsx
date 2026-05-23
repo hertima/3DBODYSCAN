@@ -39,7 +39,6 @@ import { auth } from "@/lib/firebase";
 import { saveFoodScanToFirestore, loadFoodScansFromFirestore, deleteFoodScanFromFirestore, type FirestoreFoodScan } from "@/lib/firestore-food-scans";
 import { saveBodyScanToFirestore, loadBodyScansFromFirestore, deleteBodyScanFromFirestore, type FirestoreBodyScan } from "@/lib/firestore-body-scans";
 import { saveMeasurementsToFirestore, loadMeasurementsFromFirestore, uploadBodyPhoto, uploadFoodPhoto, type BodyMeasurements } from "@/lib/firestore-measurements";
-import { ShareVideoButton, CorpoEvolutionVideo } from "@/remotion";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/app/corpo")({
@@ -444,27 +443,6 @@ function CorpoPage() {
           </div>
         </div>
 
-        {/* Compartilhar evolução */}
-        <div className="relative mt-4 flex justify-end">
-          <ShareVideoButton
-            composition={CorpoEvolutionVideo as never}
-            inputProps={{
-              name: loadOnboarding().name ?? "Atleta",
-              bodyFatStart: fsBodyScans.length > 1 ? (fsBodyScans[fsBodyScans.length - 1]?.estimativas?.percentualGorduraEstimado ?? 22) : 22,
-              bodyFatCurrent: currentFat || 18,
-              weightStart: loadOnboarding().weight ?? 75,
-              weightCurrent: loadOnboarding().weight ?? 75,
-              waistStart: fsBodyScans.length > 1 ? (fsBodyScans[fsBodyScans.length - 1]?.estimativas?.cinturaCmEstimada ?? 90) : 90,
-              waistCurrent: fsBodyScans[0]?.estimativas?.cinturaCmEstimada ?? 86,
-              muscleMass: 68,
-              trend: copy.evolution,
-              locale: getStoredLocale(),
-            }}
-            durationInFrames={450}
-            title={copy.shareEvolution}
-            label={copy.shareEvolutionShort}
-          />
-        </div>
 
         {/* Stats rápidos dinâmicos */}
         <div className="relative mt-4 grid grid-cols-3 gap-2">

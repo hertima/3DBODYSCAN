@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet, Link, useLocation, useNavigate } from "@tanstack/react-router";
-import { House, Dumbbell, BookOpen, BarChart3, ScanLine, User, Flame, Loader2, RefreshCw } from "lucide-react";
+import { House, Dumbbell, BookOpen, BarChart3, ScanLine, User, Flame, Loader2, RefreshCw, Sun, Moon } from "lucide-react";
 import { lazy, Suspense, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Logo } from "@/components/Logo";
@@ -17,6 +17,7 @@ import { useTrainingState } from "@/hooks/use-training-state";
 import { useGamification } from "@/hooks/use-gamification";
 import { useNetworkStatus } from "@/hooks/use-network-status";
 import { cn } from "@/lib/utils";
+import { getStoredTheme, setStoredTheme } from "@/lib/theme";
 
 const AiChat = lazy(() =>
   import("@/components/AiChat").then((module) => ({ default: module.AiChat })),
@@ -49,6 +50,32 @@ function getNav(locale: keyof typeof NAV_COPY): NavItem[] {
     { to: "/app/corpo", label: labels[4], icon: ScanLine },
     { to: "/app/perfil", label: labels[5], icon: User },
   ];
+}
+
+function ThemeToggleButton() {
+  const [theme, setTheme] = useState<"dark" | "light">("dark");
+
+  useEffect(() => {
+    setTheme(getStoredTheme());
+    const handler = (e: Event) => setTheme((e as CustomEvent<"dark" | "light">).detail);
+    window.addEventListener("zyrox-theme-change", handler);
+    return () => window.removeEventListener("zyrox-theme-change", handler);
+  }, []);
+
+  const toggle = () => {
+    const next = theme === "dark" ? "light" : "dark";
+    setStoredTheme(next);
+  };
+  return (
+    <button
+      type="button"
+      onClick={toggle}
+      aria-label="Alternar tema"
+      className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border bg-surface text-muted-foreground transition hover:border-primary/30 hover:bg-elevated hover:text-foreground"
+    >
+      {theme === "light" ? <Moon className="h-3.5 w-3.5" /> : <Sun className="h-3.5 w-3.5" />}
+    </button>
+  );
 }
 
 function AppLayout() {
@@ -245,8 +272,9 @@ function ReadyAppLayout({
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-3 py-3 sm:px-4 lg:px-8">
           <Logo size={38} />
             <div className="flex items-center gap-2.5 sm:gap-3">
+            <ThemeToggleButton />
             <div className="block md:block">
-              <LocaleSwitcher value={locale} onChange={(next) => handleLocaleChange(next)} compact />
+              <LocaleSwitcher value={locale} onChange={(next) => handleLocaleChange(next)} tiny />
             </div>
             <Link
               to="/onboarding/$step"

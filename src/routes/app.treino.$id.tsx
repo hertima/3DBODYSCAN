@@ -40,7 +40,6 @@ import { getWorkoutTypeLabel, translateWorkoutName } from "@/lib/training-i18n";
 import { getExerciseName, getExerciseBiomechanics, getMuscleGroupLabel } from "@/lib/exercise-i18n";
 import { getStoredLocale } from "@/lib/locale";
 import { getGamificationCopy } from "@/lib/app-copy";
-import { VideoPreviewCard, WorkoutCompleteVideo } from "@/remotion";
 
 const WCOPY = {
   pt: { shareWorkout: "Compartilhar treino", shareWorkoutTitle: "Compartilhe seu treino", shareWorkoutDesc: "Story pronto para Instagram e WhatsApp com seus stats reais", shareWorkoutFormat: "Formato 9:16 · 13 seg", notFound: "Treino não encontrado", notFoundDesc: "O treino solicitado não existe na biblioteca atual.", highlight: "Treino em destaque", workoutProtocol: "Protocolo de treino", weekLabel: "Semana", started: "Treino iniciado", startBtn: "Iniciar treino", duration: "Duração", exercises: "Exercícios", avgRest: "Descanso médio", totalVolume: "Volume total", blockRead: "Leitura do bloco", weekCycle: "do ciclo atual", strategicAdj: "Ajuste estratégico", proDir: "Direção profissional", quickSummary: "Resumo rápido", sessionMetrics: "Métricas da sessão", planned: "Planejado", sets: "Séries", reps: "Repetições", type: "Tipo", customTitle: "Customização do treino", customDesc: "Ajuste sem perder a coerência", customNote: "Troque, remova, adicione ou reordene exercícios mantendo o treino alinhado com categoria e ambiente.", addExercise: "Adicionar exercício", restoreWorkout: "Restaurar treino", validCustom: "Customização válida", reviewRec: "Revisão recomendada", blocksTitle: "Blocos do treino", blocksDesc: "Ordem pronta para executar sem sair da tela", exerciseLabel: "Exercício", viewExercise: "Ver exercício", swap: "Substituir", moveUp: "Subir", moveDown: "Descer", swapRemove: "Trocar / Remover", restLabel: "Descanso", bodyweight: "Peso corporal", volumeLabel: "Volume", weightTBD: "Peso a definir", progress: "Progresso:", setLabel: "Série", restTimer: "Descanso", skipRest: "Descanso pulado.", endWorkout: "Encerrar Treino", seriesUnit: "séries", setDone: "concluída!", workoutStarted: "Treino iniciado! Boa sorte 💪", restDone: "Descanse terminado! Próxima série.", setWeightTitle: "Definir carga", setWeightDesc: "Informe o peso que usará em todas as séries", weightPlaceholder: "Ex: 20", saveWeight: "Salvar", weightSet: "Carga definida:", estimatedVol: "Volume estimado:", perSet: "kg/série", swapTitle: "Trocar exercício", removeBtn: "Remover", noAlternatives: "Nenhuma substituição compatível encontrada para este ambiente e equipamento.", restored: "Treino restaurado para a versão original.", customized: "Treino personalizado com sucesso.", customFailed: "Não foi possível aplicar a customização.", noCompatible: "Nenhum exercício compatível encontrado para adicionar.", noSwap: "Nenhuma substituição compatível encontrada.", workoutDone: "Treino concluído!", viewHistory: "Ver histórico" },
@@ -423,36 +422,6 @@ function WorkoutDetailPage() {
               <h2 className="font-display text-2xl font-bold text-gradient-brand">{c.workoutDone}</h2>
               <p className="mt-1 text-sm text-muted-foreground">{completedSets.size}/{totalSets} {c.seriesUnit}</p>
             </div>
-            <div style={{ width: 180 }}>
-              <VideoPreviewCard
-                composition={WorkoutCompleteVideo as never}
-                inputProps={{
-                  name: trainingState.profile.name ?? "Atleta",
-                  workoutName: workout.name,
-                  duration: workout.duration,
-                  totalSets,
-                  totalVolume: Math.round(totalLoad / 1000),
-                  calories: estimatedCalories,
-                  weekNumber: trainingState.periodization.currentWeek,
-                  locale,
-                  exercises: workout.exercises.map((item) => {
-                    const ex = getExercise(item.exerciseId);
-                    return {
-                      name: getExerciseName(item.exerciseId, ex?.name ?? item.exerciseId, locale),
-                      muscle: getMuscleGroupLabel((ex?.muscle ?? "") as Parameters<typeof getMuscleGroupLabel>[0], locale),
-                      sets: item.sets.length,
-                      completed: item.sets.filter((_, si) => completedSets.has(`${item.exerciseId}-${si}`)).length,
-                      topWeight: Math.max(...item.sets.map((s) => s.weight ?? 0)),
-                    };
-                  }),
-                }}
-                durationInFrames={390}
-                title={c.shareWorkout}
-                shareLabel={c.shareWorkout}
-                formatLabel={c.shareWorkoutFormat}
-                previewFrame={45}
-              />
-            </div>
             <button
               onClick={() => {
                 setShowShareModal(false);
@@ -532,43 +501,6 @@ function WorkoutDetailPage() {
             />
           </div>
 
-          <div className="mt-4 flex items-center gap-4 rounded-2xl border p-4" style={{ borderColor: "rgba(34,211,238,0.2)", background: "rgba(34,211,238,0.04)" }}>
-            <div style={{ width: 88, flexShrink: 0 }}>
-              <VideoPreviewCard
-                composition={WorkoutCompleteVideo as never}
-                inputProps={{
-                  name: trainingState.profile.name ?? "Atleta",
-                  workoutName: workout.name,
-                  duration: workout.duration,
-                  totalSets,
-                  totalVolume: Math.round(totalLoad / 1000),
-                  calories: estimatedCalories,
-                  weekNumber: trainingState.periodization.currentWeek,
-                  locale,
-                  exercises: workout.exercises.map((item) => {
-                    const ex = getExercise(item.exerciseId);
-                    return {
-                      name: getExerciseName(item.exerciseId, ex?.name ?? item.exerciseId, locale),
-                      muscle: getMuscleGroupLabel((ex?.muscle ?? "") as Parameters<typeof getMuscleGroupLabel>[0], locale),
-                      sets: item.sets.length,
-                      completed: item.sets.filter((_, si) => completedSets.has(`${item.exerciseId}-${si}`)).length,
-                      topWeight: Math.max(...item.sets.map((s) => s.weight ?? 0)),
-                    };
-                  }),
-                }}
-                durationInFrames={390}
-                title={c.shareWorkout}
-                shareLabel={c.shareWorkout}
-                formatLabel={c.shareWorkoutFormat}
-                previewFrame={45}
-              />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="text-sm font-bold text-foreground">{c.shareWorkoutTitle}</div>
-              <div className="mt-0.5 text-xs text-muted-foreground">{c.shareWorkoutDesc}</div>
-              <div className="mt-2 text-[10px] font-semibold uppercase tracking-widest" style={{ color: "#22d3ee" }}>{c.shareWorkoutFormat}</div>
-            </div>
-          </div>
         </div>
       </section>
 
