@@ -50,49 +50,73 @@ function MacroBar({ label, value, max, color }: { label: string; value: number; 
   );
 }
 
+const MEAL_ACCENT: Record<MealKey, string> = {
+  breakfast:    "#f59e0b",
+  morningSnack: "#10b981",
+  lunch:        "#22d3ee",
+  preWorkout:   "#ff8a1f",
+  dinner:       "#818cf8",
+};
+
+function MacroChip({ label, value, color }: { label: string; value: number; color: string }) {
+  return (
+    <span className="rounded-full px-2 py-0.5 text-[10px] font-bold" style={{ border: `1px solid ${color}`, color }}>
+      <span style={{ opacity: 0.65 }}>{label} </span>{value}g
+    </span>
+  );
+}
+
 function MealCard({ meal, mealKey, labels }: {
   meal: Meal;
   mealKey: MealKey;
   labels: ReturnType<typeof getNutritionCopy>;
 }) {
-  const { icon: Icon, color, bg } = MEAL_ICONS[mealKey];
+  const { icon: Icon } = MEAL_ICONS[mealKey];
+  const accent = MEAL_ACCENT[mealKey];
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`rounded-2xl border p-4 ${bg}`}
+      className="overflow-hidden rounded-2xl border bg-elevated/30"
+      style={{ borderColor: `${accent}30`, borderLeft: `3px solid ${accent}` }}
     >
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2">
-          <Icon className={`h-4 w-4 ${color}`} />
-          <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-            {labels.meals[mealKey]}
+      <div className="p-3.5">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <div className="grid h-7 w-7 place-items-center rounded-xl" style={{ background: `${accent}18` }}>
+              <Icon className="h-3.5 w-3.5" style={{ color: accent }} />
+            </div>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+              {labels.meals[mealKey]}
+            </span>
+          </div>
+          <span className="text-xs font-bold rounded-full px-2.5 py-0.5" style={{ color: accent, background: `${accent}15` }}>
+            {meal.calories} kcal
           </span>
         </div>
-        <span className={`text-xs font-bold ${color}`}>{meal.calories} kcal</span>
-      </div>
-      <div className="text-sm font-semibold mb-2">{meal.name}</div>
-      <div className="flex flex-wrap gap-1.5 mb-3">
-        {meal.foods.map((food) => (
-          <span
-            key={food}
-            className="rounded-full border border-border bg-background/50 px-2.5 py-0.5 text-[11px] text-muted-foreground"
-          >
-            {food}
-          </span>
-        ))}
-      </div>
-      <div className="grid grid-cols-3 gap-2 text-center">
-        {[
-          { label: labels.macros.proteinShort, value: meal.protein, color: "text-cyan" },
-          { label: labels.macros.carbsShort, value: meal.carbs, color: "text-primary" },
-          { label: labels.macros.fatShort, value: meal.fat, color: "text-amber-400" },
-        ].map(({ label, value, color }) => (
-          <div key={label} className="rounded-xl bg-background/40 py-1.5">
-            <div className={`text-xs font-bold ${color}`}>{value}g</div>
-            <div className="text-[9px] uppercase tracking-wider text-muted-foreground">{label}</div>
-          </div>
-        ))}
+
+        {/* Meal name */}
+        <div className="font-display text-sm font-bold leading-snug mb-2.5">{meal.name}</div>
+
+        {/* Macro chips */}
+        <div className="flex flex-wrap gap-1.5 mb-3">
+          <MacroChip label={labels.macros.proteinShort} value={meal.protein} color="#22d3ee" />
+          <MacroChip label={labels.macros.carbsShort}   value={meal.carbs}   color="#ff8a1f" />
+          <MacroChip label={labels.macros.fatShort}     value={meal.fat}     color="#f59e0b" />
+        </div>
+
+        {/* Food tags */}
+        <div className="flex flex-wrap gap-1.5">
+          {meal.foods.map((food) => (
+            <span
+              key={food}
+              className="rounded-full border border-border bg-surface/60 px-2.5 py-0.5 text-[10px] text-muted-foreground"
+            >
+              {food}
+            </span>
+          ))}
+        </div>
       </div>
     </motion.div>
   );
@@ -180,16 +204,18 @@ function WeekView({ week, labels }: { week: WeekPlan; labels: ReturnType<typeof 
 
   return (
     <div className="space-y-4">
-      <div className="rounded-2xl border border-border bg-surface p-4">
-        <div className="text-[10px] font-semibold uppercase tracking-widest text-primary mb-1">
-          {labels.weekLabel} {week.week} {labels.weekOf}
-        </div>
-        <div className="font-display text-lg font-bold mb-1">{week.weekFocus}</div>
-        <div className="text-xs text-muted-foreground">{week.dailyCalories} {labels.kcalPerDay}</div>
-        <div className="mt-3 space-y-2">
-          <MacroBar label={labels.macros.protein} value={week.macros.protein} max={300} color="text-cyan" />
-          <MacroBar label={labels.macros.carbs} value={week.macros.carbs} max={500} color="text-primary" />
-          <MacroBar label={labels.macros.fat} value={week.macros.fat} max={150} color="text-amber-400" />
+      <div className="overflow-hidden rounded-2xl border bg-elevated/30" style={{ borderColor: "rgba(34,211,238,0.2)", borderLeft: "3px solid rgba(34,211,238,0.6)" }}>
+        <div className="p-4">
+          <div className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: "#22d3ee" }}>
+            {labels.weekLabel} {week.week} — {labels.weekOf}
+          </div>
+          <div className="font-display text-base font-bold mb-0.5">{week.weekFocus}</div>
+          <div className="text-xs font-semibold text-muted-foreground mb-3">{week.dailyCalories} {labels.kcalPerDay}</div>
+          <div className="space-y-2">
+            <MacroBar label={labels.macros.protein} value={week.macros.protein} max={300} color="text-cyan" />
+            <MacroBar label={labels.macros.carbs} value={week.macros.carbs} max={500} color="text-primary" />
+            <MacroBar label={labels.macros.fat} value={week.macros.fat} max={150} color="text-amber-400" />
+          </div>
         </div>
       </div>
 

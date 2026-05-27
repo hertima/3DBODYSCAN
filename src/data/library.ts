@@ -719,6 +719,69 @@ function extractCatalogFamilyKey(path: string) {
   return [...new Set(tokens)].sort().slice(0, 3).join(" ");
 }
 
+function getAutoInstructions(biomechanics: string): string[] {
+  const b = biomechanics.toLowerCase();
+  if (b.includes("empurrar horizontal") || b.includes("press horizontal"))
+    return ["Posicione-se com o equipamento na altura do peito e escápulas retraídas", "Empurre em linha reta ou em arco controlado até quase a extensão dos cotovelos", "Desça de forma lenta e controlada sentindo o alongamento muscular", "Mantenha o core ativado e o corpo estável durante todo o movimento"];
+  if (b.includes("puxar horizontal") || b.includes("remada"))
+    return ["Posicione o tronco inclinado ou sentado com coluna neutra", "Puxe o peso em direção ao abdômen retraindo as escápulas", "Segure 1s na contração máxima antes de soltar", "Retorne controlado até a extensão completa dos braços"];
+  if (b.includes("puxar vertical") || b.includes("puxada"))
+    return ["Posicione-se com os braços estendidos acima segurando a carga", "Deprime as escápulas antes de iniciar o movimento", "Puxe os cotovelos para baixo e para trás trazendo a carga ao peito", "Retorne controlado até a extensão completa sem perder a tensão"];
+  if (b.includes("empurrar vertical") || b.includes("desenvolvimento") || b.includes("overhead"))
+    return ["Posicione a carga na altura dos ombros com core ativado e lombar neutra", "Empurre verticalmente acima da cabeça sem travar os cotovelos no topo", "Desça de forma controlada de volta à altura dos ombros", "Mantenha o abdômen contraído para proteger a lombar durante todo o movimento"];
+  if (b.includes("agachamento") || b.includes("squat"))
+    return ["Pés na largura dos ombros com pontas levemente abertas", "Inicie empurrando os joelhos na direção dos dedos dos pés", "Desça mantendo o peito alto e a lombar neutra até a profundidade adequada", "Suba empurrando com os calcanhares contraindo glúteos e quadríceps"];
+  if (b.includes("hip hinge") || b.includes("terra") || b.includes("stiff"))
+    return ["Fique em pé com coluna neutra e core pré-ativado", "Inicie o movimento empurrando o quadril para trás — não curve a lombar", "Desça mantendo a coluna neutra até sentir o alongamento do posterior de coxa", "Suba empurrando o quadril à frente e contraindo glúteos"];
+  if (b.includes("hip thrust") || b.includes("glúteo"))
+    return ["Apoie as escápulas no banco e posicione os pés no chão", "Contraia os glúteos e empurre o quadril verticalmente para cima", "Segure 2s no topo com quadril, joelhos e ombros em linha reta", "Desça controlado sem encostar o quadril completamente antes de repetir"];
+  if (b.includes("abdução") || b.includes("abducao"))
+    return ["Posicione-se com o equipamento e cotovelos levemente flexionados", "Abra o braço ou a perna lateralmente de forma controlada até a amplitude máxima", "Segure 1s no ponto de abertura máxima contraindo o músculo alvo", "Retorne de forma lenta e controlada mantendo a tensão"];
+  if (b.includes("adução") || b.includes("aducao") || b.includes("crossover") || b.includes("crucifixo"))
+    return ["Posicione-se com os braços abertos e cotovelos levemente flexionados", "Feche os braços em arco contraindo o músculo alvo no centro", "Segure 1s na contração máxima", "Retorne controlado ao ponto de alongamento sem perder o controle"];
+  if (b.includes("flexão de cotovelo") || b.includes("rosca") || b.includes("curl"))
+    return ["Segure a carga com cotovelos fixos ao lado do tronco", "Suba contraindo conscientemente o músculo alvo", "Segure 1s no topo com contração máxima", "Desça de forma totalmente controlada até a extensão completa"];
+  if (b.includes("extensão") || b.includes("triceps") || b.includes("extension"))
+    return ["Posicione-se com cotovelos fixos apontando para o teto ou à frente", "Estenda o cotovelo contraindo o tríceps completamente", "Segure 1s na extensão máxima", "Retorne controlado até o ponto de máximo alongamento do tríceps"];
+  if (b.includes("flexão plantar") || b.includes("panturrilha") || b.includes("calf"))
+    return ["Posicione a meia planta do pé na borda da superfície de apoio", "Desça os calcanhares abaixo do nível para o máximo alongamento", "Suba na ponta dos pés o mais alto possível contraindo a panturrilha", "Segure 2s no topo e desça de forma muito controlada (3s)"];
+  if (b.includes("anti-extensão") || b.includes("isometria") || b.includes("prancha"))
+    return ["Posicione-se com o corpo em linha reta da cabeça aos calcanhares", "Ative glúteos, abdômen e quadríceps simultaneamente", "Mantenha a respiração constante — não prenda o ar", "Segure o tempo máximo mantendo todas as compensações sob controle"];
+  if (b.includes("flexão tronco") || b.includes("abdominal") || b.includes("crunch"))
+    return ["Deite com joelhos dobrados e pés apoiados no chão", "Contraia o abdômen e eleve apenas as escápulas — não o tronco inteiro", "Expire completamente na contração máxima", "Desça controlado sem apoiar completamente antes da próxima rep"];
+  return [
+    "Posicione-se de forma estável com o equipamento necessário",
+    "Execute o movimento em amplitude completa de forma controlada",
+    "Segure 1s na contração máxima antes de retornar",
+    "Mantenha o core ativado e a coluna neutra durante todo o exercício",
+  ];
+}
+
+function getAutoMistakes(biomechanics: string): string[] {
+  const b = biomechanics.toLowerCase();
+  if (b.includes("empurrar horizontal"))
+    return ["Arquear a lombar excessivamente para empurrar mais peso", "Cotovelos completamente abertos a 90° sobrecarregando os ombros", "Descer sem controle usando apenas a gravidade"];
+  if (b.includes("puxar"))
+    return ["Usar impulso do tronco em vez de ativar os músculos das costas", "Não retrair as escápulas no ponto de contração máxima", "Encurtar a amplitude sem completar a extensão dos braços"];
+  if (b.includes("empurrar vertical") || b.includes("overhead"))
+    return ["Arquear a lombar para compensar falta de mobilidade de ombro", "Travar os cotovelos no topo eliminando tensão no deltóide", "Inclinar demais o tronco transferindo carga para o peitoral"];
+  if (b.includes("agachamento") || b.includes("squat"))
+    return ["Joelhos colapsando para dentro ao subir — indica fraqueza de glúteo médio", "Lombar arredondada no fundo do movimento", "Calcanhares se levantando do chão durante a execução"];
+  if (b.includes("hip hinge"))
+    return ["Arredondar a lombar durante o movimento — principal causa de lesão", "Dobrar os joelhos em excesso transformando em agachamento", "Descer a carga longe do corpo criando alavanca prejudicial"];
+  if (b.includes("flexão de cotovelo") || b.includes("curl"))
+    return ["Balançar o tronco usando impulso em vez de força muscular", "Não completar a amplitude — nem subir nem descer totalmente", "Cotovelos se afastando do tronco durante a execução"];
+  if (b.includes("extensão") || b.includes("triceps"))
+    return ["Mover os cotovelos durante o movimento — devem permanecer fixos", "Usar impulso para completar as repetições em vez de força do tríceps", "Amplitude reduzida que não trabalha o músculo completamente"];
+  if (b.includes("flexão plantar") || b.includes("panturrilha"))
+    return ["Amplitude curta sem descer ao alongamento máximo", "Usar impulso do joelho em vez de força da panturrilha", "Velocidade alta que desperdiça a fase excêntrica fundamental"];
+  return [
+    "Usar impulso ou inércia em vez de controle muscular",
+    "Amplitude incompleta que limita o desenvolvimento muscular",
+    "Não manter a posição correta durante todo o movimento",
+  ];
+}
+
 const catalogExercises: Exercise[] = [];
 const typeOrder = [strengthType, calisthenicsType];
 const muscleOrder: MuscleGroup[] = [
@@ -748,8 +811,8 @@ musculacaoPrincipalCatalog.forEach((path) => {
     sourceGroup,
     equipment: inferEquipmentFromCatalog(path),
     biomechanics: inferBiomechanicsFromCatalog(muscle, type),
-    instructions: ["Abra o exercício para visualizar o GIF completo e usar este item como referência visual."],
-    mistakes: ["Este item veio do catálogo automático e ainda não tem observações técnicas manuais."],
+    instructions: getAutoInstructions(inferBiomechanicsFromCatalog(muscle, type)),
+    mistakes: getAutoMistakes(inferBiomechanicsFromCatalog(muscle, type)),
     alternatives: [],
     gifUrl: encodeURI(`/musculacao-media/${path}`),
   });
@@ -767,8 +830,8 @@ calistheniaPuraCatalog.forEach((path) => {
     sourceGroup: "Calistenia",
     equipment: inferEquipmentFromCatalog(path),
     biomechanics: inferBiomechanicsFromCatalog(muscle, calisthenicsType),
-    instructions: ["Abra o exercício para visualizar o GIF completo e usar este item como referência visual."],
-    mistakes: ["Este item veio do catálogo automático e ainda não tem observações técnicas manuais."],
+    instructions: getAutoInstructions(inferBiomechanicsFromCatalog(muscle, calisthenicsType)),
+    mistakes: getAutoMistakes(inferBiomechanicsFromCatalog(muscle, calisthenicsType)),
     alternatives: [],
     gifUrl: encodeURI(`/calistenia-pura/Calistenia/${path}`),
   });

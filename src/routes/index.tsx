@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { lazy, Suspense, useState, useEffect, type FormEvent } from "react";
 import { motion } from "framer-motion";
-import { Mail, Lock, Eye, EyeOff, Loader2, ArrowRight, Apple, Chrome } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, Loader2, ArrowRight } from "lucide-react";
 import { LocaleSwitcher } from "@/components/LocaleSwitcher";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import logo from "@/assets/zyrox-logo.png";
@@ -129,9 +129,9 @@ function LoginPage() {
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-5 py-10 text-foreground" style={{ background: "#060b14" }}>
 
       {/* Glow ciano — esquerda (lado do "3" do logo) */}
-      <div className="pointer-events-none absolute -left-40 top-0 h-[600px] w-[500px] rounded-full blur-[120px]" style={{ background: "radial-gradient(circle,rgba(34,211,238,0.22) 0%,transparent 70%)" }} />
+      <div className="pointer-events-none absolute -left-40 top-0 h-[600px] w-[500px] rounded-full blur-[120px]" style={{ background: "radial-gradient(circle,rgba(34,211,238,0.10) 0%,transparent 70%)" }} />
       {/* Glow laranja — direita (lado do "D" do logo) */}
-      <div className="pointer-events-none absolute -right-40 bottom-0 h-[600px] w-[500px] rounded-full blur-[120px]" style={{ background: "radial-gradient(circle,rgba(251,146,60,0.22) 0%,transparent 70%)" }} />
+      <div className="pointer-events-none absolute -right-40 bottom-0 h-[600px] w-[500px] rounded-full blur-[120px]" style={{ background: "radial-gradient(circle,rgba(251,146,60,0.10) 0%,transparent 70%)" }} />
       {/* Orb central — espelho da luz central do logo */}
       <div className="pointer-events-none absolute left-1/2 top-1/2 h-32 w-32 -translate-x-1/2 -translate-y-1/2 rounded-full blur-3xl" style={{ background: "rgba(251,191,36,0.08)" }} />
 
@@ -173,29 +173,6 @@ function LoginPage() {
                 3D Body Scanner
               </h1>
               <p className="mt-1 text-sm" style={{ color: "rgba(148,163,184,0.85)" }}>{authCopy.loginSubtitle}</p>
-            </div>
-
-            {/* Social buttons */}
-            <div className="grid grid-cols-2 gap-2.5">
-              {[{ Icon: Chrome, label: "Google" }, { Icon: Apple, label: "Apple" }].map(({ Icon, label }) => (
-                <button
-                  key={label}
-                  type="button"
-                  disabled
-                  className="inline-flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium opacity-50 transition"
-                  style={{ border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.04)", color: "#94a3b8" }}
-                >
-                  <Icon className="h-4 w-4" /> {label}
-                  <span className="rounded-full px-1.5 py-0.5 text-[9px] uppercase tracking-[0.18em]" style={{ border: "1px solid rgba(255,255,255,0.1)" }}>{authCopy.socialSoon}</span>
-                </button>
-              ))}
-            </div>
-
-            {/* Divider */}
-            <div className="my-5 flex items-center gap-3 text-[11px] uppercase tracking-[0.2em]" style={{ color: "rgba(100,116,139,0.7)" }}>
-              <div className="h-px flex-1" style={{ background: "rgba(255,255,255,0.06)" }} />
-              {authCopy.emailDivider}
-              <div className="h-px flex-1" style={{ background: "rgba(255,255,255,0.06)" }} />
             </div>
 
             {/* Formulário */}
@@ -243,11 +220,7 @@ function LoginPage() {
                 </div>
               </label>
 
-              <div className="flex items-center justify-between pt-1 text-xs">
-                <label className="inline-flex items-center gap-2" style={{ color: "#64748b" }}>
-                  <input type="checkbox" className="h-3.5 w-3.5 rounded" style={{ accentColor: "#fb923c" }} />
-                  {authCopy.rememberMe}
-                </label>
+              <div className="flex justify-end pt-1 text-xs">
                 <Link to="/recuperar-senha" className="font-medium transition hover:opacity-80" style={{ color: "#22d3ee" }}>
                   {authCopy.forgotPassword}
                 </Link>
@@ -282,21 +255,9 @@ function LoginPage() {
               </Link>
             </p>
 
-            <div className="mt-4 border-t pt-4" style={{ borderColor: "rgba(255,255,255,0.06)" }}>
-              <div className="flex items-center justify-center gap-2">
-                <span className="text-xs tracking-wide" style={{ color: "#fbbf24" }}>★★★★★</span>
-                <span className="text-[11px]" style={{ color: "rgba(100,116,139,0.75)" }}>
-                  +12.800 atletas transformando seus resultados
-                </span>
-              </div>
-            </div>
           </div>
         </div>
 
-        {/* Footer */}
-        <p className="mt-4 text-center text-[11px] uppercase tracking-[0.2em]" style={{ color: "rgba(100,116,139,0.5)" }}>
-          {authCopy.builtForEvolution}
-        </p>
       </motion.div>
     </div>
     </>

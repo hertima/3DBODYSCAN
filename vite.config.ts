@@ -546,6 +546,9 @@ export default defineConfig({
       // injeta a chave no bundle (lida do .env em dev, do secret do CI em prod)
       "process.env.OPENAI_API_KEY": JSON.stringify(process.env.OPENAI_API_KEY ?? ""),
     },
+    resolve: {
+      dedupe: ["react", "react-dom"],
+    },
     plugins: [devApiPlugin(), networkAccessPlugin()],
     server: {
       host: "0.0.0.0",

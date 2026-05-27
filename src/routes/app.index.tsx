@@ -1,9 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowRight, Brain, Flame, Trophy, Activity, Sparkles, Play, Zap, Utensils, ShieldCheck, X, ScanLine } from "lucide-react";
+import { ArrowRight, Flame, Trophy, Activity, Play, Zap, Utensils, ShieldCheck, X, ScanLine } from "lucide-react";
 import { loadMealPlan } from "@/lib/meal-plan";
 import { motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
-import { AreaChart, Area, ResponsiveContainer, Tooltip } from "recharts";
 import { SkeletonStatCard, SkeletonWorkoutCard } from "@/components/SkeletonCard";
 import { useGamification } from "@/hooks/use-gamification";
 import { useTrainingState } from "@/hooks/use-training-state";
@@ -60,6 +59,10 @@ function Dashboard() {
     return () => clearTimeout(t);
   }, []);
   const dailyMission = gamification.missions.diaria[0];
+  const mealPlan = loadMealPlan();
+  const planLocaleMismatch = mealPlan !== null && (
+    mealPlan.locale === undefined ? locale !== "pt" : mealPlan.locale !== locale
+  );
   const currentPeriodWeek =
     trainingState.periodization.weeks[trainingState.periodization.currentWeek - 1];
   const plannedDays = trainingState.schedule.filter((item) => item.workoutId).length;
@@ -79,10 +82,6 @@ function Dashboard() {
             trainingState.workouts.length,
         )
       : 0;
-  const mealPlan = loadMealPlan();
-  const planLocaleMismatch = mealPlan !== null && (
-    mealPlan.locale === undefined ? locale !== "pt" : mealPlan.locale !== locale
-  );
   const readinessScore = Math.round(
     (gamification.hydrationCompletionRate +
       gamification.nutritionCompletionRate +
@@ -148,17 +147,9 @@ function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm text-muted-foreground">{dc.greeting} {userName}</p>
-          <h1 className="font-display text-3xl font-bold text-gradient-brand">{dc.headline}</h1>
-        </div>
-        <img
-          src="/mascote.png"
-          alt="Mascote 3D Body Scanner"
-          className="h-32 w-32 object-contain"
-          style={{ filter: "drop-shadow(0 0 20px rgba(34,211,238,0.5)) drop-shadow(0 0 10px rgba(251,146,60,0.4))" }}
-        />
+      <div>
+        <p className="text-sm text-muted-foreground">{dc.greeting} {userName}</p>
+        <h1 className="font-display text-3xl font-bold text-gradient-brand">{dc.headline}</h1>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
@@ -258,49 +249,20 @@ function Dashboard() {
         </motion.div>
       ) : null}
 
-      <div className="grid gap-3 lg:grid-cols-[1.35fr_0.9fr]">
-        <div className="relative overflow-hidden rounded-3xl border border-cyan/20 bg-surface p-5 shadow-elevated">
-          <div className="pointer-events-none absolute -right-16 -top-16 h-44 w-44 rounded-full bg-cyan/10 blur-3xl" />
-          <div className="relative flex items-start justify-between gap-3">
-            <div>
-              <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-cyan">
-                {dc.dailyMission}
-              </div>
-              <h3 className="mt-2 font-display text-xl font-bold">{dailyMission.title}</h3>
-              <p className="mt-1 max-w-xl text-sm leading-6 text-muted-foreground">{dailyMission.description}</p>
-            </div>
-            <div className="shrink-0 text-right">
-              <div className="font-display text-3xl font-bold text-gradient-ai">
-                {Math.min(100, Math.round((dailyMission.progress / dailyMission.target) * 100))}%
-              </div>
-              <div className="mt-1 rounded-full border border-cyan/25 bg-cyan/10 px-2 py-1 text-[10px] font-bold text-cyan">
-                +50 XP
-              </div>
-            </div>
+      <div className="grid grid-cols-3 gap-2 rounded-3xl border border-border bg-surface p-3">
+        <CompactPulseStat icon={Flame} label={dc.streakLabel} value={`${gamification.streakDays}d`} tone="#fb923c" />
+        <CompactPulseStat icon={Zap} label={dc.statReadiness} value={`${readinessScore}%`} tone="#22d3ee" />
+        <CompactPulseStat icon={Trophy} label="Lv" value={gamification.level} tone="#a855f7" />
+        <div className="col-span-3 mt-1">
+          <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+            <span>{gamification.xp} XP</span>
+            <span>{XP_PER_LEVEL - xpInLevel} XP para Lv {gamification.level + 1}</span>
           </div>
-          <div className="relative mt-4 h-2 w-full overflow-hidden rounded-full bg-elevated">
+          <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-elevated">
             <div
-              className="h-full rounded-full bg-gradient-ai transition-all duration-700"
-              style={{ width: `${Math.min(100, Math.round((dailyMission.progress / dailyMission.target) * 100))}%` }}
+              className="h-full rounded-full transition-all duration-700"
+              style={{ width: `${xpPct}%`, background: "linear-gradient(90deg,#22d3ee,#a855f7)" }}
             />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-3 gap-2 rounded-3xl border border-border bg-surface p-3">
-          <CompactPulseStat icon={Flame} label={dc.streakLabel} value={`${gamification.streakDays}d`} tone="#fb923c" />
-          <CompactPulseStat icon={Zap} label={dc.statReadiness} value={`${readinessScore}%`} tone="#22d3ee" />
-          <CompactPulseStat icon={Trophy} label="Lv" value={gamification.level} tone="#a855f7" />
-          <div className="col-span-3 mt-1">
-            <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-              <span>{gamification.xp} XP</span>
-              <span>{XP_PER_LEVEL - xpInLevel} XP para Lv {gamification.level + 1}</span>
-            </div>
-            <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-elevated">
-              <div
-                className="h-full rounded-full transition-all duration-700"
-                style={{ width: `${xpPct}%`, background: "linear-gradient(90deg,#22d3ee,#a855f7)" }}
-              />
-            </div>
           </div>
         </div>
       </div>

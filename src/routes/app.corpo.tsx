@@ -1624,6 +1624,13 @@ function ScanCTA({
     setGuideOpen(true);
   };
 
+  const calcScanConfidence = (m: Record<string, number>): number => {
+    const fields = ["peito", "cintura", "quadril", "braco", "coxa", "panturrilha", "bodyFat"] as const;
+    const detected = fields.filter((k) => (m[k] ?? 0) > 0).length;
+    // 7/7 → 93, 6/7 → 85, 5/7 → 76, 4/7 → 66, <4 → 55
+    return Math.round(40 + (detected / fields.length) * 55);
+  };
+
   const makeThumbnail = (src: string, size = 96): Promise<string> =>
     new Promise((resolve) => {
       const img = new window.Image();
@@ -1698,7 +1705,7 @@ function ScanCTA({
               percentualGorduraEstimado: m.bodyFat      ?? 0,
             },
             calibragem: { alturaCm: onb.height ?? 170, pesoKg: onb.weight ?? (m.weight ?? 70) },
-            qualidade: { confiancaLeitura: 85 },
+            qualidade: { confiancaLeitura: calcScanConfidence(m) },
           };
           if (uid) {
             // Gera thumbnail pequeno (96px) para salvar inline no Firestore
@@ -2748,88 +2755,102 @@ function ScanHistory({ kind, copy, refreshTrigger = 0 }: { kind: ScanKind; copy:
         </div>
       )}
 
-      <div className="mt-3 space-y-2">
+      <div className="mt-3 space-y-3">
         {kind === "body" && (bodyScansFs.length === 0
           ? emptyCard
-          : bodyScansFs.map((scan, i) => (
-            <div key={scan.id ?? i} className="overflow-hidden rounded-xl border border-cyan/20 bg-elevated/40">
-              <div className="flex items-start gap-3 p-2">
-                <div className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-xl border border-border" style={{ background: "linear-gradient(135deg,rgba(34,211,238,0.15),rgba(59,130,246,0.1))" }}>
-                  {scan.photoUrl
-                    ? <img src={scan.photoUrl} alt="scan" className="h-full w-full object-cover object-top" />
-                    : <ScanLine className="h-5 w-5 text-cyan/70" />
-                  }
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-baseline justify-between gap-2">
-                    <div className="text-sm font-semibold">{copy.bodyScan}</div>
-                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{formatScanDate(scan.date, locale)}</div>
+          : bodyScansFs.map((scan, i) => {
+            const conf = scan.qualidade?.confiancaLeitura ?? 85;
+            const confColor = conf >= 80 ? "#22d3ee" : conf >= 60 ? "#fb923c" : "#f43f5e";
+            return (
+              <div key={scan.id ?? i} className="overflow-hidden rounded-2xl border bg-elevated/30" style={{ borderColor: "rgba(34,211,238,0.2)", borderLeft: "3px solid rgba(34,211,238,0.6)" }}>
+                <div className="flex items-start gap-3 p-3">
+                  {/* Foto maior e mais proeminente */}
+                  <div className="relative shrink-0 h-[72px] w-[72px] overflow-hidden rounded-xl border" style={{ borderColor: "rgba(34,211,238,0.25)", background: "linear-gradient(135deg,rgba(34,211,238,0.18),rgba(59,130,246,0.1))" }}>
+                    {scan.photoUrl
+                      ? <img src={scan.photoUrl} alt="scan" className="h-full w-full object-cover object-top" />
+                      : <div className="flex h-full w-full items-center justify-center"><ScanLine className="h-6 w-6 text-cyan/60" /></div>
+                    }
                   </div>
-                  <div className="mt-1 flex flex-wrap gap-1.5">
-                    <Chip label={copy.chest}      value={`${scan.estimativas.peitoCmEstimado} cm`} />
-                    <Chip label={copy.waist}      value={`${scan.estimativas.cinturaCmEstimada} cm`} />
-                    <Chip label={copy.fatPctScan} value={`${scan.estimativas.percentualGorduraEstimado}%`} />
-                    <Chip label={copy.confidence} value={`${scan.qualidade?.confiancaLeitura ?? 85}%`} />
+
+                  <div className="min-w-0 flex-1">
+                    {/* Header: título + data */}
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <div className="font-display text-sm font-bold leading-tight">{copy.bodyScan}</div>
+                        <div className="mt-0.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">{formatScanDate(scan.date, locale)}</div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          const uid = auth.currentUser?.uid;
+                          if (!uid || !scan.id) return;
+                          setBodyScansFs(prev => prev.filter((_, j) => j !== i));
+                          void deleteBodyScanFromFirestore(uid, scan.id).catch(() => {});
+                        }}
+                        className="grid h-7 w-7 shrink-0 place-items-center rounded-full border border-white/10 bg-black/30 text-white/30 active:scale-90 transition-transform"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    </div>
+
+                    {/* Chips com cor */}
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      <ChipColored label={copy.chest}      value={`${scan.estimativas.peitoCmEstimado} cm`}           color="rgba(34,211,238,0.7)" />
+                      <ChipColored label={copy.waist}      value={`${scan.estimativas.cinturaCmEstimada} cm`}          color="rgba(34,211,238,0.7)" />
+                      <ChipColored label={copy.fatPctScan} value={`${scan.estimativas.percentualGorduraEstimado}%`}   color="rgba(251,146,60,0.8)" />
+                      <ChipColored label={copy.confidence} value={`${conf}%`}                                          color={confColor} />
+                    </div>
                   </div>
                 </div>
-                <button
-                  onClick={() => {
-                    const uid = auth.currentUser?.uid;
-                    if (!uid || !scan.id) return;
-                    setBodyScansFs(prev => prev.filter((_, j) => j !== i));
-                    void deleteBodyScanFromFirestore(uid, scan.id).catch(() => {});
-                  }}
-                  className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-white/10 bg-black/40 text-white/40 active:scale-90 transition-transform"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
+
+                {scan.analysis ? (
+                  <div className="border-t px-3 py-2.5 text-[11px] leading-relaxed text-muted-foreground" style={{ borderColor: "rgba(34,211,238,0.1)", background: "rgba(34,211,238,0.03)" }}>
+                    {scan.analysis}
+                  </div>
+                ) : null}
               </div>
-              {scan.analysis ? (
-                <div className="border-t border-cyan/10 px-3 py-2 text-[11px] leading-relaxed text-muted-foreground">
-                  {scan.analysis}
-                </div>
-              ) : null}
-            </div>
-          ))
+            );
+          })
         )}
         {kind === "food" && (foodScansFs.length === 0
           ? emptyCard
           : foodScansFs.map((scan, i) => {
             const kcalColor = scan.kcal >= 600 ? "#fb923c" : scan.kcal >= 300 ? "#22d3ee" : "#10b981";
             return (
-              <div key={scan.id ?? i} className="overflow-hidden rounded-xl border border-border bg-elevated/40" style={{ borderLeft: `3px solid ${kcalColor}` }}>
-                <div className="flex items-start gap-3 p-2">
-                  <div className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-xl border border-border" style={{ background: "linear-gradient(135deg,rgba(34,211,238,0.15),rgba(59,130,246,0.1))" }}>
+              <div key={scan.id ?? i} className="overflow-hidden rounded-2xl border bg-elevated/30" style={{ borderColor: "rgba(255,255,255,0.08)", borderLeft: `3px solid ${kcalColor}` }}>
+                <div className="flex items-start gap-3 p-3">
+                  <div className="relative shrink-0 h-[72px] w-[72px] overflow-hidden rounded-xl border border-border" style={{ background: "linear-gradient(135deg,rgba(251,146,60,0.15),rgba(16,185,129,0.08))" }}>
                     {scan.photoUrl
                       ? <img src={scan.photoUrl} alt="scan" className="h-full w-full object-cover" />
-                      : <ImageIcon className="h-5 w-5 text-primary/70" />
+                      : <div className="flex h-full w-full items-center justify-center"><ImageIcon className="h-6 w-6 text-primary/60" /></div>
                     }
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-baseline justify-between gap-2">
-                      <div className="text-sm font-semibold">{copy.foodScan}</div>
-                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{formatScanDate(scan.date, locale)}</div>
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <div className="font-display text-sm font-bold leading-tight">{copy.foodScan}</div>
+                        <div className="mt-0.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">{formatScanDate(scan.date, locale)}</div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          const uid = auth.currentUser?.uid;
+                          if (!uid || !scan.id) return;
+                          setFoodScansFs(prev => prev.filter((_, j) => j !== i));
+                          void deleteFoodScanFromFirestore(uid, scan.id).catch(() => {});
+                        }}
+                        className="grid h-7 w-7 shrink-0 place-items-center rounded-full border border-white/10 bg-black/30 text-white/30 active:scale-90 transition-transform"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
                     </div>
-                    <div className="mt-1 flex flex-wrap gap-1.5">
-                      <Chip label="kcal" value={`${scan.kcal}`} />
-                      <Chip label="P" value={`${scan.protein}g`} />
-                      <Chip label="C" value={`${scan.carbs}g`} />
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      <ChipColored label="kcal" value={`${scan.kcal}`}       color={kcalColor} />
+                      <ChipColored label="P"    value={`${scan.protein}g`}   color="#22d3ee" />
+                      <ChipColored label="C"    value={`${scan.carbs}g`}     color="#a855f7" />
                     </div>
                   </div>
-                  <button
-                    onClick={() => {
-                      const uid = auth.currentUser?.uid;
-                      if (!uid || !scan.id) return;
-                      setFoodScansFs(prev => prev.filter((_, j) => j !== i));
-                      void deleteFoodScanFromFirestore(uid, scan.id).catch(() => {});
-                    }}
-                    className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-white/10 bg-black/40 text-white/40 active:scale-90 transition-transform"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
                 </div>
                 {scan.analysis ? (
-                  <div className="border-t border-border/50 px-3 py-2 text-[11px] leading-relaxed text-muted-foreground">
+                  <div className="border-t px-3 py-2.5 text-[11px] leading-relaxed text-muted-foreground" style={{ borderColor: "rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.02)" }}>
                     {scan.analysis}
                   </div>
                 ) : null}
@@ -2851,6 +2872,15 @@ function foodEmojiFor(refeicao: string): string {
   if (lower.includes("jantar") || lower.includes("dinner") || lower.includes("cena") || lower.includes("noite")) return "🍖";
   if (lower.includes("almoco") || lower.includes("almoço") || lower.includes("lunch")) return "🥗";
   return "🍽️";
+}
+
+function ChipColored({ label, value, color }: { label: string; value: string; color: string }) {
+  return (
+    <span className="rounded-full px-2 py-0.5 text-[10px] font-semibold" style={{ border: `1px solid ${color}`, color }}>
+      <span style={{ opacity: 0.65 }}>{label}</span>{" "}
+      <span className="text-foreground">{value}</span>
+    </span>
+  );
 }
 
 function Chip({ label, value }: { label: string; value: string }) {
