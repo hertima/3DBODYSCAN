@@ -560,9 +560,7 @@ export default defineConfig({
         output: {
           manualChunks(id: string) {
             if (id.includes("node_modules/firebase")) return "firebase";
-            if (id.includes("node_modules/framer-motion")) return "motion";
             if (id.includes("node_modules/@remotion") || id.includes("node_modules/remotion")) return "remotion";
-            if (id.includes("node_modules/@tanstack")) return "tanstack";
           },
         },
       },
