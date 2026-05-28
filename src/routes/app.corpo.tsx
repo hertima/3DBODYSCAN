@@ -1553,7 +1553,7 @@ function ScanCTA({
   const isFemale = onb.gender !== "male";
   const [captureStep, setCaptureStep] = useState<"front" | "back">("front");
   const [frontPhoto, setFrontPhoto] = useState<string | null>(null);
-  const [facing, setFacing] = useState<"user" | "environment">(kind === "food" ? "environment" : "user");
+  const [facing, setFacing] = useState<"user" | "environment">("environment");
 
   // Carrega calibração salva do Firestore
   useEffect(() => {
@@ -1585,6 +1585,8 @@ function ScanCTA({
     const attachStream = (stream: MediaStream) => {
       streamRef.current?.getTracks().forEach((t) => t.stop());
       streamRef.current = stream;
+      setScanBooting(false);
+      if (bootTimerRef.current) clearTimeout(bootTimerRef.current);
       requestAnimationFrame(() => {
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
@@ -1602,15 +1604,21 @@ function ScanCTA({
     } catch (firstError: any) {
       const name = firstError?.name ?? "";
       if (name === "NotAllowedError") {
+        setScanBooting(false);
+        if (bootTimerRef.current) clearTimeout(bootTimerRef.current);
         setLiveError(copy.permissionDenied);
         return;
       }
       if (name === "NotFoundError" || name === "DevicesNotFoundError") {
+        setScanBooting(false);
+        if (bootTimerRef.current) clearTimeout(bootTimerRef.current);
         closeLive();
         nativeCameraRef.current?.click();
         return;
       }
       if (name === "NotReadableError") {
+        setScanBooting(false);
+        if (bootTimerRef.current) clearTimeout(bootTimerRef.current);
         setLiveError(copy.cameraInUse);
         return;
       }
@@ -1619,6 +1627,8 @@ function ScanCTA({
         const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
         attachStream(stream);
       } catch {
+        setScanBooting(false);
+        if (bootTimerRef.current) clearTimeout(bootTimerRef.current);
         closeLive();
         nativeCameraRef.current?.click();
       }
@@ -1870,6 +1880,8 @@ function ScanCTA({
     setState("idle");
     setAiAnalysis(null);
     setAiError(null);
+    setScanBooting(false);
+    if (bootTimerRef.current) clearTimeout(bootTimerRef.current);
     setCaptureStep("front");
     setFrontPhoto(null);
   };
@@ -1879,6 +1891,13 @@ function ScanCTA({
   const accentBorder = isBody ? "border-orange-500/30" : "border-cyan/30";
   const accentBg = isBody ? "bg-orange-500/10" : "bg-cyan/10";
   const accentText = isBody ? "text-orange-400" : "text-cyan";
+  const fullscreenShellClass = "fixed inset-0 z-[60] flex min-h-[100dvh] flex-col bg-black";
+  const fullscreenSafeStyle = {
+    paddingTop: "env(safe-area-inset-top)",
+    paddingBottom: "env(safe-area-inset-bottom)",
+    paddingLeft: "env(safe-area-inset-left)",
+    paddingRight: "env(safe-area-inset-right)",
+  };
 
   const ctaButtons = (
     <>
@@ -1903,7 +1922,7 @@ function ScanCTA({
   const hiddenInputs = (
     <>
       <input ref={galleryRef} type="file" accept="image/*" className="hidden" onChange={onFile} />
-      <input ref={nativeCameraRef} type="file" accept="image/*" capture={kind === "food" ? "environment" : "user"} className="hidden" onChange={onFile} />
+      <input ref={nativeCameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={onFile} />
     </>
   );
 
@@ -1969,7 +1988,7 @@ function ScanCTA({
 
       {/* Boot screen — aparece ao clicar Câmera */}
       {scanBooting ? (
-        <div className="fixed inset-0 z-[60] flex flex-col items-center justify-center bg-black">
+        <div className={`${fullscreenShellClass} items-center justify-center`} style={fullscreenSafeStyle}>
           <div className="pointer-events-none absolute inset-0"
             style={{
               backgroundImage: "linear-gradient(rgba(34,211,238,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(34,211,238,0.06) 1px, transparent 1px)",
@@ -2047,7 +2066,7 @@ function ScanCTA({
       ) : null}
 
       {liveOpen ? (
-        <div className="fixed inset-0 z-[60] flex flex-col bg-black">
+        <div className={fullscreenShellClass} style={fullscreenSafeStyle}>
           {/* Header */}
           <div className="relative flex items-center justify-between border-b border-cyan/20 bg-black/90 px-4 py-3 backdrop-blur">
             <div className="flex items-center gap-2">
@@ -2163,7 +2182,7 @@ function ScanCTA({
                 </div>
 
                 {/* Capture button — frente e verso */}
-                <div className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-2 bg-gradient-to-t from-black/90 via-black/40 to-transparent px-4 py-8">
+                <div className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-2 bg-gradient-to-t from-black/90 via-black/40 to-transparent px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-10">
                   {/* Indicador da foto de frente já capturada */}
                   {kind === "body" && captureStep === "back" && frontPhoto && (
                     <div className="flex items-center gap-2 rounded-full border border-cyan/30 bg-black/70 px-3 py-1.5 backdrop-blur"
@@ -2231,7 +2250,7 @@ function ScanCTA({
       ) : null}
 
       {guideOpen ? (
-        <div className="fixed inset-0 z-[60] flex flex-col bg-black">
+        <div className={fullscreenShellClass} style={fullscreenSafeStyle}>
           {/* Grid bg */}
           <div className="pointer-events-none absolute inset-0"
             style={{
@@ -2418,7 +2437,7 @@ function ScanCTA({
       ) : null}
 
       {preview ? (
-        <div className="fixed inset-0 z-[60] flex flex-col bg-black">
+        <div className={fullscreenShellClass} style={fullscreenSafeStyle}>
           {/* Header */}
           <div className="flex items-center justify-between border-b border-cyan/20 bg-black/90 px-4 py-3 backdrop-blur">
             <div className="flex items-center gap-2">
