@@ -14,17 +14,27 @@ export const Route = createFileRoute("/api/chat-stream")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-    // Auth opcional — usuário já autenticado pelo Firebase no client
+    const uid = await verifyFirebaseToken(request.headers.get("Authorization"));
+    if (!uid) return new Response("Unauthorized", { status: 401 });
 
     const key = process.env.OPENAI_API_KEY;
     if (!key) return new Response("API key not configured", { status: 500 });
 
-    const { messages, userContext, locale, athleteMemory } = (await request.json()) as {
+    const body = (await request.json()) as {
       messages: Array<{ role: string; content: string }>;
       userContext: string;
       locale: string;
       athleteMemory?: string;
     };
+
+    const rawMessages = Array.isArray(body.messages) ? body.messages.slice(0, 20) : [];
+    const messages = rawMessages.map((m) => ({
+      role: String(m.role).slice(0, 20),
+      content: String(m.content).slice(0, 2000),
+    }));
+    const userContext = String(body.userContext ?? "").slice(0, 5000);
+    const locale = String(body.locale ?? "pt").slice(0, 5);
+    const athleteMemory = body.athleteMemory ? String(body.athleteMemory).slice(0, 3000) : undefined;
 
     const lang = LANGUAGE_NAME[locale] ?? LANGUAGE_NAME.pt;
 

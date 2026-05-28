@@ -13,6 +13,9 @@ import { getExercise } from "@/data/library";
 import { getDashboardCopy, getNutritionCopy, getGamificationCopy } from "@/lib/app-copy";
 import { getStoredLocale } from "@/lib/locale";
 import { loadOnboarding } from "@/lib/onboarding";
+import { buildAthleteProfile } from "@/domain/athlete/profile";
+import { auth } from "@/lib/auth";
+import { loadProfileFromFirestore } from "@/lib/firestore-profile";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/app/")({
@@ -36,6 +39,7 @@ const PERIOD_COPY: Record<AppLocale, { blockTitle: (w: number) => string; blockS
 function Dashboard() {
   const [loaded, setLoaded] = useState(false);
   const [userName, setUserName] = useState("atleta");
+  const [avatarUrl, setAvatarUrl] = useState("");
   const trainingState = useTrainingState();
   const todayDayIndex = (new Date().getDay() + 6) % 7;
   const todayScheduleEntry = trainingState.schedule.find((entry) => entry.dayIndex === todayDayIndex);
@@ -52,9 +56,23 @@ function Dashboard() {
   const { gamification, dopamineLoop } = useGamification(trainingState);
 
   useEffect(() => {
-    const profile = loadOnboarding();
-    const name = profile.name?.split(" ")[0]?.trim() || "atleta";
-    setUserName(name);
+    const onboarding = loadOnboarding();
+    const fbUser = auth.currentUser;
+    const localName = onboarding.name?.trim() || fbUser?.displayName || fbUser?.email?.split("@")[0] || "";
+    const athleteProfile = buildAthleteProfile({ ...onboarding, name: localName });
+    const firstName = (n: string) => {
+      const part = n.split(" ")[0]?.trim() || "atleta";
+      return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
+    };
+    setUserName(firstName(athleteProfile.name));
+    if (onboarding.avatarUrl) setAvatarUrl(onboarding.avatarUrl);
+    const uid = fbUser?.uid;
+    if (uid) {
+      loadProfileFromFirestore(uid).then((prof) => {
+        if (prof?.name?.trim()) setUserName(firstName(prof.name));
+        if (prof?.avatarUrl) setAvatarUrl(prof.avatarUrl);
+      }).catch(() => {});
+    }
     const t = setTimeout(() => setLoaded(true), 300);
     return () => clearTimeout(t);
   }, []);
@@ -147,29 +165,33 @@ function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <p className="text-sm text-muted-foreground">{dc.greeting} {userName}</p>
-        <h1 className="font-display text-3xl font-bold text-gradient-brand">{dc.headline}</h1>
+      <div className="flex items-center gap-3">
+        {avatarUrl && (
+          <img
+            src={avatarUrl}
+            alt={userName}
+            className="h-11 w-11 shrink-0 rounded-[0.9rem] object-cover object-top shadow"
+          />
+        )}
+        <div>
+          <p className="text-sm text-muted-foreground">{dc.greeting} {userName}</p>
+          <h1 className="font-display text-3xl font-bold text-gradient-brand">{dc.headline}</h1>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <Link
           to="/app/nutricao"
-          className={cn(
-            "relative overflow-hidden flex flex-col justify-between rounded-2xl border p-4 transition min-h-[100px]",
-            planLocaleMismatch
-              ? "border-amber-400/30 bg-amber-400/5 hover:border-amber-400/50"
-              : "border-success/25 bg-success/5 hover:border-success/40"
-          )}
+          className="relative overflow-hidden flex flex-col justify-between rounded-2xl border border-success/25 bg-success/5 p-4 transition hover:border-success/40 min-h-[100px]"
         >
-          <div className={`pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full blur-2xl ${planLocaleMismatch ? "bg-amber-400/10" : "bg-success/10"}`} />
-          <div className={cn("grid h-9 w-9 place-items-center rounded-xl border", planLocaleMismatch ? "border-amber-400/25 bg-amber-400/15" : "border-success/25 bg-success/15")}>
-            <Utensils className={`h-4 w-4 ${planLocaleMismatch ? "text-amber-400" : "text-success"}`} />
+          <div className="pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full blur-2xl bg-success/10" />
+          <div className="grid h-9 w-9 place-items-center rounded-xl border border-success/25 bg-success/15">
+            <Utensils className="h-4 w-4 text-success" />
           </div>
           <div className="mt-3">
             <div className="font-semibold text-sm leading-tight">{nutritionCopy.emptyTitle}</div>
-            <div className={`text-[11px] mt-0.5 ${planLocaleMismatch ? "text-amber-400" : "text-muted-foreground"}`}>
-              {planLocaleMismatch ? nutritionCopy.localeMismatch : mealPlan ? nutritionCopy.twelveWeeks : nutritionCopy.cardDesc}
+            <div className="text-[11px] mt-0.5 text-muted-foreground">
+              {mealPlan ? nutritionCopy.twelveWeeks : nutritionCopy.cardDesc}
             </div>
           </div>
         </Link>
@@ -204,7 +226,7 @@ function Dashboard() {
               {dashboardCopy.todayWorkout}
             </span>
             <span className="urgency-pulse rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest" style={{ background: "rgba(251,146,60,0.15)", color: "#fb923c", border: "1px solid rgba(251,146,60,0.3)" }}>
-              Hoje
+              {dashboardCopy.todayBadge}
             </span>
           </div>
           <h2 className="mt-2 font-display text-2xl font-bold">{translateWorkoutName(today.name, locale)}</h2>

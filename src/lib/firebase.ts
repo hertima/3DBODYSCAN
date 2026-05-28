@@ -4,7 +4,6 @@ import {
   getFirestore,
   initializeFirestore,
   persistentLocalCache,
-  persistentMultipleTabManager,
 } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
@@ -27,7 +26,7 @@ export const storage = getStorage(app);
 export const db = (() => {
   try {
     return initializeFirestore(app, {
-      localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
+      localCache: persistentLocalCache(),
     });
   } catch {
     return getFirestore(app);

@@ -62,7 +62,8 @@ export const Route = createFileRoute("/api/ai-workout")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-    // Auth opcional — usuário já autenticado pelo Firebase no client
+    const uid = await verifyFirebaseToken(request.headers.get("Authorization"));
+    if (!uid) return new Response("Unauthorized", { status: 401 });
 
     const key = process.env.OPENAI_API_KEY;
     if (!key) return new Response("not configured", { status: 500 });
@@ -75,7 +76,16 @@ export const Route = createFileRoute("/api/ai-workout")({
       regenerationId?: string;
       avoidExerciseIds?: string[];
     };
-    const { profile, workoutCandidates, locale, athleteMemory, regenerationId, avoidExerciseIds = [] } = payload;
+    const {
+      profile,
+      workoutCandidates,
+      locale: rawLocale,
+      athleteMemory: rawMemory,
+      regenerationId,
+      avoidExerciseIds = [],
+    } = payload;
+    const locale = String(rawLocale ?? "pt").slice(0, 5);
+    const athleteMemory = rawMemory ? String(rawMemory).slice(0, 3000) : undefined;
 
     const lang = LANGUAGE_NAME[locale] ?? LANGUAGE_NAME.pt;
 

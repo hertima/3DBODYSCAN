@@ -8,6 +8,7 @@ import { SUPPORTED_LOCALES, getStoredLocale, setStoredLocale, type AppLocale } f
 import { getOnboardingCopy } from "@/lib/app-copy";
 import { cn } from "@/lib/utils";
 import { getCurrentUser } from "@/lib/auth";
+import { ThemeToggleButton } from "@/components/ThemeToggleButton";
 
 export const Route = createFileRoute("/onboarding")({
   head: () => ({
@@ -60,15 +61,18 @@ function OnboardingLayout() {
             <ArrowLeft className="h-5 w-5" />
           </button>
           <Logo withText size={34} />
-          <button
-            onClick={() => {
-              if (getCurrentUser()) navigate({ to: "/app" });
-              else navigate({ to: "/" });
-            }}
-            className="text-sm font-medium text-muted-foreground hover:text-foreground"
-          >
-            {copy.skipLabel}
-          </button>
+          <div className="flex items-center gap-2">
+            <ThemeToggleButton />
+            <button
+              onClick={() => {
+                if (getCurrentUser()) navigate({ to: "/app" });
+                else navigate({ to: "/" });
+              }}
+              className="text-sm font-medium text-muted-foreground hover:text-foreground"
+            >
+              {copy.skipLabel}
+            </button>
+          </div>
         </div>
 
         {/* Language flags row */}

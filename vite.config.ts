@@ -542,12 +542,12 @@ function networkAccessPlugin(): Plugin {
 
 export default defineConfig({
   vite: {
-    define: {
-      // injeta a chave no bundle (lida do .env em dev, do secret do CI em prod)
-      "process.env.OPENAI_API_KEY": JSON.stringify(process.env.OPENAI_API_KEY ?? ""),
-    },
+    define: {},
     resolve: {
       dedupe: ["react", "react-dom"],
+    },
+    optimizeDeps: {
+      include: ["react", "react/jsx-runtime", "react/jsx-dev-runtime", "react-dom/client"],
     },
     plugins: [devApiPlugin(), networkAccessPlugin()],
     server: {

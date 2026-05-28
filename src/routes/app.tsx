@@ -1,12 +1,12 @@
 import { createFileRoute, Outlet, Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { House, Dumbbell, BookOpen, BarChart3, ScanLine, User, Flame, Loader2, RefreshCw, Sun, Moon } from "lucide-react";
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useLayoutEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Logo } from "@/components/Logo";
 import { LocaleSwitcher } from "@/components/LocaleSwitcher";
 import { SUPPORTED_LOCALES, getStoredLocale, setStoredLocale } from "@/lib/locale";
 import { isOnboarded, loadOnboarding, saveOnboarding } from "@/lib/onboarding";
-import { onAuth } from "@/lib/auth";
+import { onAuth, auth } from "@/lib/auth";
 import { loadProfileFromFirestore } from "@/lib/firestore-profile";
 import {
   restoreLocalStateFromFirestore,
@@ -18,6 +18,8 @@ import { useGamification } from "@/hooks/use-gamification";
 import { useNetworkStatus } from "@/hooks/use-network-status";
 import { cn } from "@/lib/utils";
 import { getStoredTheme, setStoredTheme } from "@/lib/theme";
+import { NotificationBell } from "@/components/NotificationBell";
+import { usePushNotifications } from "@/hooks/use-push-notifications";
 
 const AiChat = lazy(() =>
   import("@/components/AiChat").then((module) => ({ default: module.AiChat })),
@@ -86,6 +88,20 @@ function AppLayout() {
   const [identity, setIdentity] = useState({ name: "Atleta 3D Body Scanner", avatarUrl: "" });
   const [locale, setLocale] = useState<ReturnType<typeof getStoredLocale>>(getStoredLocale);
 
+  // Otimismo: se onboarding está em localStorage, mostra o app imediatamente
+  // Roda ANTES do primeiro paint (sem flash de loading para usuários retornando)
+  // Firebase verifica a sessão em background e redireciona se expirada
+  useLayoutEffect(() => {
+    if (isOnboarded()) {
+      const current = loadOnboarding();
+      setIdentity({
+        name: current.name?.trim() || "Atleta 3D Body Scanner",
+        avatarUrl: current.avatarUrl ?? "",
+      });
+      setReady(true);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     if (typeof window === "undefined") return;
     setLocale(getStoredLocale());
@@ -105,57 +121,89 @@ function AppLayout() {
       });
     };
 
+    // Fast path: espera Firebase Auth ler do IndexedDB (geralmente < 200ms)
+    // auth.authStateReady() é a API correta — auth.currentUser é null antes dessa promessa resolver
+    auth.authStateReady().then(() => {
+      if (!cancelled && auth.currentUser && isOnboarded()) {
+        window.clearTimeout(timeout);
+        applyIdentity(auth.currentUser);
+        setReady(true);
+      }
+    }).catch(() => {});
+
     const unsub = onAuth((user) => {
       window.clearTimeout(timeout);
       setAuthTimedOut(false);
       void (async () => {
-        if (!user) {
-          navigate({ to: "/" });
-          return;
-        }
+        try {
+          if (!user) {
+            navigate({ to: "/" });
+            return;
+          }
 
-        const onRemoteChange = () => {
+          const onRemoteChange = () => {
+            if (cancelled) return;
+            applyIdentity(user);
+            setTrainingRefresh((value) => value + 1);
+          };
+
+          if (isOnboarded()) {
+            applyIdentity(user);
+            setReady(true);
+            stopAutosync?.();
+            stopRealtimeSync?.();
+            stopAutosync = startLocalStateAutosync(user.uid);
+            stopRealtimeSync = startRealtimeSync(user.uid, onRemoteChange);
+            void Promise.all([
+              restoreLocalStateFromFirestore(user.uid),
+              import("@/lib/workout-customizations").then(({ restoreCustomizationsFromFirestore }) =>
+                restoreCustomizationsFromFirestore(user.uid),
+              ),
+            ]).then(() => {
+              if (cancelled) return;
+              applyIdentity(user);
+              setTrainingRefresh((value) => value + 1);
+            }).catch(() => {});
+            return;
+          }
+
+          // Timeout de 5s — evita travar se Firestore demorar na 1ª sessão
+          const profile = await Promise.race([
+            loadProfileFromFirestore(user.uid),
+            new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000)),
+          ]).catch(() => null);
+          if (profile) saveOnboarding(profile);
+
           if (cancelled) return;
-          applyIdentity(user);
-          setTrainingRefresh((value) => value + 1);
-        };
 
-        if (isOnboarded()) {
-          applyIdentity(user);
-          setReady(true);
+          if (!isOnboarded()) {
+            navigate({ to: "/onboarding/$step", params: { step: "1" } });
+            return;
+          }
+
           stopAutosync?.();
           stopRealtimeSync?.();
           stopAutosync = startLocalStateAutosync(user.uid);
           stopRealtimeSync = startRealtimeSync(user.uid, onRemoteChange);
-          void restoreLocalStateFromFirestore(user.uid).then(() => {
+          applyIdentity(user);
+          setReady(true);
+          void Promise.all([
+            restoreLocalStateFromFirestore(user.uid),
+            import("@/lib/workout-customizations").then(({ restoreCustomizationsFromFirestore }) =>
+              restoreCustomizationsFromFirestore(user.uid),
+            ),
+          ]).then(() => {
             if (cancelled) return;
             applyIdentity(user);
             setTrainingRefresh((value) => value + 1);
           }).catch(() => {});
-          return;
+        } catch {
+          // Erro inesperado: mostra o app de qualquer forma para não travar
+          if (!cancelled) {
+            if (isOnboarded()) setReady(true);
+            else navigate({ to: "/" });
+          }
         }
-
-        const profile = await loadProfileFromFirestore(user.uid).catch(() => null);
-        if (profile) saveOnboarding(profile);
-
-        if (cancelled) return;
-
-        if (!isOnboarded()) {
-          navigate({ to: "/onboarding/$step", params: { step: "1" } });
-          return;
-        }
-
-        stopAutosync?.();
-        stopRealtimeSync?.();
-        stopAutosync = startLocalStateAutosync(user.uid);
-        stopRealtimeSync = startRealtimeSync(user.uid, onRemoteChange);
-        applyIdentity(user);
-        setReady(true);
-        void restoreLocalStateFromFirestore(user.uid).then(() => {
-          if (cancelled) return;
-          applyIdentity(user);
-          setTrainingRefresh((value) => value + 1);
-        }).catch(() => {});
       })();
     });
 
@@ -250,6 +298,7 @@ function ReadyAppLayout({
       .slice(0, 2) || "AZ";
 
   const { isOnline, justReconnected } = useNetworkStatus();
+  usePushNotifications();
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-background text-foreground">
@@ -273,9 +322,7 @@ function ReadyAppLayout({
           <Logo size={38} />
             <div className="flex items-center gap-2.5 sm:gap-3">
             <ThemeToggleButton />
-            <div className="block md:block">
-              <LocaleSwitcher value={locale} onChange={(next) => handleLocaleChange(next)} tiny />
-            </div>
+            <LocaleSwitcher value={locale} onChange={(next) => handleLocaleChange(next)} tiny />
             <Link
               to="/onboarding/$step"
               params={{ step: "1" }}
@@ -288,13 +335,10 @@ function ReadyAppLayout({
                 <Flame className="h-3.5 w-3.5" /> {gamification.streakDays} dias
               </div>
             )}
-            <div className="grid h-10 w-10 place-items-center overflow-hidden rounded-full bg-gradient-primary text-sm font-bold text-primary-foreground sm:h-9 sm:w-9">
-              {identity.avatarUrl ? (
-                <img src={identity.avatarUrl} alt={identity.name} className="h-full w-full object-cover" />
-              ) : (
-                initials
-              )}
-            </div>
+            <NotificationBell
+              streakDays={gamification.streakDays}
+              hasDailyMission={false}
+            />
           </div>
         </div>
       </header>

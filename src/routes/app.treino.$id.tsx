@@ -134,14 +134,20 @@ function WorkoutDetailPage() {
   const [showShareModal, setShowShareModal] = useState(false);
   const historyIdRef = useRef<string>("");
   const trainingState = useTrainingState();
-  const baseWorkout = getGeneratedWorkout(id, { applyCustomizations: false });
-  const workout = trainingState.workouts.find((w) => w.id === id) ?? getGeneratedWorkout(id);
+  const baseWorkout = useMemo(
+    () => getGeneratedWorkout(id, { applyCustomizations: false }),
+    [id],
+  );
+  // workout re-reads localStorage after each commitCustomization (revision bump)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const workout = useMemo(() => getGeneratedWorkout(id), [id, revision]);
   const catalog = useExerciseCatalog();
   const catalogById = useMemo(
     () => new Map(catalog.map((record) => [record.id, record])),
     [catalog],
   );
-  const storedCustomization = revision >= 0 ? getWorkoutCustomization(id) : null;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const storedCustomization = useMemo(() => getWorkoutCustomization(id), [id, revision]);
 
   const locale = getStoredLocale();
   const c = WCOPY[locale as keyof typeof WCOPY] ?? WCOPY.pt;
@@ -246,23 +252,33 @@ function WorkoutDetailPage() {
     if (!currentRecord) return [];
 
     const usedIds = new Set(workout.exercises.map((item) => item.exerciseId));
-    const strict = catalog.filter((record) => {
-      if (record.id === exerciseId) return false;
-      if (usedIds.has(record.id)) return false;
-      if (record.category !== currentRecord.category) return false;
-      if (!supportsTrainingType(record)) return false;
-      if (!supportsProfileEquipment(record.equipment)) return false;
-      if (!supportsEnvironment(record.equipment, record.trainingType)) return false;
-      return true;
-    });
-    if (strict.length > 0) return strict;
-    // fallback: same category ignoring environment filter
-    return catalog.filter((record) => {
-      if (record.id === exerciseId) return false;
-      if (usedIds.has(record.id)) return false;
-      if (!supportsTrainingType(record)) return false;
-      return record.category === currentRecord.category;
-    });
+    const baseFilter = (record: ExerciseCatalogRecord) =>
+      record.id !== exerciseId &&
+      !usedIds.has(record.id) &&
+      record.category === currentRecord.category &&
+      supportsTrainingType(record);
+
+    // Tier 1: mesmo padrão de movimento + equipamento compatível
+    const byPattern = catalog.filter(
+      (record) =>
+        baseFilter(record) &&
+        record.movementPattern.pt === currentRecord.movementPattern.pt &&
+        supportsProfileEquipment(record.equipment) &&
+        supportsEnvironment(record.equipment, record.trainingType),
+    );
+    if (byPattern.length > 0) return byPattern;
+
+    // Tier 2: mesma categoria + equipamento compatível
+    const byCategory = catalog.filter(
+      (record) =>
+        baseFilter(record) &&
+        supportsProfileEquipment(record.equipment) &&
+        supportsEnvironment(record.equipment, record.trainingType),
+    );
+    if (byCategory.length > 0) return byCategory;
+
+    // Tier 3: mesma categoria sem filtro de ambiente
+    return catalog.filter((record) => baseFilter(record));
   };
 
   const getSuggestedAddRecord = () => {

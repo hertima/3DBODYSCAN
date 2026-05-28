@@ -289,19 +289,19 @@ export function getReadinessLevelLabel(value: "alta" | "media" | "baixa", locale
 }
 
 const workoutNameTranslations: Record<string, Partial<Record<AppLocale, string>>> = {
-  "Push A — Peito":       { en: "Push A — Chest",         es: "Empuje A — Pecho",         fr: "Poussée A — Pectoraux",       de: "Drücken A — Brust"          },
-  "Pull A — Costas":      { en: "Pull A — Back",          es: "Tirón A — Espalda",        fr: "Tirage A — Dos",              de: "Ziehen A — Rücken"          },
-  "Legs A — Quadríceps":  { en: "Legs A — Quads",         es: "Piernas A — Cuádriceps",   fr: "Jambes A — Quadriceps",       de: "Beine A — Quadrizeps"       },
-  "Push B — Ombros":      { en: "Push B — Shoulders",     es: "Empuje B — Hombros",       fr: "Poussée B — Épaules",         de: "Drücken B — Schultern"      },
-  "Pull B — Bíceps":      { en: "Pull B — Biceps",        es: "Tirón B — Bíceps",         fr: "Tirage B — Biceps",           de: "Ziehen B — Bizeps"          },
-  "Legs B — Posterior":   { en: "Legs B — Hamstrings",    es: "Piernas B — Isquiotibiales", fr: "Jambes B — Ischio-jambiers",  de: "Beine B — Beinbeuger"       },
-  "Full Body A":          { en: "Full Body A",             es: "Cuerpo Completo A",        fr: "Corps Complet A",             de: "Ganzkörper A"               },
-  "Full Body B":          { en: "Full Body B",             es: "Cuerpo Completo B",        fr: "Corps Complet B",             de: "Ganzkörper B"               },
-  "Upper A — Empurrar":   { en: "Upper A — Push",         es: "Superior A — Empuje",      fr: "Haut A — Poussée",            de: "Oberkörper A — Drücken"     },
-  "Upper B — Puxar":      { en: "Upper B — Pull",         es: "Superior B — Tirón",       fr: "Haut B — Tirage",             de: "Oberkörper B — Ziehen"      },
-  "Lower A — Quadríceps": { en: "Lower A — Quads",        es: "Inferior A — Cuádriceps",  fr: "Bas A — Quadriceps",          de: "Unterkörper A — Quadrizeps" },
-  "Lower B — Posterior":  { en: "Lower B — Hamstrings",   es: "Inferior B — Isquios",     fr: "Bas B — Ischio-jambiers",     de: "Unterkörper B — Beinbeuger" },
-  "Lower A — Glúteos":    { en: "Lower A — Glutes",       es: "Inferior A — Glúteos",     fr: "Bas A — Fessiers",            de: "Unterkörper A — Gesäß"      },
+  "Peito":                 { en: "Chest",                  es: "Pecho",                    fr: "Pectoraux",                   de: "Brust"                       },
+  "Ombros":                { en: "Shoulders",              es: "Hombros",                  fr: "Épaules",                     de: "Schultern"                   },
+  "Costas":                { en: "Back",                   es: "Espalda",                  fr: "Dos",                         de: "Rücken"                      },
+  "Bíceps":                { en: "Biceps",                 es: "Bíceps",                   fr: "Biceps",                      de: "Bizeps"                      },
+  "Quadríceps":            { en: "Quads",                  es: "Cuádriceps",               fr: "Quadriceps",                  de: "Quadrizeps"                  },
+  "Posterior":             { en: "Hamstrings",             es: "Isquiotibiales",           fr: "Ischio-jambiers",             de: "Beinbeuger"                  },
+  "Corpo Inteiro A":      { en: "Full Body A",             es: "Cuerpo Completo A",        fr: "Corps Complet A",             de: "Ganzkörper A"               },
+  "Corpo Inteiro B":      { en: "Full Body B",             es: "Cuerpo Completo B",        fr: "Corps Complet B",             de: "Ganzkörper B"               },
+  "Superior A — Empurrar":{ en: "Upper A — Push",         es: "Superior A — Empuje",      fr: "Haut A — Poussée",            de: "Oberkörper A — Drücken"     },
+  "Superior B — Puxar":   { en: "Upper B — Pull",         es: "Superior B — Tirón",       fr: "Haut B — Tirage",             de: "Oberkörper B — Ziehen"      },
+  "Pernas A — Quadríceps":{ en: "Lower A — Quads",        es: "Piernas A — Cuádriceps",   fr: "Bas A — Quadriceps",          de: "Unterkörper A — Quadrizeps" },
+  "Pernas B — Posterior": { en: "Lower B — Hamstrings",   es: "Piernas B — Isquios",      fr: "Bas B — Ischio-jambiers",     de: "Unterkörper B — Beinbeuger" },
+  "Pernas A — Glúteos":   { en: "Lower A — Glutes",       es: "Piernas A — Glúteos",      fr: "Bas A — Fessiers",            de: "Unterkörper A — Gesäß"      },
   "Upper — Definição":    { en: "Upper — Sculpting",      es: "Superior — Definición",    fr: "Haut — Sculpture",            de: "Oberkörper — Definition"    },
   "Hybrid Performance":   { en: "Hybrid Performance",     es: "Rendimiento Híbrido",      fr: "Performance Hybride",         de: "Hybride Performance"        },
   // Cross-pair / Antagonist splits
@@ -330,12 +330,12 @@ const workoutNameTranslations: Record<string, Partial<Record<AppLocale, string>>
   "Funcional E — Mobilidade ativa":     { en: "Functional E — Active Mobility",  es: "Funcional E — Movilidad activa",     fr: "Fonctionnel E — Mobilité active",    de: "Funktionell E — Aktive Mobilität"   },
   "Funcional F — Potência e coordenação":{ en: "Functional F — Power & Coordination", es: "Funcional F — Potencia y coordinación", fr: "Fonctionnel F — Puissance et coordination", de: "Funktionell F — Kraft & Koordination" },
   // Calisthenics templates
-  "Calistenia Push":      { en: "Calisthenics Push",      es: "Calistenia Empuje",        fr: "Callisthénique Poussée",     de: "Calisthenics Drücken"       },
-  "Calistenia Pull":      { en: "Calisthenics Pull",      es: "Calistenia Tirón",         fr: "Callisthénique Tirage",      de: "Calisthenics Ziehen"        },
-  "Calistenia Legs":      { en: "Calisthenics Legs",      es: "Calistenia Piernas",       fr: "Callisthénique Jambes",      de: "Calisthenics Beine"         },
+  "Calistenia Empurrar":  { en: "Calisthenics Push",      es: "Calistenia Empuje",        fr: "Callisthénique Poussée",     de: "Calisthenics Drücken"       },
+  "Calistenia Puxar":     { en: "Calisthenics Pull",      es: "Calistenia Tirón",         fr: "Callisthénique Tirage",      de: "Calisthenics Ziehen"        },
+  "Calistenia Pernas":    { en: "Calisthenics Legs",      es: "Calistenia Piernas",       fr: "Callisthénique Jambes",      de: "Calisthenics Beine"         },
   "Calistenia Core":      { en: "Calisthenics Core",      es: "Calistenia Core",          fr: "Callisthénique Core",        de: "Calisthenics Core"          },
   "Calistenia Skills":    { en: "Calisthenics Skills",    es: "Calistenia Habilidades",   fr: "Callisthénique Compétences", de: "Calisthenics Skills"        },
-  "Calistenia Full Body": { en: "Calisthenics Full Body", es: "Calistenia Cuerpo Completo", fr: "Callisthénique Corps Complet", de: "Calisthenics Ganzkörper"  },
+  "Calistenia Corpo Inteiro": { en: "Calisthenics Full Body", es: "Calistenia Cuerpo Completo", fr: "Callisthénique Corps Complet", de: "Calisthenics Ganzkörper"  },
 };
 
 export function translateWorkoutName(name: string, locale: AppLocale = getStoredLocale()): string {

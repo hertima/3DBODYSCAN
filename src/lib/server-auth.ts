@@ -1,7 +1,7 @@
 export async function verifyFirebaseToken(authHeader: string | null | undefined): Promise<string | null> {
   if (!authHeader?.startsWith("Bearer ")) return null;
   const token = authHeader.slice(7);
-  const apiKey = process.env.FIREBASE_API_KEY;
+  const apiKey = process.env.FIREBASE_API_KEY ?? process.env.VITE_FIREBASE_API_KEY;
   if (!apiKey) return null;
   try {
     const res = await fetch(

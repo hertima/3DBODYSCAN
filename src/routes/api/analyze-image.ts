@@ -1,16 +1,20 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { verifyFirebaseToken } from "@/lib/server-auth";
 import { OPENAI_MODEL } from "@/lib/openai-config";
+
+const MAX_IMAGE_B64 = 7 * 1024 * 1024; // ~5 MB decoded
 
 export const Route = createFileRoute("/api/analyze-image")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        // Auth opcional — usuário já autenticado pelo Firebase no client
+        const uid = await verifyFirebaseToken(request.headers.get("Authorization"));
+        if (!uid) return new Response("Unauthorized", { status: 401 });
 
         const key = process.env.OPENAI_API_KEY;
         if (!key) return new Response("API key not configured", { status: 500 });
 
-        const { imageBase64, userContext, locale, kind, height, weight } = (await request.json()) as {
+        const body = (await request.json()) as {
           imageBase64: string;
           userContext: string;
           locale: string;
@@ -18,6 +22,16 @@ export const Route = createFileRoute("/api/analyze-image")({
           height?: number;
           weight?: number;
         };
+
+        const imageBase64 = String(body.imageBase64 ?? "");
+        if (!imageBase64 || imageBase64.length > MAX_IMAGE_B64)
+          return new Response("Image too large or missing", { status: 400 });
+
+        const userContext = String(body.userContext ?? "").slice(0, 3000);
+        const locale = String(body.locale ?? "pt").slice(0, 5);
+        const kind = body.kind === "food" ? "food" : "body";
+        const height = typeof body.height === "number" ? body.height : undefined;
+        const weight = typeof body.weight === "number" ? body.weight : undefined;
 
         const LANGUAGE_NAME: Record<string, string> = {
           pt: "português brasileiro", es: "español", en: "English", fr: "français", de: "Deutsch",

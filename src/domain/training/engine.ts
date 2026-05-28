@@ -395,39 +395,39 @@ function scoreTemplateFit(record: ExerciseCatalogRecord, template: WorkoutTempla
   if ((tName.includes("Panturrilha") || tName.includes("Pernas")) && record.category === "panturrilha") score += 8;
   if ((tName.includes("Core") || tName.includes("Abdômen")) && record.category === "abdomen_core") score += 8;
 
-  // Push A/B — peito, ombros, tríceps
-  if (tName.startsWith("Push") || tName.includes(" Push") || tName.startsWith("Upper A")) {
+  // Peito / Ombros — push days
+  if (tName === "Peito" || tName === "Ombros" || tName.startsWith("Empurrar") || tName.startsWith("Push") || tName.includes(" Push") || tName.startsWith("Upper A")) {
     if (record.category === "peitoral" && movement.includes("empurrar horizontal")) score += 12;
     if (record.category === "deltoides" && movement.includes("empurrar vertical")) score += 10;
     if (record.category === "triceps") score += 8;
     if (record.category === "abdomen_core") score += 2;
   }
 
-  // Pull A/B — costas, bíceps
-  if (tName.startsWith("Pull") || tName.includes(" Pull") || tName.startsWith("Upper B")) {
+  // Costas / Bíceps — pull days
+  if (tName === "Costas" || tName === "Bíceps" || tName.startsWith("Puxar") || tName.startsWith("Pull") || tName.includes(" Pull") || tName.startsWith("Upper B")) {
     if (record.category === "costas_trapezio" && (movement.includes("puxar") || movement.includes("remada"))) score += 12;
     if (record.category === "biceps_antebraco") score += 8;
     if (record.category === "deltoides" && name.includes("posterior")) score += 6;
     if (record.category === "abdomen_core") score += 2;
   }
 
-  // Upper A — Empurrar (upper/lower splits)
-  if (tName === "Upper A — Empurrar") {
+  // Superior A — Empurrar (upper/lower splits)
+  if (tName === "Superior A — Empurrar" || tName === "Upper A — Empurrar") {
     if (record.category === "peitoral") score += 10;
     if (record.category === "costas_trapezio") score += 8;
     if (record.category === "deltoides") score += 6;
     if (record.category === "triceps") score += 6;
   }
 
-  // Upper B — Puxar (upper/lower splits)
-  if (tName === "Upper B — Puxar") {
+  // Superior B — Puxar (upper/lower splits)
+  if (tName === "Superior B — Puxar" || tName === "Upper B — Puxar") {
     if (record.category === "costas_trapezio") score += 12;
     if (record.category === "biceps_antebraco") score += 10;
     if (record.category === "peitoral") score += 6;
   }
 
-  // Legs / Lower — membros inferiores
-  if (tName.startsWith("Legs") || tName.includes(" Legs") || tName.startsWith("Lower")) {
+  // Quadríceps / Posterior / Legs / Lower — membros inferiores
+  if (tName === "Quadríceps" || tName === "Posterior" || tName.startsWith("Legs") || tName.includes(" Legs") || tName.startsWith("Lower")) {
     if (record.category === "membros_inferiores_gluteos") score += 12;
     if (record.category === "panturrilha") score += 8;
     if (record.category === "abdomen_core") score += 3;

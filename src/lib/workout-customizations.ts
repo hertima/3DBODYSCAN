@@ -58,3 +58,15 @@ export function clearWorkoutCustomization(workoutId: string) {
     }),
   );
 }
+
+export async function restoreCustomizationsFromFirestore(uid: string) {
+  try {
+    const { loadCustomizationsFromFirestore } = await import("./firestore-customizations");
+    const remote = await loadCustomizationsFromFirestore(uid);
+    const local = readStore();
+    const merged = { ...remote, ...local };
+    writeStore(merged);
+  } catch {
+    // silent — local state takes precedence
+  }
+}

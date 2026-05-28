@@ -37,9 +37,14 @@ export const Route = createFileRoute("/api/meal-plan")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-    // Auth opcional — usuário já autenticado pelo Firebase no client
+    const uid = await verifyFirebaseToken(request.headers.get("Authorization"));
+    if (!uid) return new Response("Unauthorized", { status: 401 });
 
-    const { profile, locale = "pt", regenerationId, avoidFoods = [] } = (await request.json()) as MealPlanRequest;
+    const raw = (await request.json()) as MealPlanRequest;
+    const profile = raw.profile;
+    const locale = String(raw.locale ?? "pt").slice(0, 5);
+    const regenerationId = raw.regenerationId ? String(raw.regenerationId).slice(0, 64) : undefined;
+    const avoidFoods = Array.isArray(raw.avoidFoods) ? raw.avoidFoods.slice(0, 35).map((f) => String(f).slice(0, 100)) : [];
     const key = process.env.OPENAI_API_KEY;
 
     const goalLabel = GOAL_LABEL[profile.goal] ?? profile.goal;

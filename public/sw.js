@@ -1,15 +1,16 @@
-const SHELL_CACHE = "zyrox-shell-v3";
-const MEDIA_CACHE = "zyrox-media-v3";
+const SHELL_CACHE = "zyrox-shell-v5";
+const MEDIA_CACHE = "zyrox-media-v5";
 
 const SHELL_ASSETS = [
   "/",
   "/app",
-  "/favicon.png",
+  "/icon-192.png",
   "/manifest.json",
 ];
 
 const MEDIA_PATTERNS = [/\/musculacao-media\//, /\/calistenia-pura\//, /\/exercises\//];
 
+// ── Install ──────────────────────────────────────────────────────────────────
 self.addEventListener("install", (e) => {
   e.waitUntil(
     caches.open(SHELL_CACHE).then((cache) => cache.addAll(SHELL_ASSETS))
@@ -17,6 +18,7 @@ self.addEventListener("install", (e) => {
   self.skipWaiting();
 });
 
+// ── Activate ─────────────────────────────────────────────────────────────────
 self.addEventListener("activate", (e) => {
   e.waitUntil(
     caches.keys().then((keys) =>
@@ -30,6 +32,7 @@ self.addEventListener("activate", (e) => {
   self.clients.claim();
 });
 
+// ── Fetch ─────────────────────────────────────────────────────────────────────
 self.addEventListener("fetch", (e) => {
   const { request } = e;
   if (request.method !== "GET") return;
@@ -72,4 +75,64 @@ self.addEventListener("fetch", (e) => {
       return cached ?? fetchPromise;
     })
   );
+});
+
+// ── Push (background — app fechado) ──────────────────────────────────────────
+self.addEventListener("push", (e) => {
+  let data = { title: "3D Body Scanner", body: "Nova notificação", url: "/app" };
+  try {
+    if (e.data) data = { ...data, ...e.data.json() };
+  } catch {}
+
+  e.waitUntil(
+    self.registration.showNotification(data.title, {
+      body: data.body,
+      icon: "/icon-192.png",
+      badge: "/icon-192.png",
+      vibrate: [200, 100, 200],
+      data: { url: data.url || "/app" },
+      actions: [
+        { action: "open", title: "Abrir app" },
+        { action: "dismiss", title: "Dispensar" },
+      ],
+    })
+  );
+});
+
+// ── Notification click ────────────────────────────────────────────────────────
+self.addEventListener("notificationclick", (e) => {
+  e.notification.close();
+
+  if (e.action === "dismiss") return;
+
+  const targetUrl = e.notification.data?.url || "/app";
+
+  e.waitUntil(
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
+      // Se o app já está aberto, foca nele
+      for (const client of clientList) {
+        if ("focus" in client) {
+          client.focus();
+          if ("navigate" in client) client.navigate(targetUrl);
+          return;
+        }
+      }
+      // Senão, abre nova janela
+      if (clients.openWindow) return clients.openWindow(targetUrl);
+    })
+  );
+});
+
+// ── Sync periódico (lembrete de treino em background) ────────────────────────
+self.addEventListener("periodicsync", (e) => {
+  if (e.tag === "workout-reminder") {
+    e.waitUntil(
+      self.registration.showNotification("3D Body Scanner 💪", {
+        body: "Hora do treino! Não perca sua sequência.",
+        icon: "/icon-192.png",
+        badge: "/icon-192.png",
+        data: { url: "/app/treinos" },
+      })
+    );
+  }
 });

@@ -402,6 +402,10 @@ function inferMuscleFromCatalog(path: string): MuscleGroup {
   const override = catalogOverrides.find((item) => normalizedName.includes(item.match));
   if (override) return override.muscle;
 
+  // Nome tem prioridade sobre pasta para exercícios que podem estar na pasta errada
+  if (normalizedName.includes("abducao") && !normalizedName.includes("ombro")) return glutesMuscle;
+  if (normalizedName.includes("aducao") && !normalizedName.includes("ombro")) return glutesMuscle;
+
   const folderMatch = catalogMuscleMap.find((item) => normalized.includes(item.match));
   if (folderMatch) {
     return folderMatch.muscle;
@@ -622,12 +626,47 @@ function inferEquipmentFromCatalog(path: string) {
   return "Maquina";
 }
 
-function inferBiomechanicsFromCatalog(muscle: MuscleGroup, type: ExerciseType) {
-  if (muscle === "Peito") return "Empurrar horizontal";
-  if (muscle === "Costas") return "Puxar";
-  if (muscle === "Ombros") return "Empurrar vertical";
-  if (muscle === bicepsMuscle || muscle === tricepsMuscle) return "Isolamento de braços";
-  if (muscle === legsMuscle || muscle === glutesMuscle) return "Dominante de pernas";
+function inferBiomechanicsFromCatalog(muscle: MuscleGroup, type: ExerciseType, exerciseName = "") {
+  const n = exerciseName.toLowerCase();
+
+  if (muscle === "Peito") {
+    if (n.includes("crucifixo") || n.includes("voador") || n.includes("fly") || n.includes("crossover") || n.includes("cross")) return "Adução horizontal";
+    return "Empurrar horizontal";
+  }
+  if (muscle === "Costas") {
+    if (n.includes("remada") || n.includes("serrote")) return "Remada";
+    if (n.includes("puxada") || n.includes("pulldown") || n.includes("barra fixa") || n.includes("pull up") || n.includes("pullup")) return "Puxada";
+    return "Puxar";
+  }
+  if (muscle === "Ombros") {
+    if (n.includes("elevacao lateral") || n.includes("lateral")) return "Elevação lateral";
+    if (n.includes("elevacao frontal") || n.includes("frontal")) return "Elevação frontal";
+    if (n.includes("posterior") || n.includes("facepull") || n.includes("face pull") || n.includes("bird")) return "Deltóide posterior";
+    return "Empurrar vertical";
+  }
+  if (muscle === bicepsMuscle) {
+    if (n.includes("martelo") || n.includes("hammer")) return "Rosca martelo";
+    return "Rosca bíceps";
+  }
+  if (muscle === tricepsMuscle) {
+    if (n.includes("coice") || n.includes("kickback")) return "Tríceps coice";
+    if (n.includes("testa") || n.includes("frances") || n.includes("skull")) return "Tríceps testa";
+    return "Tríceps";
+  }
+  if (muscle === legsMuscle || muscle === glutesMuscle) {
+    if (n.includes("abducao") || n.includes("abdutora")) return "Abdução";
+    if (n.includes("aducao") || n.includes("adutora")) return "Adução";
+    if (n.includes("extensora") || n.includes("leg extension")) return "Isolamento quadriceps";
+    if (n.includes("flexora") || n.includes("mesa flex") || n.includes("leg curl")) return "Isolamento posterior";
+    if (n.includes("hip thrust") || n.includes("pelvica") || n.includes("ponte") ||
+        (n.includes("extensao") && (n.includes("quadril") || n.includes("apoio")))) return "Hip thrust";
+    if (n.includes("stiff") || n.includes("terra") || n.includes("romeno") || n.includes("deadlift")) return "Hip hinge";
+    if (n.includes("leg press")) return "Empurrar pernas";
+    if (n.includes("agachamento") || n.includes("squat") || n.includes("goblet")) return "Agachamento";
+    if (n.includes("afundo") || n.includes("avanco") || n.includes("passada") || n.includes("lunge")) return "Afundo";
+    if (n.includes("panturrilha") || n.includes("gemeos") || n.includes("calf")) return "Panturrilha";
+    return "Dominante de pernas";
+  }
   if (muscle === "Core") return "Estabilidade de core";
   if (muscle === forearmMuscle) return "Pegada e antebraço";
   if (type === calisthenicsType) return "Controle corporal";
@@ -803,6 +842,7 @@ musculacaoPrincipalCatalog.forEach((path) => {
   const muscle = inferMuscleFromCatalog(path);
   const type = inferTypeFromCatalog(path);
 
+  const biomechanics = inferBiomechanicsFromCatalog(muscle, type, name);
   catalogExercises.push({
     id: `catalog-${catalogExercises.length + 1}`,
     name,
@@ -810,9 +850,9 @@ musculacaoPrincipalCatalog.forEach((path) => {
     muscle,
     sourceGroup,
     equipment: inferEquipmentFromCatalog(path),
-    biomechanics: inferBiomechanicsFromCatalog(muscle, type),
-    instructions: getAutoInstructions(inferBiomechanicsFromCatalog(muscle, type)),
-    mistakes: getAutoMistakes(inferBiomechanicsFromCatalog(muscle, type)),
+    biomechanics,
+    instructions: getAutoInstructions(biomechanics),
+    mistakes: getAutoMistakes(biomechanics),
     alternatives: [],
     gifUrl: encodeURI(`/musculacao-media/${path}`),
   });
@@ -822,6 +862,7 @@ calistheniaPuraCatalog.forEach((path) => {
   const name = extractCatalogName(path);
   const muscle = inferMuscleFromCatalog(path);
 
+  const calBiomechanics = inferBiomechanicsFromCatalog(muscle, calisthenicsType, name);
   catalogExercises.push({
     id: `catalog-${catalogExercises.length + 1}`,
     name,
@@ -829,9 +870,9 @@ calistheniaPuraCatalog.forEach((path) => {
     muscle,
     sourceGroup: "Calistenia",
     equipment: inferEquipmentFromCatalog(path),
-    biomechanics: inferBiomechanicsFromCatalog(muscle, calisthenicsType),
-    instructions: getAutoInstructions(inferBiomechanicsFromCatalog(muscle, calisthenicsType)),
-    mistakes: getAutoMistakes(inferBiomechanicsFromCatalog(muscle, calisthenicsType)),
+    biomechanics: calBiomechanics,
+    instructions: getAutoInstructions(calBiomechanics),
+    mistakes: getAutoMistakes(calBiomechanics),
     alternatives: [],
     gifUrl: encodeURI(`/calistenia-pura/Calistenia/${path}`),
   });

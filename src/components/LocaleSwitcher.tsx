@@ -14,6 +14,7 @@ type LocaleSwitcherProps = {
   onChange: (locale: AppLocale) => void;
   compact?: boolean;
   tiny?: boolean;
+  flagOnly?: boolean;
   align?: "start" | "center" | "end";
 };
 
@@ -25,37 +26,47 @@ function FlagBadge({ src, alt }: { src: string; alt: string }) {
   );
 }
 
-export function LocaleSwitcher({ value, onChange, compact = false, tiny = false, align = "end" }: LocaleSwitcherProps) {
+export function LocaleSwitcher({ value, onChange, compact = false, tiny = false, flagOnly = false, align = "end" }: LocaleSwitcherProps) {
   const activeLocale = SUPPORTED_LOCALES.find((item) => item.code === value) ?? SUPPORTED_LOCALES[0];
   const detectedLocale = detectBrowserLocale();
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button
-          type="button"
-          className={cn(
-            "inline-flex items-center gap-1.5 rounded-full border border-border bg-surface text-left text-foreground transition hover:border-primary/30 hover:bg-elevated",
-            tiny
-              ? "px-2 py-1.5"
-              : compact
-                ? "min-w-[142px] px-2.5 py-1.5 text-[11px] sm:min-w-[176px] sm:px-3 sm:py-2 sm:text-xs"
-                : "min-w-[220px] px-3 py-2 sm:min-w-[240px]"
-          )}
-          aria-label="Trocar idioma"
-        >
-          <FlagBadge src={activeLocale.flagSrc} alt={activeLocale.nativeLabel} />
-          {!tiny && (
-            <span className="min-w-0 flex-1">
-              <span className="hidden text-[10px] uppercase tracking-[0.16em] text-muted-foreground sm:block">Idioma</span>
-              <span className="block truncate text-[12px] font-semibold text-foreground sm:text-sm">{activeLocale.nativeLabel}</span>
-            </span>
-          )}
-          {tiny && (
-            <span className="text-[11px] font-bold uppercase text-foreground">{activeLocale.code.toUpperCase()}</span>
-          )}
-          <ChevronDown className="h-3 w-3 text-muted-foreground" />
-        </button>
+        {flagOnly ? (
+          <button
+            type="button"
+            aria-label="Trocar idioma"
+            className="absolute -bottom-1 -right-1 inline-flex h-[18px] w-6 overflow-hidden rounded-[4px] border-2 border-background shadow-md transition hover:scale-110"
+          >
+            <img src={activeLocale.flagSrc} alt={activeLocale.nativeLabel} className="h-full w-full object-cover" loading="lazy" />
+          </button>
+        ) : (
+          <button
+            type="button"
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-full border border-border bg-surface text-left text-foreground transition hover:border-primary/30 hover:bg-elevated",
+              tiny
+                ? "px-2 py-1.5"
+                : compact
+                  ? "min-w-[142px] px-2.5 py-1.5 text-[11px] sm:min-w-[176px] sm:px-3 sm:py-2 sm:text-xs"
+                  : "min-w-[220px] px-3 py-2 sm:min-w-[240px]"
+            )}
+            aria-label="Trocar idioma"
+          >
+            <FlagBadge src={activeLocale.flagSrc} alt={activeLocale.nativeLabel} />
+            {!tiny && (
+              <span className="min-w-0 flex-1">
+                <span className="hidden text-[10px] uppercase tracking-[0.16em] text-muted-foreground sm:block">Idioma</span>
+                <span className="block truncate text-[12px] font-semibold text-foreground sm:text-sm">{activeLocale.nativeLabel}</span>
+              </span>
+            )}
+            {tiny && (
+              <span className="text-[11px] font-bold uppercase text-foreground">{activeLocale.code.toUpperCase()}</span>
+            )}
+            <ChevronDown className="h-3 w-3 text-muted-foreground" />
+          </button>
+        )}
       </DropdownMenuTrigger>
       <DropdownMenuContent align={align} className="w-[300px] rounded-2xl border-border bg-surface p-2 text-foreground shadow-2xl">
         {SUPPORTED_LOCALES.map((item) => {

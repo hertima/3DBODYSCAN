@@ -56,6 +56,16 @@ const SECURITY_HEADERS: Record<string, string> = {
   "Referrer-Policy": "strict-origin-when-cross-origin",
   "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
   "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
+  "Content-Security-Policy": [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: blob: https://flagcdn.com https://firebasestorage.googleapis.com",
+    "connect-src 'self' https://*.googleapis.com https://*.firebase.com https://api.openai.com wss://*.firebaseio.com",
+    "font-src 'self' data:",
+    "media-src 'self' blob:",
+    "frame-ancestors 'none'",
+  ].join("; "),
 };
 
 function addSecurityHeaders(response: Response): Response {

@@ -185,7 +185,20 @@ function RootShell({ children }: { children: React.ReactNode }) {
       <body>
         {children}
         <Scripts />
-        <script dangerouslySetInnerHTML={{ __html: `if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js')}` }} />
+        <script dangerouslySetInnerHTML={{ __html: `
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('/sw.js').then(reg => {
+    // Periodic Background Sync — lembrete de treino diário
+    if('periodicSync' in reg){
+      navigator.permissions.query({name:'periodic-background-sync'}).then(status => {
+        if(status.state === 'granted'){
+          reg.periodicSync.register('workout-reminder', {minInterval: 24 * 60 * 60 * 1000});
+        }
+      }).catch(()=>{});
+    }
+  });
+}
+        `.trim() }} />
       </body>
     </html>
   );

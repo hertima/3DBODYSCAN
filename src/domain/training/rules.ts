@@ -87,10 +87,10 @@ export function resolveTrainingSplit(profile: AthleteProfile): TrainingSplit {
   return "upper_lower";
 }
 
-// ── Push A/B ────────────────────────────────────────────────────
+// ── Empurrar A/B ─────────────────────────────────────────────────
 function buildPushA(): WorkoutTemplate {
   return {
-    name: "Push A — Peito",
+    name: "Peito",
     split: "push_pull_legs",
     categories: [
       { primary: "peitoral", slots: 3 },
@@ -103,7 +103,7 @@ function buildPushA(): WorkoutTemplate {
 
 function buildPushB(): WorkoutTemplate {
   return {
-    name: "Push B — Ombros",
+    name: "Ombros",
     split: "push_pull_legs",
     categories: [
       { primary: "deltoides", slots: 3 },
@@ -114,10 +114,10 @@ function buildPushB(): WorkoutTemplate {
   };
 }
 
-// ── Pull A/B ────────────────────────────────────────────────────
+// ── Puxar A/B ────────────────────────────────────────────────────
 function buildPullA(): WorkoutTemplate {
   return {
-    name: "Pull A — Costas",
+    name: "Costas",
     split: "push_pull_legs",
     categories: [
       { primary: "costas_trapezio", slots: 4 },
@@ -130,7 +130,7 @@ function buildPullA(): WorkoutTemplate {
 
 function buildPullB(): WorkoutTemplate {
   return {
-    name: "Pull B — Bíceps",
+    name: "Bíceps",
     split: "push_pull_legs",
     categories: [
       { primary: "costas_trapezio", slots: 3 },
@@ -141,10 +141,10 @@ function buildPullB(): WorkoutTemplate {
   };
 }
 
-// ── Legs A/B (PPL) ───────────────────────────────────────────────
+// ── Pernas A/B (PPL) ─────────────────────────────────────────────
 function buildLegsA(): WorkoutTemplate {
   return {
-    name: "Legs A — Quadríceps",
+    name: "Quadríceps",
     split: "push_pull_legs",
     categories: [
       { primary: "membros_inferiores_gluteos", slots: 4 },
@@ -157,7 +157,7 @@ function buildLegsA(): WorkoutTemplate {
 
 function buildLegsB(): WorkoutTemplate {
   return {
-    name: "Legs B — Posterior",
+    name: "Posterior",
     split: "push_pull_legs",
     categories: [
       { primary: "membros_inferiores_gluteos", slots: 4 },
@@ -171,7 +171,7 @@ function buildLegsB(): WorkoutTemplate {
 // ── Full Body A/B ────────────────────────────────────────────────
 function buildFullBodyA(): WorkoutTemplate {
   return {
-    name: "Full Body A",
+    name: "Corpo Inteiro A",
     split: "full_body",
     categories: [
       { primary: "membros_inferiores_gluteos", slots: 2 },
@@ -186,7 +186,7 @@ function buildFullBodyA(): WorkoutTemplate {
 
 function buildFullBodyB(): WorkoutTemplate {
   return {
-    name: "Full Body B",
+    name: "Corpo Inteiro B",
     split: "full_body",
     categories: [
       { primary: "membros_inferiores_gluteos", slots: 2 },
@@ -202,7 +202,7 @@ function buildFullBodyB(): WorkoutTemplate {
 // ── Upper A/B ────────────────────────────────────────────────────
 function buildUpperA(split: TrainingSplit): WorkoutTemplate {
   return {
-    name: "Upper A — Empurrar",
+    name: "Superior A — Empurrar",
     split,
     categories: [
       { primary: "peitoral", slots: 3 },
@@ -216,7 +216,7 @@ function buildUpperA(split: TrainingSplit): WorkoutTemplate {
 
 function buildUpperB(split: TrainingSplit): WorkoutTemplate {
   return {
-    name: "Upper B — Puxar",
+    name: "Superior B — Puxar",
     split,
     categories: [
       { primary: "costas_trapezio", slots: 3 },
@@ -230,7 +230,7 @@ function buildUpperB(split: TrainingSplit): WorkoutTemplate {
 // ── Lower A/B (Upper/Lower splits) ───────────────────────────────
 function buildLowerA(split: TrainingSplit): WorkoutTemplate {
   return {
-    name: "Lower A — Quadríceps",
+    name: "Pernas A — Quadríceps",
     split,
     categories: [
       { primary: "membros_inferiores_gluteos", slots: 5 },
@@ -243,7 +243,7 @@ function buildLowerA(split: TrainingSplit): WorkoutTemplate {
 
 function buildLowerB(split: TrainingSplit): WorkoutTemplate {
   return {
-    name: "Lower B — Posterior",
+    name: "Pernas B — Posterior",
     split,
     categories: [
       { primary: "membros_inferiores_gluteos", slots: 4 },
@@ -258,7 +258,7 @@ function buildLowerB(split: TrainingSplit): WorkoutTemplate {
 function buildFemaleLower(): WorkoutTemplate[] {
   return [
     {
-      name: "Lower A — Glúteos",
+      name: "Pernas A — Glúteos",
       split: "female_lower_priority",
       categories: [
         { primary: "membros_inferiores_gluteos", slots: 5 },
@@ -268,7 +268,7 @@ function buildFemaleLower(): WorkoutTemplate[] {
       ],
     },
     {
-      name: "Upper — Definição",
+      name: "Superior — Definição",
       split: "female_lower_priority",
       categories: [
         { primary: "costas_trapezio", slots: 2 },
@@ -280,7 +280,7 @@ function buildFemaleLower(): WorkoutTemplate[] {
       ],
     },
     {
-      name: "Lower B — Posterior",
+      name: "Pernas B — Posterior",
       split: "female_lower_priority",
       categories: [
         { primary: "membros_inferiores_gluteos", slots: 4 },
@@ -528,7 +528,7 @@ function buildStrengthLowerPriorityTemplates(trainingDays: number, rotation = 0)
     ],
   };
   const upperPosture: WorkoutTemplate = {
-    name: "Upper — Postura e Definição",
+    name: "Superior — Postura e Definição",
     split: "female_lower_priority",
     categories: [
       { primary: "costas_trapezio", slots: 3 },
@@ -642,7 +642,7 @@ function buildFunctionalTemplates(trainingDays: number): WorkoutTemplate[] {
 function buildCalistheniaTemplates(trainingDays: number): WorkoutTemplate[] {
   const templates: WorkoutTemplate[] = [
     {
-      name: "Calistenia Push",
+      name: "Calistenia Empurrar",
       split: "performance_hybrid",
       categories: [
         { primary: "peitoral", slots: 3 },
@@ -652,7 +652,7 @@ function buildCalistheniaTemplates(trainingDays: number): WorkoutTemplate[] {
       ],
     },
     {
-      name: "Calistenia Pull",
+      name: "Calistenia Puxar",
       split: "performance_hybrid",
       categories: [
         { primary: "costas_trapezio", slots: 4 },
@@ -662,7 +662,7 @@ function buildCalistheniaTemplates(trainingDays: number): WorkoutTemplate[] {
       ],
     },
     {
-      name: "Calistenia Legs",
+      name: "Calistenia Pernas",
       split: "performance_hybrid",
       categories: [
         { primary: "membros_inferiores_gluteos", slots: 5 },
@@ -692,7 +692,7 @@ function buildCalistheniaTemplates(trainingDays: number): WorkoutTemplate[] {
       ],
     },
     {
-      name: "Calistenia Full Body",
+      name: "Calistenia Corpo Inteiro",
       split: "performance_hybrid",
       categories: [
         { primary: "membros_inferiores_gluteos", slots: 2 },

@@ -77,8 +77,13 @@ function resolveCategory(exercise: Exercise): OfficialMuscleCategory {
   const hasToken = (...tokens: string[]) =>
     tokens.some((token) => muscle.includes(token) || sourceGroup.includes(token) || name.includes(token));
 
+  // Only checks muscle + sourceGroup — prevents false positives from exercise names
+  // e.g. "coice" in "Triceps Coice" or "agach" in "Rosca Agachado"
+  const hasTokenStrict = (...tokens: string[]) =>
+    tokens.some((token) => muscle.includes(token) || sourceGroup.includes(token));
+
   if (hasToken("panturrilha", "gemeos", "calf")) return "panturrilha";
-  if (hasToken("gluteos", "gluteo", "glute", "abdutora", "hip thrust", "coice")) {
+  if (hasToken("gluteos", "gluteo", "glute", "abdutora", "hip thrust") || hasTokenStrict("coice")) {
     return "membros_inferiores_gluteos";
   }
   if (
@@ -88,7 +93,6 @@ function resolveCategory(exercise: Exercise): OfficialMuscleCategory {
       "quadriceps",
       "posterior",
       "isquiotib",
-      "agach",
       "afundo",
       "avanco",
       "passada",
@@ -97,7 +101,8 @@ function resolveCategory(exercise: Exercise): OfficialMuscleCategory {
       "leg press",
       "extensora",
       "flexora",
-    )
+    ) ||
+    name.includes("agachamento")
   ) {
     return "membros_inferiores_gluteos";
   }
@@ -205,7 +210,7 @@ export function isFunctionalExerciseRecord(record: ExerciseCatalogRecord) {
   return (
     functionalEquipment.includes(record.equipment) ||
     [
-      "agach",
+      "agachamento",
       "afundo",
       "unilateral",
       "core",
