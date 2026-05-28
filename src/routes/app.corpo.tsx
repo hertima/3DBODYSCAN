@@ -1893,7 +1893,7 @@ function ScanCTA({
   const accentText = isBody ? "text-orange-400" : "text-cyan";
   const fullscreenShellClass = "fixed inset-0 z-[60] flex min-h-[100dvh] flex-col bg-black";
   const fullscreenSafeStyle = {
-    paddingTop: "calc(env(safe-area-inset-top) + 14px)",
+    paddingTop: "calc(env(safe-area-inset-top) + 28px)",
     paddingBottom: "env(safe-area-inset-bottom)",
     paddingLeft: "env(safe-area-inset-left)",
     paddingRight: "env(safe-area-inset-right)",
