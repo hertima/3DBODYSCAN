@@ -37,6 +37,11 @@ export function getCurrentUser() {
   return auth.currentUser;
 }
 
+export async function getAuthToken(forceRefresh = false) {
+  await auth.authStateReady();
+  return auth.currentUser?.getIdToken(forceRefresh);
+}
+
 export function signInWithGoogle() {
   const provider = new GoogleAuthProvider();
   provider.setCustomParameters({ prompt: "select_account" });

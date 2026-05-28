@@ -13,7 +13,7 @@ import { buildNutritionTrainingContext } from "@/domain/nutrition/state";
 import { loadOnboarding } from "@/lib/onboarding";
 import { getStoredLocale } from "@/lib/locale";
 import { buildAthleteMemory, serializeMemoryForAI } from "@/lib/athlete-memory";
-import { auth } from "@/lib/firebase";
+import { getAuthToken } from "@/lib/auth";
 import {
   getAIWorkoutPlan,
   setAIWorkoutPlan,
@@ -105,7 +105,7 @@ export function useTrainingState(refreshKey = 0): TrainingStateWithAI {
       const periodization = buildPeriodizationBlock(profile, body, nutrition, environment, locale);
       const currentWeekData = periodization.weeks[periodization.currentWeek - 1];
 
-      const token = await auth.currentUser?.getIdToken();
+      const token = await getAuthToken();
       const res = await fetch("/api/ai-workout", {
         method: "POST",
         headers: {

@@ -34,7 +34,7 @@ import { evaluateNutritionState } from "@/domain/nutrition/analysis";
 import { getStoredLocale } from "@/lib/locale";
 import { loadOnboarding } from "@/lib/onboarding";
 import { buildUserContext, type AILocale, type DetectedMeasurements } from "@/lib/ai-service";
-import { auth } from "@/lib/firebase";
+import { auth, getAuthToken } from "@/lib/auth";
 import { saveFoodScanToFirestore, loadFoodScansFromFirestore, deleteFoodScanFromFirestore, type FirestoreFoodScan } from "@/lib/firestore-food-scans";
 import { saveBodyScanToFirestore, loadBodyScansFromFirestore, deleteBodyScanFromFirestore, type FirestoreBodyScan } from "@/lib/firestore-body-scans";
 import { saveMeasurementsToFirestore, loadMeasurementsFromFirestore, uploadBodyPhoto, uploadFoodPhoto, type BodyMeasurements } from "@/lib/firestore-measurements";
@@ -1687,7 +1687,7 @@ function ScanCTA({
     const locale = getStoredLocale() as AILocale;
 
     try {
-      const token = await auth.currentUser?.getIdToken();
+      const token = await getAuthToken();
       const res = await fetch("/api/analyze-image", {
         method: "POST",
         headers: {
