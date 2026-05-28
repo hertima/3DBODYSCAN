@@ -1,5 +1,5 @@
-const SHELL_CACHE = "zyrox-shell-v5";
-const MEDIA_CACHE = "zyrox-media-v5";
+const SHELL_CACHE = "zyrox-shell-v6";
+const MEDIA_CACHE = "zyrox-media-v6";
 
 const SHELL_ASSETS = [
   "/",

@@ -48,7 +48,7 @@ export const Route = createFileRoute("/app/perfil")({
 
 function Perfil() {
   const navigate = useNavigate();
-  const [profile, setProfile]       = useState<OnboardingState>({});
+  const [profile, setProfile]       = useState<OnboardingState>(() => loadOnboarding());
   const [workouts, setWorkouts]     = useState<SavedWorkout[]>([]);
   const [bodyScans, setBodyScans]   = useState<FirestoreBodyScan[]>([]);
   const [foodScans, setFoodScans]   = useState<FirestoreFoodScan[]>([]);
@@ -84,24 +84,14 @@ function Perfil() {
   useEffect(() => {
     const uid = auth.currentUser?.uid;
     if (!uid) return;
-    Promise.all([
-      loadProfileFromFirestore(uid),
-      loadWorkoutsFromFirestore(uid),
-      loadBodyScansFromFirestore(uid),
-      loadFoodScansFromFirestore(uid),
-    ]).then(([prof, w, b, f]) => {
-      const local = loadOnboarding();
-      if (prof) {
-        setProfile({ ...prof, avatarUrl: prof.avatarUrl ?? local.avatarUrl });
-      } else {
-        setProfile(local);
-      }
-      setWorkouts(w);
-      setBodyScans(b);
-      setFoodScans(f);
-    }).catch(() => {
-      setProfile(loadOnboarding());
-    });
+    const local = loadOnboarding();
+    setProfile(local);
+    loadProfileFromFirestore(uid).then((prof) => {
+      if (prof) setProfile({ ...prof, avatarUrl: prof.avatarUrl ?? local.avatarUrl });
+    }).catch(() => {});
+    loadWorkoutsFromFirestore(uid).then(setWorkouts).catch(() => {});
+    loadBodyScansFromFirestore(uid).then(setBodyScans).catch(() => {});
+    loadFoodScansFromFirestore(uid).then(setFoodScans).catch(() => {});
   }, []);
 
   const locale = getStoredLocale();

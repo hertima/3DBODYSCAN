@@ -186,7 +186,7 @@ function RootShell({ children }: { children: React.ReactNode }) {
         {children}
         <Scripts />
         <script dangerouslySetInnerHTML={{ __html: `
-if('serviceWorker' in navigator){
+if('serviceWorker' in navigator && !['localhost','127.0.0.1'].includes(location.hostname)){
   navigator.serviceWorker.register('/sw.js').then(reg => {
     // Periodic Background Sync — lembrete de treino diário
     if('periodicSync' in reg){
@@ -197,6 +197,8 @@ if('serviceWorker' in navigator){
       }).catch(()=>{});
     }
   });
+} else if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(reg => reg.unregister())).catch(()=>{});
 }
         `.trim() }} />
       </body>

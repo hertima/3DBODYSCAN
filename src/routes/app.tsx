@@ -285,6 +285,7 @@ function ReadyAppLayout({
   handleLocaleChange: (nextLocale: string) => void;
 }) {
   const loc = useLocation();
+  const [showAiChat, setShowAiChat] = useState(false);
   const nav = getNav(locale);
   const trainingState = useTrainingState(trainingRefresh);
   const { gamification } = useGamification(trainingState);
@@ -299,6 +300,22 @@ function ReadyAppLayout({
 
   const { isOnline, justReconnected } = useNetworkStatus();
   usePushNotifications();
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    let timeoutId: number | null = null;
+    let idleId: number | null = null;
+    const schedule = () => setShowAiChat(true);
+    if ("requestIdleCallback" in window) {
+      idleId = window.requestIdleCallback(schedule, { timeout: 2500 });
+    } else {
+      timeoutId = window.setTimeout(schedule, 1800);
+    }
+    return () => {
+      if (idleId !== null && "cancelIdleCallback" in window) window.cancelIdleCallback(idleId);
+      if (timeoutId !== null) window.clearTimeout(timeoutId);
+    };
+  }, []);
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-background text-foreground">
@@ -379,9 +396,11 @@ function ReadyAppLayout({
           </AnimatePresence>
         </main>
       </div>
-      <Suspense fallback={null}>
-        <AiChat />
-      </Suspense>
+      {showAiChat && (
+        <Suspense fallback={null}>
+          <AiChat />
+        </Suspense>
+      )}
       {/* HIG: safe-area padding + 44px min touch targets */}
       <nav
         className="fixed inset-x-0 bottom-0 z-30 max-w-[100vw] border-t border-border bg-background/95 backdrop-blur lg:hidden"

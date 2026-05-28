@@ -37,7 +37,7 @@ const PERIOD_COPY: Record<AppLocale, { blockTitle: (w: number) => string; blockS
 };
 
 function Dashboard() {
-  const [loaded, setLoaded] = useState(false);
+  const [loaded] = useState(true);
   const [userName, setUserName] = useState("atleta");
   const [avatarUrl, setAvatarUrl] = useState("");
   const trainingState = useTrainingState();
@@ -73,8 +73,6 @@ function Dashboard() {
         if (prof?.avatarUrl) setAvatarUrl(prof.avatarUrl);
       }).catch(() => {});
     }
-    const t = setTimeout(() => setLoaded(true), 300);
-    return () => clearTimeout(t);
   }, []);
   const dailyMission = gamification.missions.diaria[0];
   const mealPlan = loadMealPlan();

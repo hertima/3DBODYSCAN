@@ -1,7 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Area, AreaChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { motion } from "framer-motion";
-import { useState, useEffect, useMemo } from "react";
+import { lazy, Suspense, useState, useEffect, useMemo } from "react";
 import { Flame } from "lucide-react";
 import { buildTrainingAnalytics } from "@/domain/training/analytics";
 import { useTrainingState } from "@/hooks/use-training-state";
@@ -156,6 +155,63 @@ const tooltipStyle = {
   color: "var(--foreground)",
   fontSize: 12,
 };
+
+const VolumeAreaChart = lazy(() =>
+  import("recharts").then(({ Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis }) => ({
+    default: function VolumeAreaChart({
+      data,
+    }: {
+      data: Array<{ day: string; volume: number }>;
+    }) {
+      return (
+        <ResponsiveContainer>
+          <AreaChart data={data} margin={{ top: 10, right: 0, bottom: 0, left: -20 }}>
+            <defs>
+              <linearGradient id="g1" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="var(--primary)" stopOpacity={0.6} />
+                <stop offset="100%" stopColor="var(--primary)" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <XAxis dataKey="day" stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
+            <YAxis stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
+            <Tooltip contentStyle={tooltipStyle} />
+            <Area type="monotone" dataKey="volume" stroke="var(--primary)" strokeWidth={2} fill="url(#g1)" />
+          </AreaChart>
+        </ResponsiveContainer>
+      );
+    },
+  })),
+);
+
+const ProgressionLineChart = lazy(() =>
+  import("recharts").then(({ CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis }) => ({
+    default: function ProgressionLineChart({
+      data,
+      labels,
+    }: {
+      data: Array<{ week: string; supino: number; agachamento: number; terra: number }>;
+      labels: { bench: string; squat: string; deadlift: string };
+    }) {
+      return (
+        <ResponsiveContainer>
+          <LineChart data={data} margin={{ top: 10, right: 8, bottom: 0, left: -20 }}>
+            <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
+            <XAxis dataKey="week" stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
+            <YAxis stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
+            <Tooltip contentStyle={tooltipStyle} />
+            <Line type="monotone" dataKey="supino" name={labels.bench} stroke="var(--primary)" strokeWidth={2} dot={false} />
+            <Line type="monotone" dataKey="agachamento" name={labels.squat} stroke="var(--cyan)" strokeWidth={2} dot={false} />
+            <Line type="monotone" dataKey="terra" name={labels.deadlift} stroke="var(--blue-accent)" strokeWidth={2} dot={false} />
+          </LineChart>
+        </ResponsiveContainer>
+      );
+    },
+  })),
+);
+
+function ChartFallback() {
+  return <div className="h-full w-full animate-pulse rounded-2xl bg-elevated/70" />;
+}
 
 function getMacroLabel(goal: FitnessGoal | undefined, copy: typeof COPY.pt): string {
   if (!goal) return copy.macroLabels.default;
@@ -398,20 +454,9 @@ function Analytics() {
 
       <Card index={3} title={copy.volumeChartTitle} subtitle={copy.volumeChartSubtitle}>
         <div className="h-52">
-          <ResponsiveContainer>
-            <AreaChart data={realVolumeTrend} margin={{ top: 10, right: 0, bottom: 0, left: -20 }}>
-              <defs>
-                <linearGradient id="g1" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="var(--primary)" stopOpacity={0.6} />
-                  <stop offset="100%" stopColor="var(--primary)" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <XAxis dataKey="day" stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
-              <YAxis stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
-              <Tooltip contentStyle={tooltipStyle} />
-              <Area type="monotone" dataKey="volume" stroke="var(--primary)" strokeWidth={2} fill="url(#g1)" />
-            </AreaChart>
-          </ResponsiveContainer>
+          <Suspense fallback={<ChartFallback />}>
+            <VolumeAreaChart data={realVolumeTrend} />
+          </Suspense>
         </div>
       </Card>
 
@@ -443,17 +488,12 @@ function Analytics() {
           <LegendDot color="var(--blue-accent)" label={copy.deadlift} />
         </div>
         <div className="h-56">
-          <ResponsiveContainer>
-            <LineChart data={realProgressionData} margin={{ top: 10, right: 8, bottom: 0, left: -20 }}>
-              <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="week" stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
-              <YAxis stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
-              <Tooltip contentStyle={tooltipStyle} />
-              <Line type="monotone" dataKey="supino" name={copy.bench} stroke="var(--primary)" strokeWidth={2} dot={false} />
-              <Line type="monotone" dataKey="agachamento" name={copy.squat} stroke="var(--cyan)" strokeWidth={2} dot={false} />
-              <Line type="monotone" dataKey="terra" name={copy.deadlift} stroke="var(--blue-accent)" strokeWidth={2} dot={false} />
-            </LineChart>
-          </ResponsiveContainer>
+          <Suspense fallback={<ChartFallback />}>
+            <ProgressionLineChart
+              data={realProgressionData}
+              labels={{ bench: copy.bench, squat: copy.squat, deadlift: copy.deadlift }}
+            />
+          </Suspense>
         </div>
       </Card>
 

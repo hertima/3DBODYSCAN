@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { type ChangeEvent, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, type ChangeEvent, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowRight,
   Camera,
@@ -23,7 +23,6 @@ import {
   X,
   Zap,
 } from "lucide-react";
-import { PolarAngleAxis, RadialBar, RadialBarChart } from "recharts";
 import { AIInsightCard } from "@/components/AIInsightCard";
 import { MuscleSilhouette } from "@/components/MuscleSilhouette";
 import { bodyComposition, bodyMeasures } from "@/data/body";
@@ -354,6 +353,31 @@ const COPY = {
     muscleNames: { Peito: "Brust", Costas: "Rücken", Ombros: "Schultern", "Bíceps": "Bizeps", "Tríceps": "Trizeps", Pernas: "Beine", "Glúteos": "Gesäß", Core: "Core", "Antebraço": "Unterarm", "Full Body": "Ganzer Körper" } as Record<string, string>,
   },
 };
+
+const CalorieRadialChart = lazy(() =>
+  import("recharts").then(({ PolarAngleAxis, RadialBar, RadialBarChart }) => ({
+    default: function CalorieRadialChart({ value }: { value: number }) {
+      return (
+        <RadialBarChart
+          width={128}
+          height={128}
+          innerRadius="75%"
+          outerRadius="100%"
+          data={[{ name: "kcal", value, fill: "var(--cyan)" }]}
+          startAngle={90}
+          endAngle={-270}
+        >
+          <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
+          <RadialBar background={{ fill: "var(--elevated)" }} dataKey="value" cornerRadius={20} />
+        </RadialBarChart>
+      );
+    },
+  })),
+);
+
+function CalorieRadialFallback() {
+  return <div className="h-32 w-32 animate-pulse rounded-full border-[14px] border-elevated" />;
+}
 
 type CopyType = (typeof COPY)[keyof typeof COPY];
 
@@ -1410,15 +1434,9 @@ function NutricaoTab({ copy }: { copy: (typeof COPY)[keyof typeof COPY] }) {
         <CardHeader title={copy.todaySummary} subtitle={copy.goalsMacros} />
         <div className="mt-3 flex items-center gap-3">
           <div className="relative h-32 w-32 shrink-0">
-            <RadialBarChart
-              width={128} height={128}
-              innerRadius="75%" outerRadius="100%"
-              data={[{ name: "kcal", value: pct, fill: "var(--cyan)" }]}
-              startAngle={90} endAngle={-270}
-            >
-              <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
-              <RadialBar background={{ fill: "var(--elevated)" }} dataKey="value" cornerRadius={20} />
-            </RadialBarChart>
+            <Suspense fallback={<CalorieRadialFallback />}>
+              <CalorieRadialChart value={pct} />
+            </Suspense>
             <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
               <Flame className="h-4 w-4 text-primary" />
               <div className="font-display text-xl font-bold leading-none">{remaining.toLocaleString()}</div>
