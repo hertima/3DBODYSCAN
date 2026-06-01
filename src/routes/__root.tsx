@@ -14,9 +14,8 @@ import { applyTheme, getStoredTheme } from "@/lib/theme";
 
 import appCss from "../styles.css?url";
 
-const siteUrl = "https://zyrox.app";
-const previewImage =
-  "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/9b8986db-6a4c-499c-a7c2-163470809a3f/id-preview-ebe8a614--2615779a-270e-4fcf-bd98-70b8371b1978.lovable.app-1778172039316.png";
+const siteUrl = "https://3dbodyscan.herculesacademiarv.workers.dev";
+const previewImage = `${siteUrl}/icon-512.png`;
 const seoTitle = "3D Body Scanner | Treino com IA para muscula\u00E7\u00E3o, calistenia e h\u00EDbrido";
 const seoDescription =
   "3D Body Scanner \u00E9 a plataforma fitness com IA para muscula\u00E7\u00E3o, calistenia, treino h\u00EDbrido, evolu\u00E7\u00E3o corporal e personaliza\u00E7\u00E3o inteligente do treino.";
@@ -141,8 +140,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:type", content: "website" },
       { property: "og:url", content: siteUrl },
       { property: "og:image", content: previewImage },
-      { property: "og:image:width", content: "1200" },
-      { property: "og:image:height", content: "630" },
+      { property: "og:image:width", content: "512" },
+      { property: "og:image:height", content: "512" },
       { property: "og:image:alt", content: "3D Body Scanner — Treino com IA" },
       { property: "og:locale", content: "pt_BR" },
       { name: "twitter:card", content: "summary_large_image" },
