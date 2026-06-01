@@ -172,7 +172,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR">
+    <html lang="pt-BR" suppressHydrationWarning>
       <head>
         <HeadContent />
         <script dangerouslySetInnerHTML={{ __html: `(function(){var t=localStorage.getItem('zyrox.theme');if(t==='light'){document.documentElement.classList.add('light')}})();` }} />
@@ -229,6 +229,11 @@ function RootComponent() {
 
   useEffect(() => {
     applyTheme(getStoredTheme());
+    const onVisibility = () => {
+      if (!document.hidden) applyTheme(getStoredTheme());
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
   }, []);
 
   return (
