@@ -471,7 +471,7 @@ function CorpoPage() {
         {/* Stats rápidos dinâmicos */}
         <div className="relative mt-4 grid grid-cols-3 gap-2">
           <div className="rounded-xl border border-cyan/15 bg-white/5 px-3 py-2 text-center">
-            <div className="font-display text-lg font-bold text-cyan">{bodyScans.length || "--"}</div>
+            <div className="font-display text-lg font-bold text-cyan">{fsBodyScans.length || "--"}</div>
             <div className="text-[9px] uppercase tracking-wider text-slate-400">Scans</div>
           </div>
           <div className="rounded-xl border border-orange-500/20 bg-white/5 px-3 py-2 text-center">
