@@ -21,6 +21,8 @@ export const Route = createFileRoute("/api/analyze-image")({
           kind: "body" | "food";
           height?: number;
           weight?: number;
+          sex?: string;
+          age?: number;
         };
 
         const imageBase64 = String(body.imageBase64 ?? "");
@@ -32,6 +34,8 @@ export const Route = createFileRoute("/api/analyze-image")({
         const kind = body.kind === "food" ? "food" : "body";
         const height = typeof body.height === "number" ? body.height : undefined;
         const weight = typeof body.weight === "number" ? body.weight : undefined;
+        const sex = typeof body.sex === "string" ? body.sex : undefined;
+        const age = typeof body.age === "number" ? body.age : undefined;
 
         const LANGUAGE_NAME: Record<string, string> = {
           pt: "português brasileiro", es: "español", en: "English", fr: "français", de: "Deutsch",
@@ -42,8 +46,15 @@ export const Route = createFileRoute("/api/analyze-image")({
         let userText: string;
 
         if (kind === "body") {
-          const cal = height && weight ? `Calibration data: height=${height}cm, weight=${weight}kg.` : "";
+          const calParts = [
+            height ? `height=${height}cm` : null,
+            weight ? `weight=${weight}kg` : null,
+            sex ? `sex=${sex === "male" || sex === "masculino" ? "male" : "female"}` : null,
+            age ? `age=${age}years` : null,
+          ].filter(Boolean).join(", ");
+          const cal = calParts ? `Athlete data: ${calParts}.` : "";
           systemContent = `You are an expert body composition analyst for ZYROX 3D Body Scanner. ${cal}
+Use the athlete's sex and age to calibrate body fat % norms (male vs female, younger vs older). Use weight and height as reference for muscle mass calculation.
 Analyze the full-body photo and respond with ONLY a valid JSON object — no markdown, no extra text:
 {
   "analysis": "<2-sentence encouraging summary in ${lang}>",

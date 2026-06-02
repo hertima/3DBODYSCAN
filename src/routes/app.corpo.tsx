@@ -1701,6 +1701,8 @@ function ScanCTA({
           kind,
           height: parseFloat(height) || undefined,
           weight: parseFloat(weight) || undefined,
+          sex: onboarding.gender === "female" ? "female" : onboarding.gender === "male" ? "male" : undefined,
+          age: onboarding.age || undefined,
         }),
       });
       if (!res.ok) throw new Error(`${res.status}`);
