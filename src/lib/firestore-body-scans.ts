@@ -31,11 +31,9 @@ export async function deleteBodyScanFromFirestore(uid: string, scanId: string) {
 }
 
 export async function loadBodyScansFromFirestore(uid: string): Promise<FirestoreBodyScan[]> {
-  const q = query(
-    collection(db, "users", uid, "bodyScans"),
-    orderBy("date", "desc"),
-    limit(50),
-  );
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => d.data() as FirestoreBodyScan);
+  const snap = await getDocs(collection(db, "users", uid, "bodyScans"));
+  return snap.docs
+    .map((d) => d.data() as FirestoreBodyScan)
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .slice(0, 50);
 }
