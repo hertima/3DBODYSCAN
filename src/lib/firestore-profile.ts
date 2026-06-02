@@ -3,7 +3,7 @@ import { db } from "./firebase";
 import type { OnboardingState } from "./onboarding";
 
 export async function saveProfileToFirestore(uid: string, profile: OnboardingState) {
-  await setDoc(doc(db, "users", uid, "data", "profile"), profile, { merge: true });
+  await setDoc(doc(db, "users", uid, "data", "profile"), profile);
 }
 
 export async function loadProfileFromFirestore(uid: string): Promise<OnboardingState | null> {

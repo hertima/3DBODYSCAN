@@ -84,3 +84,19 @@ export function clearOnboarding() {
 export function isOnboarded(): boolean {
   return Boolean(loadOnboarding().completedAt);
 }
+
+export function getCurrentOnboardingStep(): number {
+  const s = loadOnboarding();
+  if (!s.goal) return 1;
+  if (!s.problem) return 2;
+  if (!s.experience) return 3;
+  if (!s.weight || !s.height || !s.age) return 4;
+  if (!s.metabolismType) return 5;
+  if (!s.focusMuscles?.length) return 6;
+  if (!s.location) return 7;
+  if (!s.trainingType) return 8;
+  if (!s.mealFrequency) return 9;
+  if (!s.gender) return 10;
+  if (!s.days?.length) return 11;
+  return 12;
+}

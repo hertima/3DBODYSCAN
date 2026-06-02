@@ -5,7 +5,7 @@ import { Mail, Lock, Eye, EyeOff, Loader2, ArrowRight } from "lucide-react";
 import logo from "@/assets/zyrox-logo.png";
 import { ThemeToggleButton } from "@/components/ThemeToggleButton";
 import { getStoredLocale, setStoredLocale, SUPPORTED_LOCALES, type AppLocale } from "@/lib/locale";
-import { clearOnboarding, isOnboarded, saveOnboarding } from "@/lib/onboarding";
+import { clearOnboarding, getCurrentOnboardingStep, isOnboarded, saveOnboarding } from "@/lib/onboarding";
 import { getAuthCopy } from "@/lib/app-copy";
 import { signIn, signInWithGoogle, signInWithApple, onAuth } from "@/lib/auth";
 import { loadProfileFromFirestore } from "@/lib/firestore-profile";
@@ -87,7 +87,7 @@ function LoginPage() {
         if (isOnboarded()) {
           navigate({ to: "/app" });
         } else {
-          navigate({ to: "/onboarding/$step", params: { step: "1" } });
+          navigate({ to: "/onboarding/$step", params: { step: String(getCurrentOnboardingStep()) } });
         }
       }
     });
@@ -113,7 +113,7 @@ function LoginPage() {
       if (isOnboarded()) {
         navigate({ to: "/app" });
       } else {
-        navigate({ to: "/onboarding/$step", params: { step: "1" } });
+        navigate({ to: "/onboarding/$step", params: { step: String(getCurrentOnboardingStep()) } });
       }
 
       void restoreLocalStateFromFirestore(cred.user.uid, { replaceLocal: true })
@@ -149,7 +149,7 @@ function LoginPage() {
       if (isOnboarded()) {
         navigate({ to: "/app" });
       } else {
-        navigate({ to: "/onboarding/$step", params: { step: "1" } });
+        navigate({ to: "/onboarding/$step", params: { step: String(getCurrentOnboardingStep()) } });
       }
     } catch (err: unknown) {
       const code = (err as { code?: string }).code ?? "";
