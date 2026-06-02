@@ -1764,7 +1764,7 @@ function ScanCTA({
           if (uid) {
             // Gera thumbnail pequeno (96px) para salvar inline no Firestore
             void makeThumbnail(dataUrl).then((thumb) => {
-              const scanWithPhoto = { ...bodyScan, photoUrl: thumb || undefined };
+              const scanWithPhoto = thumb ? { ...bodyScan, photoUrl: thumb } : bodyScan;
               void saveBodyScanToFirestore(uid, scanWithPhoto).then(() => {
                 onScanSaved?.();
               }).catch((err) => { console.error("[saveBodyScan]", err); });
@@ -1801,7 +1801,7 @@ function ScanCTA({
           if (uid) {
             // Thumbnail inline — não depende de Storage
             void makeThumbnail(dataUrl).then((thumb) => {
-              void saveFoodScanToFirestore(uid, {
+              const foodScan = {
                 id: scanId,
                 date: now,
                 kcal: Math.round(m.kcal ?? 0),
@@ -1809,10 +1809,11 @@ function ScanCTA({
                 carbs: Math.round(m.carbs ?? 0),
                 fat: Math.round(m.fat ?? 0),
                 analysis: result.analysis ?? "",
-                photoUrl: thumb || undefined,
-              }).then(() => {
+                ...(thumb ? { photoUrl: thumb } : {}),
+              };
+              void saveFoodScanToFirestore(uid, foodScan).then(() => {
                 onScanSaved?.();
-              }).catch(() => {});
+              }).catch((err) => { console.error("[saveFoodScan]", err); });
             });
           }
           onMeasurementsDetected?.(m);
