@@ -1714,25 +1714,6 @@ function ScanCTA({
         // Sempre mostra a foto imediatamente, independente de medidas ou upload
         onScanComplete?.(dataUrl);
 
-        // Salva a foto mesmo que a IA não retorne medidas
-        if (uid) {
-          void makeThumbnail(dataUrl).then((thumb) => {
-            if (!result.measurements) {
-              // Sem medidas: salva só a foto com análise
-              const scanOnly: FirestoreBodyScan = {
-                id: `bs_${Date.now()}`,
-                date: new Date().toISOString(),
-                analysis: result.analysis ?? "",
-                estimativas: { peitoCmEstimado: 0, cinturaCmEstimada: 0, quadrilCmEstimado: 0, bracoCmEstimado: 0, coxaCmEstimada: 0, panturrilhaCmEstimada: 0, percentualGorduraEstimado: 0 },
-                calibragem: { alturaCm: parseFloat(height) || 170, pesoKg: parseFloat(weight) || 70 },
-                qualidade: { confiancaLeitura: 0 },
-                photoUrl: thumb || undefined,
-              };
-              void saveBodyScanToFirestore(uid, scanOnly).then(() => onScanSaved?.()).catch(() => {});
-            }
-          }).catch(() => {});
-        }
-
         if (result.measurements) {
           const m = result.measurements as Record<string, number>;
           const now = new Date().toISOString();
