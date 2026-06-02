@@ -1,4 +1,4 @@
-import { collection, deleteDoc, doc, getDocs, limit, orderBy, query, serverTimestamp, setDoc } from "firebase/firestore";
+import { collection, deleteDoc, doc, getDocs, setDoc } from "firebase/firestore";
 import { db } from "./firebase";
 
 export type FirestoreFoodScan = {
@@ -13,22 +13,18 @@ export type FirestoreFoodScan = {
 };
 
 export async function saveFoodScanToFirestore(uid: string, scan: FirestoreFoodScan) {
-  await setDoc(doc(db, "users", uid, "foodScans", scan.id), {
-    ...scan,
-    savedAt: serverTimestamp(),
-  });
+  await setDoc(doc(db, "users", uid, "data", scan.id), scan);
 }
 
 export async function deleteFoodScanFromFirestore(uid: string, scanId: string) {
-  await deleteDoc(doc(db, "users", uid, "foodScans", scanId));
+  await deleteDoc(doc(db, "users", uid, "data", scanId));
 }
 
 export async function loadFoodScansFromFirestore(uid: string): Promise<FirestoreFoodScan[]> {
-  const q = query(
-    collection(db, "users", uid, "foodScans"),
-    orderBy("date", "desc"),
-    limit(50),
-  );
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => d.data() as FirestoreFoodScan);
+  const snap = await getDocs(collection(db, "users", uid, "data"));
+  return snap.docs
+    .filter((d) => d.id.startsWith("fs_"))
+    .map((d) => d.data() as FirestoreFoodScan)
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .slice(0, 50);
 }
