@@ -303,12 +303,13 @@ ${workoutBlocks}
 1. Selecione EXATAMENTE 8 exercícios por treino — nem mais, nem menos
 2. Use SOMENTE os IDs listados acima — NUNCA invente IDs
 3. Compostos primeiro (multi-articulares), isoladores depois
-4. Se modalidade é CALISTENIA: ZERO exercícios com halteres/máquinas/cabos
-5. Se modalidade é ACADEMIA: prefira exercícios com barra e halteres antes de máquinas
-6. "aiNote": dica técnica ultra-específica para ESTE atleta (máx 15 palavras em ${lang})
-7. "scheduleReasons": 3 razões concretas por que esta seleção serve ESTE atleta (cite sexo, objetivo, fase, modalidade)
-8. "weekFocus": frase motivacional personalizada para a semana ${currentWeek} na fase ${currentPhase}
-9. Ajuste sets/reps conforme a fase — DELOAD = volume reduzido; INTENSIFICAÇÃO = menos reps, mais carga
+4. REGRA ABSOLUTA DE CATEGORIA: Selecione SOMENTE exercícios cujo grupo muscular esteja no "Foco" do treino. Se "Bíceps" não consta no Foco, é PROIBIDO selecionar qualquer rosca ou exercício de bíceps. Se "Tríceps" não consta no Foco, é PROIBIDO selecionar extensões ou tríceps. Nunca substitua categoria do Foco por outra ausente.
+5. Se modalidade é CALISTENIA: ZERO exercícios com halteres/máquinas/cabos
+6. Se modalidade é ACADEMIA: prefira exercícios com barra e halteres antes de máquinas
+7. "aiNote": dica técnica ultra-específica para ESTE atleta (máx 15 palavras em ${lang})
+8. "scheduleReasons": 3 razões concretas por que esta seleção serve ESTE atleta (cite sexo, objetivo, fase, modalidade)
+9. "weekFocus": frase motivacional personalizada para a semana ${currentWeek} na fase ${currentPhase}
+10. Ajuste sets/reps conforme a fase — DELOAD = volume reduzido; INTENSIFICAÇÃO = menos reps, mais carga
 
 CRITICAL LANGUAGE RULE: ALL text values ("aiNote", "scheduleReasons" items, "weekFocus") MUST be written in ${lang}. Never use Portuguese if the target language is not Portuguese.
 

@@ -268,7 +268,7 @@ REGRAS CRÍTICAS:
 3. RESPEITE a modalidade do onboarding: Musculação=exercícios de musculação; Funcional=movimentos funcionais, core, estabilidade, unilateralidade e condicionamento; Calistenia=peso corporal/calistenia
 4. RESPEITE o local de treino: casa=sem máquinas/cabos, outdoor=só calistenia, academia=tudo disponível
 5. Priorize compostos primeiro, isolados depois. Para feminino: glúteos/inferiores comandam a divisão; superior entra como manutenção, postura e definição
-6. Nunca use rosca/bíceps em vaga de tríceps; tríceps precisa ser extensão, corda, francês, testa, coice ou mergulho
+6. REGRA ABSOLUTA DE CATEGORIA: Selecione SOMENTE exercícios cujo grupo muscular esteja listado no "Foco muscular" do treino. Se "Bíceps" não aparece no Foco, é PROIBIDO selecionar qualquer rosca ou exercício de bíceps. Se "Tríceps" não aparece no Foco, é PROIBIDO selecionar extensões ou tríceps. Nunca substitua uma categoria do Foco por outra categoria ausente no Foco.
 7. Não repita família/padrão do mesmo exercício: mudança de pegada, abertura ou máquina parecida NÃO conta como exercício novo. Exemplo proibido no mesmo treino: Remada Curvada + Remada Curvada Pronada + Remada Curvada Aberta
 8. Em treino de costas, use no máximo 2 remadas horizontais; combine com puxada vertical, trapézio, deltoide posterior, bíceps ou core quando a divisão pedir
 9. O "aiNote" deve ser uma dica técnica ESPECÍFICA para este atleta (máx 15 palavras, em ${lang})
