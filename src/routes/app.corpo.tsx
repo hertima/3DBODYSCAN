@@ -633,33 +633,6 @@ function MedidasTab({ copy }: { copy: (typeof COPY)[keyof typeof COPY] }) {
             </button>
           </div>
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
-            {/* Composição corporal */}
-            {[
-              { key: "weight", label: "Peso", value: composition.weight, unit: "kg" },
-              { key: "bodyFat", label: "Gordura", value: composition.bodyFat, unit: "%" },
-              { key: "muscleMass", label: "Massa Magra", value: composition.muscleMass, unit: "kg" },
-            ].map((c) => (
-              <div key={c.key} className="flex items-center gap-3 rounded-2xl border border-primary/20 bg-primary/5 px-4 py-3">
-                <div className="min-w-0 flex-1">
-                  <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{c.label}</div>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <input
-                    type="number"
-                    inputMode="decimal"
-                    value={c.value ?? ""}
-                    onChange={(e) => {
-                      const v = parseFloat(e.target.value);
-                      if (!isNaN(v) && v > 0) update(c.key, v);
-                    }}
-                    className="w-20 rounded-xl border border-primary/30 bg-black/50 px-2 py-1.5 text-center font-display text-xl font-black text-primary focus:border-primary focus:outline-none"
-                  />
-                  <span className="text-xs text-slate-500">{c.unit}</span>
-                </div>
-              </div>
-            ))}
-            <div className="h-px bg-white/10" />
-            {/* Medidas corporais */}
             {measures.map((m) => {
               const lm: Record<string, string> = { peito: copy.chest, cintura: copy.waist, quadril: copy.hip, braco: copy.arm, coxa: copy.thigh, panturrilha: copy.calf };
               return (
