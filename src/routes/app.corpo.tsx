@@ -1763,12 +1763,11 @@ function ScanCTA({
                 onScanSaved?.();
               }).catch(() => {});
               // Medidas + upload real para Storage (async, não bloqueante)
-              // Usa peso do usuário (calibração) como peso oficial, não estimativa da IA
               const fsData: BodyMeasurements = {
                 lastAnalysis: result.analysis ?? "",
                 bodyFat:    m.bodyFat    ?? undefined,
                 muscleMass: m.muscleMass ?? undefined,
-                weight:     calibWeight,
+                weight:     m.weight     ?? calibWeight,
               };
               bodyMeasures.forEach((bm) => {
                 if (typeof m[bm.key] === "number") (fsData as Record<string, unknown>)[bm.key] = m[bm.key];
