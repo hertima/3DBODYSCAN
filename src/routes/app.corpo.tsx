@@ -1661,18 +1661,23 @@ function ScanCTA({
 
   const makeThumbnail = (src: string, size = 96): Promise<string> =>
     new Promise((resolve) => {
-      const img = new window.Image();
-      img.onload = () => {
-        const c = document.createElement("canvas");
-        c.width = size; c.height = size;
-        const ctx = c.getContext("2d")!;
-        const scale = size / Math.min(img.width, img.height);
-        const w = img.width * scale, h = img.height * scale;
-        ctx.drawImage(img, (size - w) / 2, (size - h) / 2, w, h);
-        resolve(c.toDataURL("image/jpeg", 0.6));
-      };
-      img.onerror = () => resolve("");
-      img.src = src;
+      try {
+        const img = new window.Image();
+        img.onload = () => {
+          try {
+            const c = document.createElement("canvas");
+            c.width = size; c.height = size;
+            const ctx = c.getContext("2d");
+            if (!ctx) { resolve(""); return; }
+            const scale = size / Math.min(img.width, img.height);
+            const w = img.width * scale, h = img.height * scale;
+            ctx.drawImage(img, (size - w) / 2, (size - h) / 2, w, h);
+            resolve(c.toDataURL("image/jpeg", 0.6));
+          } catch { resolve(""); }
+        };
+        img.onerror = () => resolve("");
+        img.src = src;
+      } catch { resolve(""); }
     });
 
   const compressImage = (src: string, maxPx = 1280, quality = 0.82): Promise<string> =>
