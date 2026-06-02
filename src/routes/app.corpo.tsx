@@ -1714,10 +1714,30 @@ function ScanCTA({
         // Sempre mostra a foto imediatamente, independente de medidas ou upload
         onScanComplete?.(dataUrl);
 
+        // Salva a foto mesmo que a IA não retorne medidas
+        if (uid) {
+          void makeThumbnail(dataUrl).then((thumb) => {
+            if (!result.measurements) {
+              // Sem medidas: salva só a foto com análise
+              const scanOnly: FirestoreBodyScan = {
+                id: `bs_${Date.now()}`,
+                date: new Date().toISOString(),
+                analysis: result.analysis ?? "",
+                estimativas: { peitoCmEstimado: 0, cinturaCmEstimada: 0, quadrilCmEstimado: 0, bracoCmEstimado: 0, coxaCmEstimada: 0, panturrilhaCmEstimada: 0, percentualGorduraEstimado: 0 },
+                calibragem: { alturaCm: parseFloat(height) || 170, pesoKg: parseFloat(weight) || 70 },
+                qualidade: { confiancaLeitura: 0 },
+                photoUrl: thumb || undefined,
+              };
+              void saveBodyScanToFirestore(uid, scanOnly).then(() => onScanSaved?.()).catch(() => {});
+            }
+          }).catch(() => {});
+        }
+
         if (result.measurements) {
           const m = result.measurements as Record<string, number>;
           const now = new Date().toISOString();
           const onb = loadOnboarding();
+          const calibWeight = parseFloat(weight) || onb.weight || (m.weight ?? 70);
           const scanId = `bs_${Date.now()}`;
           const bodyScan: FirestoreBodyScan = {
             id: scanId,
@@ -1732,7 +1752,7 @@ function ScanCTA({
               panturrilhaCmEstimada:     m.panturrilha  ?? 0,
               percentualGorduraEstimado: m.bodyFat      ?? 0,
             },
-            calibragem: { alturaCm: onb.height ?? 170, pesoKg: onb.weight ?? (m.weight ?? 70) },
+            calibragem: { alturaCm: parseFloat(height) || (onb.height ?? 170), pesoKg: calibWeight },
             qualidade: { confiancaLeitura: calcScanConfidence(m) },
           };
           if (uid) {
@@ -1743,11 +1763,12 @@ function ScanCTA({
                 onScanSaved?.();
               }).catch(() => {});
               // Medidas + upload real para Storage (async, não bloqueante)
+              // Usa peso do usuário (calibração) como peso oficial, não estimativa da IA
               const fsData: BodyMeasurements = {
                 lastAnalysis: result.analysis ?? "",
                 bodyFat:    m.bodyFat    ?? undefined,
                 muscleMass: m.muscleMass ?? undefined,
-                weight:     m.weight     ?? undefined,
+                weight:     calibWeight,
               };
               bodyMeasures.forEach((bm) => {
                 if (typeof m[bm.key] === "number") (fsData as Record<string, unknown>)[bm.key] = m[bm.key];
