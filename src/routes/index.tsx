@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { lazy, Suspense, useState, useEffect, type FormEvent } from "react";
+import { lazy, Suspense, useState, useEffect, useRef, type FormEvent } from "react";
 import { motion } from "framer-motion";
 import { Mail, Lock, Eye, EyeOff, Loader2, ArrowRight } from "lucide-react";
 import logo from "@/assets/zyrox-logo.png";
@@ -73,6 +73,7 @@ function LoginPage() {
   const [error, setError] = useState("");
   const [showSplash, setShowSplash] = useState(false);
   const authCopy = getAuthCopy(locale);
+  const signingInRef = useRef(false);
 
   useEffect(() => {
     setLocale(getStoredLocale());
@@ -83,6 +84,7 @@ function LoginPage() {
 
   useEffect(() => {
     const unsub = onAuth((user) => {
+      if (signingInRef.current) return;
       if (user) {
         if (isOnboarded()) {
           navigate({ to: "/app" });
@@ -98,6 +100,7 @@ function LoginPage() {
     e.preventDefault();
     setError("");
     setLoading(true);
+    signingInRef.current = true;
     try {
       const cred = await signIn(email.trim().toLowerCase(), password);
 
@@ -123,6 +126,7 @@ function LoginPage() {
         })
         .catch(() => {});
     } catch (err: unknown) {
+      signingInRef.current = false;
       setLoading(false);
       const code = (err as { code?: string }).code ?? "";
       if (
@@ -144,6 +148,7 @@ function LoginPage() {
   const handleSocialLogin = async (provider: "google" | "apple") => {
     setError("");
     setSocialLoading(provider);
+    signingInRef.current = true;
     try {
       await (provider === "google" ? signInWithGoogle() : signInWithApple());
       if (isOnboarded()) {
@@ -152,6 +157,7 @@ function LoginPage() {
         navigate({ to: "/onboarding/$step", params: { step: String(getCurrentOnboardingStep()) } });
       }
     } catch (err: unknown) {
+      signingInRef.current = false;
       const code = (err as { code?: string }).code ?? "";
       if (code !== "auth/popup-closed-by-user" && code !== "auth/cancelled-popup-request") {
         setError(authCopy.invalidCredentials);
