@@ -1748,7 +1748,7 @@ function ScanCTA({
                 lastAnalysis: result.analysis ?? "",
                 bodyFat:    m.bodyFat    ?? undefined,
                 muscleMass: m.muscleMass ?? undefined,
-                weight:     m.weight     ?? calibWeight,
+                weight:     calibWeight,
               };
               bodyMeasures.forEach((bm) => {
                 if (typeof m[bm.key] === "number") (fsData as Record<string, unknown>)[bm.key] = m[bm.key];
