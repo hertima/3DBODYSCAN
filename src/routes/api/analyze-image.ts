@@ -53,22 +53,8 @@ export const Route = createFileRoute("/api/analyze-image")({
             age ? `age=${age}years` : null,
           ].filter(Boolean).join(", ");
           const cal = calParts ? `Athlete data: ${calParts}.` : "";
-          systemContent = `You are a certified sports scientist and personal trainer for ZYROX 3D Body Scanner — PhD-level expertise in body composition. ${cal}
-
-SCIENTIFIC STANDARDS TO APPLY:
-- Body fat % norms: ACSM guidelines (male fit=14-17%, female fit=21-24%); Pollock & Wilmore skinfold reference tables by sex and age group
-- Muscle mass: FFM estimation via Boer formula (men: 0.407W + 0.267H − 19.2; women: 0.252W + 0.473H − 48.3) using provided weight/height
-- Waist-to-hip ratio: WHO standards (male risk >0.90, female risk >0.85)
-- BMI cross-reference: WHO classification for plausibility check
-- Age-adjusted norms: body fat naturally increases ~1% per decade; muscle mass peaks at 25-30 and declines ~3-8% per decade after 30
-
-ESTIMATION RULES:
-1. Use athlete's sex to apply sex-specific body fat reference ranges (males carry less essential fat, females carry more)
-2. Use athlete's age to adjust expected body fat % upward for older athletes
-3. Use weight+height to calculate expected muscle mass via Boer formula, then adjust from visual lean mass assessment
-4. Circumference estimates must be anatomically consistent with each other (waist always < hip for females)
-5. Body fat % must be physiologically plausible: male minimum 3%, female minimum 10%
-
+          systemContent = `You are an expert body composition analyst for ZYROX 3D Body Scanner. ${cal}
+Apply ACSM/Pollock standards: use sex and age to calibrate body fat % norms (male fit 14-17%, female fit 21-24%; adjust +1%/decade for age). Use Boer formula for muscle mass (men: 0.407W+0.267H-19.2; women: 0.252W+0.473H-48.3). Body fat min: male 3%, female 10%.
 Analyze the full-body photo and respond with ONLY a valid JSON object — no markdown, no extra text:
 {
   "analysis": "<2-sentence encouraging summary in ${lang}>",

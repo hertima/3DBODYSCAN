@@ -1675,13 +1675,30 @@ function ScanCTA({
       img.src = src;
     });
 
+  const compressImage = (src: string, maxPx = 1280, quality = 0.82): Promise<string> =>
+    new Promise((resolve) => {
+      const img = new window.Image();
+      img.onload = () => {
+        const scale = Math.min(1, maxPx / Math.max(img.width, img.height));
+        const w = Math.round(img.width * scale);
+        const h = Math.round(img.height * scale);
+        const c = document.createElement("canvas");
+        c.width = w; c.height = h;
+        c.getContext("2d")!.drawImage(img, 0, 0, w, h);
+        resolve(c.toDataURL("image/jpeg", quality));
+      };
+      img.onerror = () => resolve(src);
+      img.src = src;
+    });
+
   const finishWithDataUrl = async (dataUrl: string) => {
     setPreview(dataUrl);
     setState("scanning");
     setAiAnalysis(null);
     setAiError(null);
 
-    const base64 = dataUrl.split(",")[1] ?? "";
+    const compressed = await compressImage(dataUrl);
+    const base64 = compressed.split(",")[1] ?? "";
     const onboarding = loadOnboarding();
     const userContext = buildUserContext(onboarding);
     const locale = getStoredLocale() as AILocale;
