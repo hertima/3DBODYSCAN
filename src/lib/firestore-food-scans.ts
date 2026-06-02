@@ -1,6 +1,3 @@
-import { collection, deleteDoc, doc, getDocs, setDoc } from "firebase/firestore";
-import { db } from "./firebase";
-
 export type FirestoreFoodScan = {
   id: string;
   date: string;
@@ -12,19 +9,26 @@ export type FirestoreFoodScan = {
   photoUrl?: string;
 };
 
-export async function saveFoodScanToFirestore(uid: string, scan: FirestoreFoodScan) {
-  await setDoc(doc(db, "users", uid, "data", scan.id), scan);
+const LS_KEY = "zyrox.foodScans";
+
+function readLocal(): FirestoreFoodScan[] {
+  try { return JSON.parse(localStorage.getItem(LS_KEY) ?? "[]") as FirestoreFoodScan[]; }
+  catch { return []; }
 }
 
-export async function deleteFoodScanFromFirestore(uid: string, scanId: string) {
-  await deleteDoc(doc(db, "users", uid, "data", scanId));
+function writeLocal(scans: FirestoreFoodScan[]) {
+  localStorage.setItem(LS_KEY, JSON.stringify(scans));
 }
 
-export async function loadFoodScansFromFirestore(uid: string): Promise<FirestoreFoodScan[]> {
-  const snap = await getDocs(collection(db, "users", uid, "data"));
-  return snap.docs
-    .filter((d) => d.id.startsWith("fs_"))
-    .map((d) => d.data() as FirestoreFoodScan)
-    .sort((a, b) => b.date.localeCompare(a.date))
-    .slice(0, 50);
+export async function saveFoodScanToFirestore(_uid: string, scan: FirestoreFoodScan) {
+  const scans = readLocal().filter((s) => s.id !== scan.id);
+  writeLocal([scan, ...scans].slice(0, 50));
+}
+
+export async function deleteFoodScanFromFirestore(_uid: string, scanId: string) {
+  writeLocal(readLocal().filter((s) => s.id !== scanId));
+}
+
+export async function loadFoodScansFromFirestore(_uid: string): Promise<FirestoreFoodScan[]> {
+  return readLocal();
 }

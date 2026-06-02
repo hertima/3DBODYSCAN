@@ -1,5 +1,5 @@
-import { collection, deleteDoc, doc, getDocs, setDoc } from "firebase/firestore";
 import { db } from "./firebase";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 
 export type FirestoreBodyScan = {
   id: string;
@@ -19,19 +19,37 @@ export type FirestoreBodyScan = {
   qualidade?: { confiancaLeitura: number };
 };
 
-export async function saveBodyScanToFirestore(uid: string, scan: FirestoreBodyScan) {
-  await setDoc(doc(db, "users", uid, "data", scan.id), scan);
+const LS_KEY = "zyrox.bodyScans";
+
+function readLocal(): FirestoreBodyScan[] {
+  try { return JSON.parse(localStorage.getItem(LS_KEY) ?? "[]") as FirestoreBodyScan[]; }
+  catch { return []; }
 }
 
-export async function deleteBodyScanFromFirestore(uid: string, scanId: string) {
-  await deleteDoc(doc(db, "users", uid, "data", scanId));
+function writeLocal(scans: FirestoreBodyScan[]) {
+  localStorage.setItem(LS_KEY, JSON.stringify(scans));
+}
+
+export async function saveBodyScanToFirestore(_uid: string, scan: FirestoreBodyScan) {
+  const scans = readLocal().filter((s) => s.id !== scan.id);
+  writeLocal([scan, ...scans].slice(0, 50));
+}
+
+export async function deleteBodyScanFromFirestore(_uid: string, scanId: string) {
+  writeLocal(readLocal().filter((s) => s.id !== scanId));
 }
 
 export async function loadBodyScansFromFirestore(uid: string): Promise<FirestoreBodyScan[]> {
-  const snap = await getDocs(collection(db, "users", uid, "data"));
-  return snap.docs
-    .filter((d) => d.id.startsWith("bs_"))
-    .map((d) => d.data() as FirestoreBodyScan)
-    .sort((a, b) => b.date.localeCompare(a.date))
-    .slice(0, 50);
+  const local = readLocal();
+  if (local.length > 0) return local;
+  // Fallback: tenta Firestore direto (para novos dispositivos)
+  try {
+    const snap = await getDoc(doc(db, "users", uid, "data", "measurements"));
+    if (snap.exists() && Array.isArray(snap.data().bodyScans)) {
+      const scans = snap.data().bodyScans as FirestoreBodyScan[];
+      writeLocal(scans);
+      return scans;
+    }
+  } catch {}
+  return [];
 }
