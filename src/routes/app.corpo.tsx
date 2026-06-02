@@ -1744,7 +1744,7 @@ function ScanCTA({
               const scanWithPhoto = { ...bodyScan, photoUrl: thumb || undefined };
               void saveBodyScanToFirestore(uid, scanWithPhoto).then(() => {
                 onScanSaved?.();
-              }).catch(() => {});
+              }).catch((err) => { console.error("[saveBodyScan]", err); });
               // Medidas + upload real para Storage (async, não bloqueante)
               const fsData: BodyMeasurements = {
                 lastAnalysis: result.analysis ?? "",
@@ -1763,7 +1763,7 @@ function ScanCTA({
               });
             });
           }
-          onMeasurementsDetected?.(m);
+          onMeasurementsDetected?.({ ...m, weight: calibWeight });
         }
       }
 
