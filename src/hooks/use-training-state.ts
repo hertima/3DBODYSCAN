@@ -28,7 +28,7 @@ function collectAIExerciseIds(aiPlan: AIWorkoutPlan | null) {
   return Array.from(new Set(aiPlan.workouts.flatMap((workout) => workout.exercises.map((exercise) => exercise.exerciseId))));
 }
 
-function mergeAIWorkouts(rulesWorkouts: Workout[], aiPlan: AIWorkoutPlan): Workout[] {
+function mergeAIWorkouts(rulesWorkouts: Workout[], aiPlan: AIWorkoutPlan, trainingType?: string): Workout[] {
   const catalogById = new Map(buildExerciseCatalog().map((record) => [record.id, record]));
 
   return rulesWorkouts.map((workout) => {
@@ -43,9 +43,11 @@ function mergeAIWorkouts(rulesWorkouts: Workout[], aiPlan: AIWorkoutPlan): Worko
         const aiRecord = catalogById.get(aiEx.exerciseId);
         const slotRecord = rulesSlot ? catalogById.get(rulesSlot.exerciseId) : null;
         const invalidCategory = !!rulesSlot && !!aiRecord && !!slotRecord && aiRecord.category !== slotRecord.category;
+        const invalidTrainingType =
+          trainingType === "calistenia" && !!aiRecord && aiRecord.trainingType !== "calistenia";
         const repeatedPattern = !!aiRecord && !canAddExerciseToSelection(acceptedRecords, aiRecord);
 
-        if (!aiRecord || invalidCategory || repeatedPattern) {
+        if (!aiRecord || invalidCategory || invalidTrainingType || repeatedPattern) {
           if (slotRecord) acceptedRecords.push(slotRecord);
           return rulesSlot;
         }
@@ -186,8 +188,8 @@ export function useTrainingState(refreshKey = 0): TrainingStateWithAI {
 
   const mergedWorkouts = useMemo(() => {
     if (!aiPlan) return base.workouts;
-    return mergeAIWorkouts(base.workouts, aiPlan);
-  }, [base.workouts, aiPlan]);
+    return mergeAIWorkouts(base.workouts, aiPlan, base.profile.trainingType);
+  }, [base.workouts, aiPlan, base.profile.trainingType]);
 
   const regenerate = useCallback(() => {
     const regenerationId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
