@@ -1,6 +1,6 @@
 import type { WorkoutCustomizationState } from "@/domain/training/customization";
 
-const STORAGE_KEY = "zyrox-workout-customizations-v1";
+const STORAGE_KEY = "zyrox-workout-customizations-v2";
 
 type WorkoutCustomizationMap = Record<string, WorkoutCustomizationState>;
 

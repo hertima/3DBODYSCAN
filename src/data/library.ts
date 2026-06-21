@@ -402,6 +402,11 @@ function inferMuscleFromCatalog(path: string): MuscleGroup {
   const override = catalogOverrides.find((item) => normalizedName.includes(item.match));
   if (override) return override.muscle;
 
+  // "Escápula" no nome = exercício de peito ou costas, nunca de glúteos/pernas
+  if (normalizedName.includes("escapula")) {
+    return normalizedName.includes("flexao") ? chestMuscle : backMuscle;
+  }
+
   // Nome tem prioridade sobre pasta para exercícios que podem estar na pasta errada
   if (normalizedName.includes("abducao") && !normalizedName.includes("ombro")) return glutesMuscle;
   if (normalizedName.includes("aducao") && !normalizedName.includes("ombro")) return glutesMuscle;

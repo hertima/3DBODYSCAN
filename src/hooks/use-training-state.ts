@@ -36,13 +36,16 @@ function mergeAIWorkouts(rulesWorkouts: Workout[], aiPlan: AIWorkoutPlan, traini
     if (!aiWorkout) return workout;
 
     const acceptedRecords: ExerciseCatalogRecord[] = [];
-    const mergedExercises = aiWorkout.exercises
-      .map((aiEx, index) => {
-        const rulesSlot = workout.exercises[index];
+    // Itera sobre os slots do template (regras), não sobre os exercícios da IA,
+    // garantindo que a IA jamais adicione exercícios além dos slots previstos.
+    const mergedExercises = workout.exercises
+      .map((rulesSlot, index) => {
+        const aiEx = aiWorkout.exercises[index];
+        if (!aiEx) return rulesSlot;
         const rulesEx = workout.exercises.find((e) => e.exerciseId === aiEx.exerciseId);
         const aiRecord = catalogById.get(aiEx.exerciseId);
-        const slotRecord = rulesSlot ? catalogById.get(rulesSlot.exerciseId) : null;
-        const invalidCategory = !!rulesSlot && !!aiRecord && !!slotRecord && aiRecord.category !== slotRecord.category;
+        const slotRecord = catalogById.get(rulesSlot.exerciseId);
+        const invalidCategory = !!aiRecord && !!slotRecord && aiRecord.category !== slotRecord.category;
         const invalidTrainingType =
           trainingType === "calistenia" && !!aiRecord && aiRecord.trainingType !== "calistenia";
         const repeatedPattern = !!aiRecord && !canAddExerciseToSelection(acceptedRecords, aiRecord);
@@ -64,7 +67,7 @@ function mergeAIWorkouts(rulesWorkouts: Workout[], aiPlan: AIWorkoutPlan, traini
           notes: aiEx.aiNote || undefined,
         };
       })
-      .filter((ex) => !!ex.exerciseId);
+      .filter((ex) => !!ex?.exerciseId);
 
     if (mergedExercises.length < 4) return workout;
 

@@ -657,8 +657,7 @@ function buildCalistheniaTemplates(trainingDays: number): WorkoutTemplate[] {
       categories: [
         { primary: "costas_trapezio", slots: 4 },
         { primary: "biceps_antebraco", slots: 2 },
-        { primary: "deltoides", slots: 1 },
-        { primary: "abdomen_core", slots: 1 },
+        { primary: "abdomen_core", slots: 2 },
       ],
     },
     {

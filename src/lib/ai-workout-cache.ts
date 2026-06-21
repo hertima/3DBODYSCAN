@@ -1,4 +1,4 @@
-const CACHE_KEY = "_zyrox_ai_workout_v3";
+const CACHE_KEY = "_zyrox_ai_workout_v4";
 
 export type AIWorkoutExercise = {
   exerciseId: string;
