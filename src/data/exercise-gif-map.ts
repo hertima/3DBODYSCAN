@@ -53,37 +53,66 @@ export const exerciseGifMap: ExerciseGifMap = {
   "ponte-gluteos-unilateral": "single-leg-glute-bridge (1).mp4",
   "panturrilha-pc": `${CALISTENIA_PATH}/Elevação de panturrilha em pé.mp4`,
   "superman": "superman (1).mp4",
-"panturrilha-halter": "Panturrilha com halteres (1).mp4",
+  "panturrilha-halter": "Panturrilha com halteres (1).mp4",
   // ── Musculação ───────────────────────────────────────────────────
   "supino-reto": "Supino (1).mp4",
   "supino-halter": "Supino com halteres (1).mp4",
+  "supino-smith": "Supino smith (1).mp4",
   crucifixo: "Crucifixo inclinado com halteres (1).mp4",
   crossover: "CROSSOVER (1).mp4",
+  "crossover-baixo": "Cross over polia baixa (1).mp4",
+  "crossover-medio": "Cross over 1 (1).mp4",
+  "chest-press-maquina": "Press peitoral (1).mp4",
   "remada-curvada": "Remanda Curvada Barra (1).mp4",
-  "remada-baixa": "remada baixa no pulley triangulo (1).mp4",
+  "remada-curvada-supinada": "Remanda Curvada Barra (1).mp4",
+  "remada-baixa": "Remada com triangulo (1).mp4",
   "puxada-frente": "Puxada alta tradicional (1).mp4",
+  "puxada-frontal-aberta": "Puxada alta tradicional (1).mp4",
+  "puxada-frontal-fechada": "Puxada alta fechada (1).mp4",
+  "puxada-supinada": "Puxada alta polia (1).mp4",
+  "remada-maquina": "Remada máquina (1).mp4",
   "barra-fixa": "Barra Livre pegada aberta (1).mp4",
+  "barra-fixa-pronada": "Barra fixa pegada aberta (1).mp4",
+  "face-pull": "Facepull (1).mp4",
+  facepull: "Facepull (1).mp4",
   desenvolvimento: "Desenvolvimento com Barra (1).mp4",
   "desenvolvimento-halter": "Desenvolvimento com Halteres (1).mp4",
   "elevacao-lateral": "Elevação lateral 01 (1).mp4",
+  "elevacao-lateral-maquina": "Elevação lateral 01 (1).mp4",
   "elevacao-cabos": "Elevação lateral no cabo (1).mp4",
   "rosca-direta": "Rosca direta (1).mp4",
+  "rosca-direta-barra-reta": "Rosca direta (1).mp4",
   "rosca-alternada": "Rosca alternada (1).mp4",
+  "rosca-inclinada": "Rosca inclinada no cabo (1).mp4",
+  "rosca-spider": "Rosca apoio banco (1).mp4",
+  "rosca-concentrada": "Rosca concentrada masculino (1).mp4",
   "rosca-martelo": "Rosca martelo 01 (1).mp4",
   "triceps-corda": "Triceps cord (1).mp4",
   "triceps-frances": "Triceps frances (1).mp4",
   "mergulho": "Paralelas (1).mp4",
   "agachamento": "Agachamento livre com barra (1).mp4",
+  "agachamento-hack": "Agachamento hack (1).mp4",
+  "agachamento-bulgaro": "Bulgaro com halteres (1).mp4",
   "leg-press": "Leg press 45 (1).mp4",
+  "leg-press-45": "Leg press 45 (1).mp4",
   "stiff": "Stiff (1).mp4",
+  "stiff-barra": "Stiff (1).mp4",
+  "stiff-halteres": "Stiff com halteres (1).mp4",
   "levantamento-terra": "Levantamento terra (1).mp4",
   "cadeira-extensora": "Cadeira extensora (1).mp4",
   "mesa-flexora": "Mesa flexora (1).mp4",
   "panturrilha": "Panturrilha em pé máquina (1).mp4",
+  "panturrilha-sentado": "Gemeos sentado (1).mp4",
+  "panturrilha-em-pe": "Panturrilha em pé máquina (1).mp4",
+  "panturrilha-em-pe-maquina": "Panturrilha em pé máquina (1).mp4",
+  "avanco": "Avanço (1).mp4",
+  "avanco-no-smith": "Afundo no smith (1).mp4",
   "elevacao-quadril": "Hip thrust (1).mp4",
   "abdutor": "Cadeira abdutora (1).mp4",
   "prancha": "Prancha (1).mp4",
   "abdominal": "Abdominal Concentrado (1).mp4",
+  "dead-bug": "Dead bug (1).mp4",
+  "russian-twist": "Russian twist (1).mp4",
   "leg-raise": "Elevação de pernas solo (1).mp4",
   "ab-roller": "ABS rolinho com barra (1).mp4",
   flexao: "push-up-bars (1).mp4",
@@ -106,6 +135,12 @@ function tokenize(value: string) {
     .filter((token) => token && !STOP_WORDS.has(token));
 }
 
+function toMapKey(value: string) {
+  return normalize(value)
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 function scoreCatalogMatch(tokens: string[], candidate: string) {
   const normalizedCandidate = normalize(candidate);
   let score = 0;
@@ -117,7 +152,13 @@ function scoreCatalogMatch(tokens: string[], candidate: string) {
   return score;
 }
 
+function getCatalogExerciseName(path: string) {
+  const fileName = path.split("/").pop() ?? path;
+  return fileName.replace(/\.(gif|mp4|webm|mov)$/i, "");
+}
+
 function getAutoMatchedGif(exerciseId: string, exerciseName?: string) {
+  const requestedName = toMapKey(exerciseName ?? exerciseId);
   const tokens = Array.from(
     new Set([...tokenize(exerciseId.replaceAll("-", " ")), ...tokenize(exerciseName ?? "")]),
   );
@@ -128,14 +169,25 @@ function getAutoMatchedGif(exerciseId: string, exerciseName?: string) {
   let bestScore = 0;
 
   for (const fileName of gifCatalog) {
-    const score = scoreCatalogMatch(tokens, fileName);
+    const catalogName = getCatalogExerciseName(fileName);
+    const catalogKey = toMapKey(catalogName);
+    if (catalogKey === requestedName || catalogKey.startsWith(`${requestedName}-`)) {
+      return fileName;
+    }
+
+    const normalizedCatalogName = normalize(catalogName);
+    const matchedTokens = tokens.filter((token) => normalizedCatalogName.includes(token));
+    if (tokens.length > 1 && matchedTokens.length < Math.min(tokens.length, 2)) continue;
+    if (tokens.length === 1 && tokens[0].length < 6) continue;
+
+    const score = scoreCatalogMatch(tokens, catalogName);
     if (score > bestScore) {
       bestScore = score;
       bestMatch = fileName;
     }
   }
 
-  return bestScore >= 8 ? bestMatch : null;
+  return bestScore >= 12 ? bestMatch : null;
 }
 
 function resolveMappedFile(fileName: string) {
@@ -149,7 +201,14 @@ function resolveMappedFile(fileName: string) {
 }
 
 export function getExerciseGifUrl(exerciseId: string, exerciseName?: string) {
-  const mappedFile = exerciseGifMap[exerciseId];
+  // Exercícios de catálogo de calistenia (ID gerado automaticamente) têm
+  // gifUrl próprio para /calistenia-pura/ — não mapear para musculação
+  if (exerciseId.startsWith("catalog-")) return null;
+
+  const mappedFile =
+    exerciseGifMap[exerciseId] ??
+    exerciseGifMap[toMapKey(exerciseId)] ??
+    (exerciseName ? exerciseGifMap[toMapKey(exerciseName)] : undefined);
 
   // caminho absoluto (calistenia ou outra pasta fora de GIF_BASE_PATH)
   if (mappedFile?.startsWith("/")) return encodeURI(mappedFile);
@@ -161,4 +220,31 @@ export function getExerciseGifUrl(exerciseId: string, exerciseName?: string) {
   if (!fileName) return null;
 
   return encodeURI(`${GIF_BASE_PATH}/${fileName}`);
+}
+
+type GeneratedExerciseLike = {
+  id?: string;
+  exerciseId?: string;
+  name?: string;
+  exercise?: string;
+  gifUrl?: string | null;
+  gifPath?: string | null;
+};
+
+export function resolveGeneratedExerciseGifUrl(exercise: GeneratedExerciseLike) {
+  if (exercise.gifUrl) return exercise.gifUrl;
+  if (exercise.gifPath) return exercise.gifPath;
+
+  const exerciseId = exercise.exerciseId ?? exercise.id ?? exercise.name ?? exercise.exercise;
+  const exerciseName = exercise.name ?? exercise.exercise ?? exercise.exerciseId ?? exercise.id;
+  if (!exerciseId) return null;
+
+  return getExerciseGifUrl(exerciseId, exerciseName);
+}
+
+export function withGeneratedExerciseGif<T extends GeneratedExerciseLike>(exercise: T): T & { gifUrl: string | null } {
+  return {
+    ...exercise,
+    gifUrl: resolveGeneratedExerciseGifUrl(exercise),
+  };
 }
