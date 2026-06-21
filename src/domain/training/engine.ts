@@ -663,6 +663,7 @@ export type AICandidateExercise = {
   name: string;
   category: string;
   equipment: string;
+  gifUrl: string | null;
 };
 
 export type AIWorkoutCandidate = {
@@ -701,7 +702,13 @@ export function buildAIWorkoutCandidates(
       for (const r of pool) {
         if (!seen.has(r.id)) {
           seen.add(r.id);
-          candidates.push({ id: r.id, name: r.name.pt, category: r.category, equipment: r.equipment });
+          candidates.push({
+            id: r.id,
+            name: r.name.pt,
+            category: r.category,
+            equipment: r.equipment,
+            gifUrl: r.gifPath,
+          });
         }
       }
     }
@@ -839,8 +846,13 @@ export function buildGeneratedTrainingState(
   const resolvedWorkouts =
     options.applyCustomizations === false ? workouts : applyStoredCustomizations(workouts);
 
-  const trainingDays =
+  const baseDays =
     profile.availableDays.length > 0 ? profile.availableDays : [...DEFAULT_WEEK_DAYS];
+  // Se o split gerou mais treinos do que dias selecionados, expande para cobrir todos
+  const trainingDays =
+    baseDays.length >= resolvedWorkouts.length
+      ? baseDays
+      : Array.from({ length: resolvedWorkouts.length }, (_, i) => i % 7);
   const schedule: GeneratedWeekPlanEntry[] = Array.from({ length: 7 }).map((_, dayIndex) => {
     const trainingIndex = trainingDays.indexOf(dayIndex);
 

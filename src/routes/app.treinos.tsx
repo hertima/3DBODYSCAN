@@ -15,8 +15,16 @@ import {
 import { useTrainingState } from "@/hooks/use-training-state";
 import { cleanLegacyText } from "@/lib/formatting";
 import { getStoredLocale } from "@/lib/locale";
-import { getIntensityLabel, getModalityLabel, getPhaseLabel, getVolumeBiasLabel, getWeekDayLabels, translateWorkoutName } from "@/lib/training-i18n";
-import { loadOnboarding } from "@/lib/onboarding";
+import {
+  getIntensityLabel,
+  getModalityLabel,
+  getPhaseLabel,
+  getVolumeBiasLabel,
+  getWeekDayLabels,
+  translateWorkoutName,
+} from "@/lib/training-i18n";
+import { loadOnboarding, saveOnboarding } from "@/lib/onboarding";
+import { cn } from "@/lib/utils";
 import type { CyclePhase } from "@/domain/training/periodization";
 
 export const Route = createFileRoute("/app/treinos")({
@@ -34,19 +42,235 @@ function formatDisplayValue(value: string) {
 }
 
 const AI_STEPS: Record<string, string[]> = {
-  pt: ["Analisando histórico de 28 dias...", "Detectando platôs e recovery...", "Distribuindo volume semanal...", "Selecionando exercícios prioritários...", "Calibrando intensidade por dia...", "Pronto."],
-  es: ["Analizando historial de 28 días...", "Detectando mesetas y recuperación...", "Distribuyendo volumen semanal...", "Seleccionando ejercicios prioritarios...", "Calibrando intensidad por día...", "Listo."],
-  en: ["Analyzing 28-day history...", "Detecting plateaus and recovery...", "Distributing weekly volume...", "Selecting priority exercises...", "Calibrating daily intensity...", "Done."],
-  fr: ["Analyse de l'historique 28 jours...", "Détection des plateaux et récupération...", "Distribution du volume hebdomadaire...", "Sélection des exercices prioritaires...", "Calibration de l'intensité journalière...", "Prêt."],
-  de: ["28-Tage-Verlauf wird analysiert...", "Plateaus und Recovery erkannt...", "Wochenvolumen wird verteilt...", "Prioritätsübungen werden ausgewählt...", "Tagesintensität wird kalibriert...", "Fertig."],
+  pt: [
+    "Analisando histórico de 28 dias...",
+    "Detectando platôs e recovery...",
+    "Distribuindo volume semanal...",
+    "Selecionando exercícios prioritários...",
+    "Calibrando intensidade por dia...",
+    "Pronto.",
+  ],
+  es: [
+    "Analizando historial de 28 días...",
+    "Detectando mesetas y recuperación...",
+    "Distribuyendo volumen semanal...",
+    "Seleccionando ejercicios prioritarios...",
+    "Calibrando intensidad por día...",
+    "Listo.",
+  ],
+  en: [
+    "Analyzing 28-day history...",
+    "Detecting plateaus and recovery...",
+    "Distributing weekly volume...",
+    "Selecting priority exercises...",
+    "Calibrating daily intensity...",
+    "Done.",
+  ],
+  fr: [
+    "Analyse de l'historique 28 jours...",
+    "Détection des plateaux et récupération...",
+    "Distribution du volume hebdomadaire...",
+    "Sélection des exercices prioritaires...",
+    "Calibration de l'intensité journalière...",
+    "Prêt.",
+  ],
+  de: [
+    "28-Tage-Verlauf wird analysiert...",
+    "Plateaus und Recovery erkannt...",
+    "Wochenvolumen wird verteilt...",
+    "Prioritätsübungen werden ausgewählt...",
+    "Tagesintensität wird kalibriert...",
+    "Fertig.",
+  ],
 };
 
 const COPY = {
-  pt: { coach: "Coach IA", title: "Sua semana 3D Body Scanner", workouts: "treinos", organized: "organizados pela IA", engine: "Motor IA v2.4", active: "Ativo", optimized: "Plano otimizado para sua próxima semana.", optimizing: "Otimizando", reorganize: "Reorganizar", statWorkouts: "Treinos", statTime: "Tempo", statVolume: "Volume", statExercises: "Exercícios", currentBlock: "Bloco atual", week: "Semana", phase: "Fase", volume: "Volume", intensity: "Intensidade", cycle: "Direção do ciclo", adjustment: "Ajuste do bloco", weekPlan: "Plano da semana", sorted: "Ordenado pela IA", rest: "Descanso ativo", mobility: "Mobilidade leve sugerida", why: "Por que essa ordem?", fullLibrary: "Biblioteca completa", cataloged: "500+ exercícios catalogados", reason1: "Treino de empurrar antes do treino de puxar para aproveitar melhor o descanso anterior.", reason2: "Treino de pernas na quinta: você performa melhor com 1 dia de recuperação prévia.", reason3: "Sessão técnica no sábado para skill em estado neural mais fresco." },
-  es: { coach: "Coach IA", title: "Tu semana 3D Body Scanner", workouts: "entrenamientos", organized: "organizados por la IA", engine: "Motor IA v2.4", active: "Activo", optimized: "Plan optimizado para tu proxima semana.", optimizing: "Optimizando", reorganize: "Reorganizar", statWorkouts: "Entrenos", statTime: "Tiempo", statVolume: "Volumen", statExercises: "Ejercicios", currentBlock: "Bloque actual", week: "Semana", phase: "Fase", volume: "Volumen", intensity: "Intensidad", cycle: "Direccion del ciclo", adjustment: "Ajuste del bloque", weekPlan: "Plan de la semana", sorted: "Ordenado por IA", rest: "Descanso activo", mobility: "Movilidad ligera sugerida", why: "Por que este orden?", fullLibrary: "Biblioteca completa", cataloged: "500+ ejercicios catalogados", reason1: "Empuje antes de tiron para aprovechar mejor el descanso previo.", reason2: "Piernas el jueves: rindes mejor con un dia de recuperacion previa.", reason3: "Sesion tecnica el sabado para skill con el sistema nervioso mas fresco." },
-  en: { coach: "AI Coach", title: "Your 3D Body Scanner week", workouts: "workouts", organized: "organized by AI", engine: "AI Engine v2.4", active: "Active", optimized: "Plan optimized for your next week.", optimizing: "Optimizing", reorganize: "Reorganize", statWorkouts: "Workouts", statTime: "Time", statVolume: "Volume", statExercises: "Exercises", currentBlock: "Current block", week: "Week", phase: "Phase", volume: "Volume", intensity: "Intensity", cycle: "Cycle direction", adjustment: "Block adjustment", weekPlan: "Week plan", sorted: "Sorted by AI", rest: "Active rest", mobility: "Light mobility suggested", why: "Why this order?", fullLibrary: "Full library", cataloged: "500+ cataloged exercises", reason1: "Push before pull to take better advantage of the previous recovery window.", reason2: "Legs on Thursday: you perform better with one prior recovery day.", reason3: "Technical session on Saturday for fresher neural skill work." },
-  fr: { coach: "Coach IA", title: "Votre semaine 3D Body Scanner", workouts: "entrainements", organized: "organises par l'IA", engine: "Moteur IA v2.4", active: "Actif", optimized: "Plan optimise pour votre prochaine semaine.", optimizing: "Optimisation", reorganize: "Reorganiser", statWorkouts: "Entrainements", statTime: "Temps", statVolume: "Volume", statExercises: "Exercices", currentBlock: "Bloc actuel", week: "Semaine", phase: "Phase", volume: "Volume", intensity: "Intensite", cycle: "Direction du cycle", adjustment: "Ajustement du bloc", weekPlan: "Plan de la semaine", sorted: "Ordonne par l'IA", rest: "Repos actif", mobility: "Mobilite legere suggeree", why: "Pourquoi cet ordre ?", fullLibrary: "Bibliotheque complete", cataloged: "500+ exercices catalogues", reason1: "Poussee avant tirage pour mieux profiter de la recuperation precedente.", reason2: "Jambes le jeudi : vous performez mieux avec un jour de recuperation avant.", reason3: "Session technique le samedi pour les skills avec un etat neural plus frais." },
-  de: { coach: "KI-Coach", title: "Deine 3D Body Scanner-Woche", workouts: "Trainings", organized: "von der KI organisiert", engine: "KI-Engine v2.4", active: "Aktiv", optimized: "Plan fur deine nachste Woche optimiert.", optimizing: "Optimierung", reorganize: "Neu ordnen", statWorkouts: "Trainings", statTime: "Zeit", statVolume: "Volumen", statExercises: "Übungen", currentBlock: "Aktueller Block", week: "Woche", phase: "Phase", volume: "Volumen", intensity: "Intensitat", cycle: "Zyklusrichtung", adjustment: "Blockanpassung", weekPlan: "Wochenplan", sorted: "Von KI sortiert", rest: "Aktive Erholung", mobility: "Leichte Mobilitat empfohlen", why: "Warum diese Reihenfolge?", fullLibrary: "Komplette Bibliothek", cataloged: "500+ katalogisierte Ubungen", reason1: "Push vor Pull, um die vorherige Erholung besser zu nutzen.", reason2: "Beine am Donnerstag: du leistest besser mit einem Erholungstag davor.", reason3: "Technische Einheit am Samstag fur frischere Skill-Arbeit." },
+  pt: {
+    coach: "Coach IA",
+    title: "Sua semana 3D Body Scanner",
+    workouts: "treinos",
+    organized: "organizados pela IA",
+    engine: "Motor IA v2.4",
+    active: "Ativo",
+    optimized: "Plano otimizado para sua próxima semana.",
+    optimizing: "Otimizando",
+    reorganize: "Reorganizar",
+    statWorkouts: "Treinos",
+    statTime: "Tempo",
+    statVolume: "Volume",
+    statExercises: "Exercícios",
+    currentBlock: "Bloco atual",
+    week: "Semana",
+    phase: "Fase",
+    volume: "Volume",
+    intensity: "Intensidade",
+    cycle: "Direção do ciclo",
+    adjustment: "Ajuste do bloco",
+    weekPlan: "Plano da semana",
+    sorted: "Ordenado pela IA",
+    rest: "Descanso ativo",
+    mobility: "Mobilidade leve sugerida",
+    why: "Por que essa ordem?",
+    fullLibrary: "Biblioteca completa",
+    cataloged: "500+ exercícios catalogados",
+    reason1:
+      "Treino de empurrar antes do treino de puxar para aproveitar melhor o descanso anterior.",
+    reason2: "Treino de pernas na quinta: você performa melhor com 1 dia de recuperação prévia.",
+    reason3: "Sessão técnica no sábado para skill em estado neural mais fresco.",
+    pickerTitle: "Dias de treino",
+    pickerSubtitle: "Selecione os dias que você treina por semana",
+    pickerConfirm: "Gerar plano",
+    pickerCancel: "Cancelar",
+    pickerMin: "Selecione pelo menos 1 dia",
+  },
+  es: {
+    coach: "Coach IA",
+    title: "Tu semana 3D Body Scanner",
+    workouts: "entrenamientos",
+    organized: "organizados por la IA",
+    engine: "Motor IA v2.4",
+    active: "Activo",
+    optimized: "Plan optimizado para tu próxima semana.",
+    optimizing: "Optimizando",
+    reorganize: "Reorganizar",
+    statWorkouts: "Entrenos",
+    statTime: "Tiempo",
+    statVolume: "Volumen",
+    statExercises: "Ejercicios",
+    currentBlock: "Bloque actual",
+    week: "Semana",
+    phase: "Fase",
+    volume: "Volumen",
+    intensity: "Intensidad",
+    cycle: "Dirección del ciclo",
+    adjustment: "Ajuste del bloque",
+    weekPlan: "Plan de la semana",
+    sorted: "Ordenado por IA",
+    rest: "Descanso activo",
+    mobility: "Movilidad ligera sugerida",
+    why: "¿Por qué este orden?",
+    fullLibrary: "Biblioteca completa",
+    cataloged: "500+ ejercicios catalogados",
+    reason1: "Empuje antes de tirón para aprovechar mejor el descanso previo.",
+    reason2: "Piernas el jueves: rindes mejor con un día de recuperación previa.",
+    reason3: "Sesión técnica el sábado para skill con el sistema nervioso más fresco.",
+    pickerTitle: "Días de entrenamiento",
+    pickerSubtitle: "Selecciona los días que entrenas por semana",
+    pickerConfirm: "Generar plan",
+    pickerCancel: "Cancelar",
+    pickerMin: "Selecciona al menos 1 día",
+  },
+  en: {
+    coach: "AI Coach",
+    title: "Your 3D Body Scanner week",
+    workouts: "workouts",
+    organized: "organized by AI",
+    engine: "AI Engine v2.4",
+    active: "Active",
+    optimized: "Plan optimized for your next week.",
+    optimizing: "Optimizing",
+    reorganize: "Reorganize",
+    statWorkouts: "Workouts",
+    statTime: "Time",
+    statVolume: "Volume",
+    statExercises: "Exercises",
+    currentBlock: "Current block",
+    week: "Week",
+    phase: "Phase",
+    volume: "Volume",
+    intensity: "Intensity",
+    cycle: "Cycle direction",
+    adjustment: "Block adjustment",
+    weekPlan: "Week plan",
+    sorted: "Sorted by AI",
+    rest: "Active rest",
+    mobility: "Light mobility suggested",
+    why: "Why this order?",
+    fullLibrary: "Full library",
+    cataloged: "500+ cataloged exercises",
+    reason1: "Push before pull to take better advantage of the previous recovery window.",
+    reason2: "Legs on Thursday: you perform better with one prior recovery day.",
+    reason3: "Technical session on Saturday for fresher neural skill work.",
+    pickerTitle: "Training days",
+    pickerSubtitle: "Select the days you train per week",
+    pickerConfirm: "Generate plan",
+    pickerCancel: "Cancel",
+    pickerMin: "Select at least 1 day",
+  },
+  fr: {
+    coach: "Coach IA",
+    title: "Votre semaine 3D Body Scanner",
+    workouts: "entraînements",
+    organized: "organisés par l'IA",
+    engine: "Moteur IA v2.4",
+    active: "Actif",
+    optimized: "Plan optimisé pour votre prochaine semaine.",
+    optimizing: "Optimisation",
+    reorganize: "Réorganiser",
+    statWorkouts: "Entraînements",
+    statTime: "Temps",
+    statVolume: "Volume",
+    statExercises: "Exercices",
+    currentBlock: "Bloc actuel",
+    week: "Semaine",
+    phase: "Phase",
+    volume: "Volume",
+    intensity: "Intensité",
+    cycle: "Direction du cycle",
+    adjustment: "Ajustement du bloc",
+    weekPlan: "Plan de la semaine",
+    sorted: "Ordonné par l'IA",
+    rest: "Repos actif",
+    mobility: "Mobilité légère suggérée",
+    why: "Pourquoi cet ordre ?",
+    fullLibrary: "Bibliothèque complète",
+    cataloged: "500+ exercices catalogués",
+    reason1: "Poussée avant tirage pour mieux profiter de la récupération précédente.",
+    reason2: "Jambes le jeudi : vous performez mieux avec un jour de récupération avant.",
+    reason3: "Séance technique le samedi pour les skills avec un état neural plus frais.",
+    pickerTitle: "Jours d'entraînement",
+    pickerSubtitle: "Sélectionnez les jours où vous vous entraînez par semaine",
+    pickerConfirm: "Générer le plan",
+    pickerCancel: "Annuler",
+    pickerMin: "Sélectionnez au moins 1 jour",
+  },
+  de: {
+    coach: "KI-Coach",
+    title: "Deine 3D Body Scanner-Woche",
+    workouts: "Trainings",
+    organized: "von der KI organisiert",
+    engine: "KI-Engine v2.4",
+    active: "Aktiv",
+    optimized: "Plan für deine nächste Woche optimiert.",
+    optimizing: "Optimierung",
+    reorganize: "Neu ordnen",
+    statWorkouts: "Trainings",
+    statTime: "Zeit",
+    statVolume: "Volumen",
+    statExercises: "Übungen",
+    currentBlock: "Aktueller Block",
+    week: "Woche",
+    phase: "Phase",
+    volume: "Volumen",
+    intensity: "Intensität",
+    cycle: "Zyklusrichtung",
+    adjustment: "Blockanpassung",
+    weekPlan: "Wochenplan",
+    sorted: "Von KI sortiert",
+    rest: "Aktive Erholung",
+    mobility: "Leichte Mobilität empfohlen",
+    why: "Warum diese Reihenfolge?",
+    fullLibrary: "Komplette Bibliothek",
+    cataloged: "500+ katalogisierte Übungen",
+    reason1: "Push vor Pull, um die vorherige Erholung besser zu nutzen.",
+    reason2: "Beine am Donnerstag: du leistest besser mit einem Erholungstag davor.",
+    reason3: "Technische Einheit am Samstag für frischere Skill-Arbeit.",
+    pickerTitle: "Trainingstage",
+    pickerSubtitle: "Wähle die Tage, an denen du pro Woche trainierst",
+    pickerConfirm: "Plan erstellen",
+    pickerCancel: "Abbrechen",
+    pickerMin: "Wähle mindestens 1 Tag",
+  },
 } as const;
 
 function TreinosPage() {
@@ -56,6 +280,10 @@ function TreinosPage() {
   const [aiState, setAiState] = useState<"idle" | "thinking" | "ready">("ready");
   const AI_STEPS_LEN = AI_STEPS.pt.length;
   const [stepIdx, setStepIdx] = useState(AI_STEPS_LEN - 1);
+  const [showDaysPicker, setShowDaysPicker] = useState(false);
+  const [pickerDays, setPickerDays] = useState<number[]>(
+    () => loadOnboarding().days ?? [0, 1, 2, 3, 4],
+  );
   const trainingState = useTrainingState(refreshKey);
   const { periodization } = trainingState;
   const weekDays = getWeekDayLabels(locale);
@@ -79,9 +307,7 @@ function TreinosPage() {
   useEffect(() => {
     if (aiState !== "thinking") return;
     const id = setInterval(() => {
-      setStepIdx((current) =>
-        current >= AI_STEPS_LEN - 2 ? current : current + 1,
-      );
+      setStepIdx((current) => (current >= AI_STEPS_LEN - 2 ? current : current + 1));
     }, 900);
     return () => clearInterval(id);
   }, [aiState]);
@@ -101,7 +327,9 @@ function TreinosPage() {
     <div className="space-y-5 pb-6">
       <div>
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan">{copy.coach}</p>
-        <h1 className="font-display text-2xl font-bold leading-tight text-gradient-brand">{copy.title}</h1>
+        <h1 className="font-display text-2xl font-bold leading-tight text-gradient-brand">
+          {copy.title}
+        </h1>
         <p className="mt-1 text-sm text-muted-foreground">
           {totalWorkouts} {copy.workouts} | {totalMinutes} min {copy.organized}
         </p>
@@ -139,8 +367,8 @@ function TreinosPage() {
           </div>
           <button
             onClick={() => {
-              setRefreshKey((k) => k + 1);
-              trainingState.regenerate();
+              setPickerDays(loadOnboarding().days ?? [0, 1, 2, 3, 4]);
+              setShowDaysPicker(true);
             }}
             disabled={aiState === "thinking"}
             className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-cyan/40 bg-cyan/10 px-3 py-1.5 text-xs font-semibold text-cyan transition hover:bg-cyan/20 disabled:opacity-60"
@@ -156,9 +384,19 @@ function TreinosPage() {
       </motion.div>
 
       <div className="grid grid-cols-3 gap-2">
-        <Stat icon={Calendar} label={copy.statWorkouts} value={`${totalWorkouts}`} accent="text-cyan" />
+        <Stat
+          icon={Calendar}
+          label={copy.statWorkouts}
+          value={`${totalWorkouts}`}
+          accent="text-cyan"
+        />
         <Stat icon={Clock} label={copy.statTime} value={`${totalMinutes}m`} accent="text-primary" />
-        <Stat icon={Dumbbell} label={copy.statExercises} value={`${totalExercises}`} accent="text-success" />
+        <Stat
+          icon={Dumbbell}
+          label={copy.statExercises}
+          value={`${totalExercises}`}
+          accent="text-success"
+        />
       </div>
 
       <div className="rounded-2xl border border-border bg-surface p-4">
@@ -180,10 +418,15 @@ function TreinosPage() {
             {copy.phase}: {getPhaseLabel(currentPeriodWeek?.phase ?? "base", locale)}
           </span>
           <span className="rounded-full bg-success/10 px-2 py-1 text-success">
-            {copy.volume}: {getVolumeBiasLabel((currentPeriodWeek?.volumeBias ?? "alto") as "alto" | "moderado" | "baixo", locale)}
+            {copy.volume}:{" "}
+            {getVolumeBiasLabel(
+              (currentPeriodWeek?.volumeBias ?? "alto") as "alto" | "moderado" | "baixo",
+              locale,
+            )}
           </span>
           <span className="rounded-full bg-primary/10 px-2 py-1 text-primary">
-            {copy.intensity}: {getIntensityLabel(currentPeriodWeek?.intensityBias ?? "leve", locale)}
+            {copy.intensity}:{" "}
+            {getIntensityLabel(currentPeriodWeek?.intensityBias ?? "leve", locale)}
           </span>
         </div>
       </div>
@@ -260,7 +503,9 @@ function TreinosPage() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5">
-                    <span className="truncate text-sm font-semibold">{translateWorkoutName(workout.name, locale)}</span>
+                    <span className="truncate text-sm font-semibold">
+                      {translateWorkoutName(workout.name, locale)}
+                    </span>
                     {plan.tag ? (
                       <span className="rounded-full bg-cyan/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-cyan">
                         {plan.tag}
@@ -294,6 +539,86 @@ function TreinosPage() {
           );
         })}
       </div>
+
+      <AnimatePresence>
+        {showDaysPicker && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-4 pb-8"
+            onClick={() => setShowDaysPicker(false)}
+          >
+            <motion.div
+              initial={{ y: 40, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 40, opacity: 0 }}
+              transition={{ type: "spring", damping: 28, stiffness: 320 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-sm rounded-3xl border border-border bg-background p-5 shadow-2xl"
+            >
+              <div className="mb-4 text-center">
+                <h3 className="font-display text-lg font-bold text-foreground">
+                  {copy.pickerTitle}
+                </h3>
+                <p className="mt-1 text-xs text-muted-foreground">{copy.pickerSubtitle}</p>
+              </div>
+
+              <div className="mb-5 grid grid-cols-7 gap-1.5">
+                {weekDays.map((label, i) => {
+                  const active = pickerDays.includes(i);
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => {
+                        setPickerDays((prev) =>
+                          prev.includes(i)
+                            ? prev.filter((d) => d !== i)
+                            : [...prev, i].sort((a, b) => a - b),
+                        );
+                      }}
+                      className={cn(
+                        "aspect-square rounded-2xl border text-xs font-semibold transition",
+                        active
+                          ? "border-primary/60 bg-gradient-primary text-primary-foreground shadow-glow-primary"
+                          : "border-border bg-surface text-foreground hover:border-primary/30",
+                      )}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {pickerDays.length === 0 && (
+                <p className="mb-3 text-center text-xs text-destructive">{copy.pickerMin}</p>
+              )}
+
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowDaysPicker(false)}
+                  className="flex-1 rounded-2xl border border-border bg-surface px-4 py-3 text-sm font-semibold text-muted-foreground transition hover:bg-elevated"
+                >
+                  {copy.pickerCancel}
+                </button>
+                <button
+                  disabled={pickerDays.length === 0}
+                  onClick={() => {
+                    const current = loadOnboarding();
+                    saveOnboarding({ ...current, days: pickerDays });
+                    setShowDaysPicker(false);
+                    setRefreshKey((k) => k + 1);
+                    trainingState.regenerate();
+                  }}
+                  className="flex-1 rounded-2xl bg-gradient-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow-glow-primary transition disabled:opacity-50"
+                >
+                  {copy.pickerConfirm}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -313,9 +638,7 @@ function Stat({
     <div className="rounded-xl border border-border bg-surface p-3">
       <Icon className={`h-3.5 w-3.5 ${accent}`} />
       <div className="mt-1 font-display text-lg font-bold leading-none">{value}</div>
-      <div className="mt-1 text-[10px] uppercase tracking-wider text-muted-foreground">
-        {label}
-      </div>
+      <div className="mt-1 text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
     </div>
   );
 }
@@ -328,7 +651,13 @@ const INTENSITY_LABELS: Record<string, Record<string, string>> = {
   de: { Leve: "Leicht", Moderado: "Moderat", Pesado: "Schwer" },
 };
 
-function IntensityPill({ level, locale }: { level: "Leve" | "Moderado" | "Pesado"; locale: string }) {
+function IntensityPill({
+  level,
+  locale,
+}: {
+  level: "Leve" | "Moderado" | "Pesado";
+  locale: string;
+}) {
   const map = { Leve: "text-success", Moderado: "text-cyan", Pesado: "text-primary" } as const;
   const dots = level === "Leve" ? 1 : level === "Moderado" ? 2 : 3;
   const label = (INTENSITY_LABELS[locale] ?? INTENSITY_LABELS.pt)[level] ?? level;
@@ -336,7 +665,10 @@ function IntensityPill({ level, locale }: { level: "Leve" | "Moderado" | "Pesado
   return (
     <span className={`inline-flex items-center gap-0.5 ${map[level]}`}>
       {Array.from({ length: 3 }).map((_, index) => (
-        <span key={index} className={`h-1 w-1 rounded-full ${index < dots ? "bg-current" : "bg-border"}`} />
+        <span
+          key={index}
+          className={`h-1 w-1 rounded-full ${index < dots ? "bg-current" : "bg-border"}`}
+        />
       ))}
       <span className="ml-1 font-semibold">{label}</span>
     </span>
