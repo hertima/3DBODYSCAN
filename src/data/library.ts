@@ -1530,6 +1530,14 @@ function inferEquipmentFromCatalog(path: string) {
     (keyword) => normalized.includes(keyword) || normalizedName.includes(keyword),
   );
 
+  // Precisa rodar antes de chestBodyweightOverrides: "paralelas" ali embaixo é
+  // genérico e capturaria "Paralelas no Graviton"/"Paralelas Graviton" como
+  // peso corporal antes de chegar na regra específica de "graviton" (máquina).
+  const anchorOverride = equipmentAnchorOverrides.find((item) =>
+    normalizedName.includes(item.match),
+  );
+  if (anchorOverride) return anchorOverride.equipment;
+
   if (chestBodyweightOverrides.some((keyword) => normalizedName.includes(keyword))) {
     return "Peso corporal";
   }
@@ -1537,11 +1545,6 @@ function inferEquipmentFromCatalog(path: string) {
   if (gymCableOverrides.some((keyword) => normalizedName.includes(keyword))) {
     return "Cabos";
   }
-
-  const anchorOverride = equipmentAnchorOverrides.find((item) =>
-    normalizedName.includes(item.match),
-  );
-  if (anchorOverride) return anchorOverride.equipment;
 
   if (
     normalized.includes("barra fixa") ||
