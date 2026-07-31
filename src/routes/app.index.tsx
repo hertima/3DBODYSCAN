@@ -427,6 +427,7 @@ function Dashboard() {
           label={dc.statReadiness}
           value={`${readinessScore}%`}
           tone="#22d3ee"
+          title={dc.statReadinessTooltip}
         />
         <CompactPulseStat icon={Trophy} label="Lv" value={gamification.level} tone="#a855f7" />
         <div className="col-span-3 mt-1">
@@ -467,14 +468,16 @@ function CompactPulseStat({
   label,
   value,
   tone,
+  title,
 }: {
   icon: typeof Flame;
   label: string;
   value: string | number;
   tone: string;
+  title?: string;
 }) {
   return (
-    <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-3">
+    <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-3" title={title}>
       <div className="flex items-center justify-between gap-2">
         <Icon className="h-4 w-4" style={{ color: tone }} />
         <span className="truncate text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
