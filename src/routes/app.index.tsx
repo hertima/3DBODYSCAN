@@ -16,7 +16,11 @@ import { loadMealPlan } from "@/lib/meal-plan";
 import { motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
 import { SkeletonStatCard, SkeletonWorkoutCard } from "@/components/SkeletonCard";
-import { useGamification } from "@/hooks/use-gamification";
+import { useRealGamification } from "@/hooks/use-real-gamification";
+import type { SavedWorkout } from "@/lib/workout-history";
+import { loadWorkoutsFromFirestore } from "@/lib/firestore-workouts";
+import { loadBodyScansFromFirestore, type FirestoreBodyScan } from "@/lib/firestore-body-scans";
+import { loadFoodScansFromFirestore, type FirestoreFoodScan } from "@/lib/firestore-food-scans";
 import { useTrainingState } from "@/hooks/use-training-state";
 import { resolveTrainingSplit } from "@/domain/training/rules";
 import {
@@ -142,7 +146,10 @@ function Dashboard() {
           : locale === "fr"
             ? "fr-FR"
             : "en-US";
-  const { gamification, dopamineLoop } = useGamification(trainingState);
+  const [realWorkouts, setRealWorkouts] = useState<SavedWorkout[]>([]);
+  const [bodyScans, setBodyScans] = useState<FirestoreBodyScan[]>([]);
+  const [foodScans, setFoodScans] = useState<FirestoreFoodScan[]>([]);
+  const gamification = useRealGamification(realWorkouts, bodyScans, foodScans, trainingState.profile);
 
   useEffect(() => {
     const onboarding = loadOnboarding();
@@ -164,6 +171,9 @@ function Dashboard() {
           if (prof?.avatarUrl) setAvatarUrl(prof.avatarUrl);
         })
         .catch(() => {});
+      loadWorkoutsFromFirestore(uid).then(setRealWorkouts).catch(() => {});
+      loadBodyScansFromFirestore(uid).then(setBodyScans).catch(() => {});
+      loadFoodScansFromFirestore(uid).then(setFoodScans).catch(() => {});
     }
   }, []);
   const dailyMission = gamification.missions.diaria[0];

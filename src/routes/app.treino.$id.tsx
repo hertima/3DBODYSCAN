@@ -274,7 +274,6 @@ function WorkoutDetailPage() {
         supportsProfileEquipment(record.equipment) &&
         supportsEnvironment(record.equipment, record.trainingType),
     );
-    if (byPattern.length > 0) return byPattern;
 
     // Tier 2: mesma categoria + equipamento compatível
     const byCategory = catalog.filter(
@@ -283,7 +282,14 @@ function WorkoutDetailPage() {
         supportsProfileEquipment(record.equipment) &&
         supportsEnvironment(record.equipment, record.trainingType),
     );
-    if (byCategory.length > 0) return byCategory;
+
+    // Combina os dois tiers (padrão de movimento primeiro, mais relevante) em
+    // vez de parar no Tier 1 assim que acha 1 resultado — isso deixava a
+    // lista de substituição bem pobre quando só existia 1 exercício com o
+    // padrão de movimento exato (ex: "Tríceps Francês" só oferecia "Tríceps
+    // Corda", ignorando outras opções de tríceps com padrão diferente).
+    const combined = [...byPattern, ...byCategory.filter((r) => !byPattern.includes(r))];
+    if (combined.length > 0) return combined;
 
     // Tier 3: mesma categoria sem filtro de ambiente
     return catalog.filter((record) => baseFilter(record));
