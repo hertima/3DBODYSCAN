@@ -933,6 +933,21 @@ function applyFocusPriority(
     }
   }
 
+  // Categoria de foco que o template nem tem slot nenhum (ex: "Superior e
+  // core" não tem perna) — injeta 1 slot pra ela, tirado do mesmo orçamento
+  // liberado acima. Só acontece quando o template já tem PELO MENOS uma
+  // categoria de foco (matchingRules acima) — protege splits 100% dedicados
+  // (ex: dia isolado de peito) de ganhar categoria que não é a proposta do dia.
+  const presentCategories = new Set(
+    categories.flatMap((rule) => (rule.secondary ? [rule.primary, rule.secondary] : [rule.primary])),
+  );
+  for (const category of focusCategories) {
+    if (extraSlots <= 0) break;
+    if (presentCategories.has(category)) continue;
+    adjusted.push({ primary: category, slots: 1 });
+    extraSlots -= 1;
+  }
+
   let cursor = 0;
   const matchingAdjusted = adjusted.filter(matchesFocus);
   while (extraSlots > 0 && matchingAdjusted.length > 0) {
