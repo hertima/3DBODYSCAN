@@ -1068,7 +1068,6 @@ const chestBodyweightOverrides = [
   "pike push up",
   "plyometric push ups",
   "push up bars",
-  "paralelas",
 ] as const;
 
 const gymCableOverrides = [
@@ -1093,6 +1092,11 @@ const equipmentAnchorOverrides = [
   // "Graviton" é uma máquina de assistência (barra/paralelas assistidas) — nunca
   // o equipamento portátil de paralelas/barra fixa.
   { match: "graviton", equipment: "Maquina" },
+  // "Entre cadeiras" é literalmente usar duas cadeiras comuns — mesmo com
+  // "paralelas" no nome (ex: "Paralelas Entre Cadeiras"), não exige a barra
+  // paralela de academia/parque, então precisa vir antes da regra genérica
+  // de "paralela" mais abaixo.
+  { match: "entre cadeiras", equipment: "Peso corporal" },
   // A palavra genérica "remada" (mais abaixo, em gymCableOverrides) captura
   // essas 3 variações de remada invertida como Cabos — mas elas usam mesa,
   // argolas ou TRX, não cabo de academia.

@@ -43,7 +43,7 @@ export const exerciseGifMap: ExerciseGifMap = {
   "remada-australiana": `${CALISTENIA_PATH}/Remada Invertida na Mesa.mp4`,
   "curl-barra-fixa": `${CALISTENIA_PATH}/Barra Fixa para o Braquial.mp4`,
   "elevacao-toalha": `${CALISTENIA_PATH}/Elevação lateral com toalha na parede.mp4`,
-  "pike-push-up": `${CALISTENIA_PATH}/Flexão inclinada.mp4`,
+  "pike-push-up": "pike-push-up (1).mp4",
   "flexao-fechada": `${CALISTENIA_PATH}/Flexão Fechada com bola medicinal.mp4`,
   "dips-cadeira": `${CALISTENIA_PATH}/Dips na cadeira.mp4`,
   "agachamento-bulgaro-pc": `${CALISTENIA_PATH}/Agachamento Búlgaro com Peso Corporal.mp4`,
