@@ -31,9 +31,12 @@ export const officialEquipment = [
   "elastico",
 ] as const;
 
+export const officialDifficulty = ["iniciante", "intermediario", "avancado"] as const;
+
 export type OfficialMuscleCategory = (typeof officialMuscleCategories)[number];
 export type OfficialTrainingType = (typeof officialTrainingTypes)[number];
 export type OfficialEquipment = (typeof officialEquipment)[number];
+export type OfficialDifficulty = (typeof officialDifficulty)[number];
 
 export type ExerciseCatalogRecord = {
   id: string;
@@ -44,6 +47,7 @@ export type ExerciseCatalogRecord = {
   category: OfficialMuscleCategory;
   secondaryCategories: OfficialMuscleCategory[];
   equipment: OfficialEquipment;
+  difficulty: OfficialDifficulty;
   movementPattern: LocalizedText;
   sourceGroup: string | null;
   gifPath: string | null;
@@ -75,7 +79,9 @@ function resolveCategory(exercise: Exercise): OfficialMuscleCategory {
   const name = normalize(displayValue(exercise.name));
 
   const hasToken = (...tokens: string[]) =>
-    tokens.some((token) => muscle.includes(token) || sourceGroup.includes(token) || name.includes(token));
+    tokens.some(
+      (token) => muscle.includes(token) || sourceGroup.includes(token) || name.includes(token),
+    );
 
   // Only checks muscle + sourceGroup — prevents false positives from exercise names
   // e.g. "coice" in "Triceps Coice" or "agach" in "Rosca Agachado"
@@ -109,6 +115,14 @@ function resolveCategory(exercise: Exercise): OfficialMuscleCategory {
   if (hasToken("costas", "trapezio", "remada", "puxada", "pulldown", "pulley", "barra fixa")) {
     return "costas_trapezio";
   }
+  // "Prancha ... Flexão ..." (variações de prancha/estabilidade, ex: "Prancha Com
+  // Flexão Lateral De Quadril") tem "flexao" no nome mas é exercício de core, não
+  // de peito — precisa ser resolvido antes do check de peitoral abaixo, senão
+  // "flexao" rouba esses exercícios da categoria abdomen_core.
+  if (hasToken("prancha", "plank")) {
+    return "abdomen_core";
+  }
+
   if (hasToken("peitoral", "peito", "supino", "crossover", "crucifixo", "fly", "flexao")) {
     return "peitoral";
   }
@@ -162,6 +176,86 @@ function resolveEquipment(exercise: Exercise): OfficialEquipment {
   return "barra";
 }
 
+// Marcadores de nome que indicam claramente uma variação avançada — exige força
+// relativa alta, controle de skill, ou é uma progressão final de uma linha de
+// exercícios (ex: pistol squat, muscle up). Só marca "avancado" quando há sinal
+// claro; na dúvida, cai em "intermediario" (nunca bloqueado pra ninguém).
+const advancedNameMarkers = [
+  "muscle up",
+  "planche",
+  "front lever",
+  "back lever",
+  "human flag",
+  "bandeira humana",
+  "flexao de um braco",
+  "flexao com um braco",
+  "prancha de um braco",
+  "nordica",
+  "entre cadeiras",
+  "explosiv",
+  "pliometric",
+  "plyometric",
+] as const;
+
+// "com peso" indica variação com sobrecarga externa (halteres/anilha), mas
+// "com peso corporal" significa o oposto — sem sobrecarga, só o próprio corpo.
+// Precisa ser checado à parte pra "peso corporal" não virar falso positivo.
+function hasAddedWeightMarker(name: string) {
+  return name.includes("com peso") && !name.includes("com peso corporal");
+}
+
+// "pistol"/"um braço" só indicam dificuldade elite quando o movimento é feito
+// com o peso do próprio corpo (sem máquina/cabo assistindo) — numa máquina ou
+// halteres, "unilateral"/"um braço" é só uma variação normal, não elite.
+const advancedBodyweightOnlyMarkers = ["pistol", "one arm"] as const;
+const bodyweightLikeEquipment: OfficialEquipment[] = ["peso_corporal", "trx", "elastico"];
+
+// Marcadores de nome que indicam uma variação assistida/regressiva — feita
+// justamente pra reduzir a dificuldade de um movimento mais avançado. Cobre PT
+// e EN porque o catálogo mistura os dois (ex: "Band Assisted Pull Up").
+const beginnerNameMarkers = [
+  "assistid",
+  "assisted",
+  "apoio dos joelhos",
+  "joelhos",
+  "negativa",
+  "eccentric",
+  "escapular",
+  "ativacao",
+  "iniciante",
+  "facilitada",
+  "apoiado",
+  "apoiada",
+  "australiana",
+  "remada invertida",
+] as const;
+
+function resolveDifficulty(exercise: Exercise, equipment: OfficialEquipment): OfficialDifficulty {
+  const name = normalize(displayValue(exercise.name));
+
+  if (beginnerNameMarkers.some((marker) => name.includes(marker))) return "iniciante";
+  if (advancedNameMarkers.some((marker) => name.includes(marker)) || hasAddedWeightMarker(name)) {
+    return "avancado";
+  }
+  if (
+    bodyweightLikeEquipment.includes(equipment) &&
+    advancedBodyweightOnlyMarkers.some((marker) => name.includes(marker))
+  ) {
+    return "avancado";
+  }
+
+  // Barra fixa e paralelas sem assistência (checado acima) exigem sustentar o
+  // peso corporal inteiro em tração/tríceps — não são ponto de partida seguro
+  // pra quem está começando.
+  if (equipment === "barra_fixa" || equipment === "paralelas") return "avancado";
+
+  if (name.includes("handstand") || name.includes("parada de maos") || name.includes("parada de mão")) {
+    return "avancado";
+  }
+
+  return "intermediario";
+}
+
 function resolveGifSource(exercise: Exercise): "official" | "catalog" | "fallback" {
   if (!exercise.gifUrl) return "fallback";
   if (
@@ -175,6 +269,7 @@ function resolveGifSource(exercise: Exercise): "official" | "catalog" | "fallbac
 
 export function mapExerciseToCatalogRecord(exercise: Exercise): ExerciseCatalogRecord {
   const normalizedName = displayValue(exercise.name);
+  const equipment = resolveEquipment(exercise);
 
   return {
     id: exercise.id,
@@ -184,7 +279,8 @@ export function mapExerciseToCatalogRecord(exercise: Exercise): ExerciseCatalogR
     trainingType: resolveTrainingType(exercise),
     category: resolveCategory(exercise),
     secondaryCategories: [],
-    equipment: resolveEquipment(exercise),
+    equipment,
+    difficulty: resolveDifficulty(exercise, equipment),
     movementPattern: createLocalizedText(displayValue(exercise.biomechanics)),
     sourceGroup: exercise.sourceGroup ?? null,
     gifPath: exercise.gifUrl ?? null,
@@ -199,13 +295,7 @@ export function isFunctionalExerciseRecord(record: ExerciseCatalogRecord) {
   );
   if (record.trainingType === "calistenia") return true;
 
-  const functionalEquipment = [
-    "peso_corporal",
-    "parede",
-    "trx",
-    "bola",
-    "elastico",
-  ];
+  const functionalEquipment = ["peso_corporal", "parede", "trx", "bola", "elastico"];
 
   return (
     functionalEquipment.includes(record.equipment) ||

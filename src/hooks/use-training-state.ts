@@ -3,9 +3,15 @@ import {
   buildAIWorkoutCandidates,
   canAddExerciseToSelection,
   getCurrentTrainingState,
+  supportsProfileEquipment,
+  supportsEnvironment,
+  supportsProfileLevel,
 } from "@/domain/training/engine";
-import { buildAthleteProfile } from "@/domain/athlete/profile";
-import { buildEnvironmentContextFromOnboarding } from "@/domain/environment/context";
+import { buildAthleteProfile, type AthleteProfile } from "@/domain/athlete/profile";
+import {
+  buildEnvironmentContextFromOnboarding,
+  type EnvironmentContext,
+} from "@/domain/environment/context";
 import { buildExerciseCatalog, type ExerciseCatalogRecord } from "@/domain/exercises/catalog";
 import { buildBodyTrainingContext } from "@/domain/body/state";
 import { buildPeriodizationBlock } from "@/domain/training/periodization";
@@ -25,10 +31,21 @@ import type { Workout } from "@/data/library";
 
 function collectAIExerciseIds(aiPlan: AIWorkoutPlan | null) {
   if (!aiPlan) return [];
-  return Array.from(new Set(aiPlan.workouts.flatMap((workout) => workout.exercises.map((exercise) => exercise.exerciseId))));
+  return Array.from(
+    new Set(
+      aiPlan.workouts.flatMap((workout) =>
+        workout.exercises.map((exercise) => exercise.exerciseId),
+      ),
+    ),
+  );
 }
 
-function mergeAIWorkouts(rulesWorkouts: Workout[], aiPlan: AIWorkoutPlan, trainingType?: string): Workout[] {
+function mergeAIWorkouts(
+  rulesWorkouts: Workout[],
+  aiPlan: AIWorkoutPlan,
+  profile: AthleteProfile,
+  environment: EnvironmentContext,
+): Workout[] {
   const catalogById = new Map(buildExerciseCatalog().map((record) => [record.id, record]));
 
   return rulesWorkouts.map((workout) => {
@@ -45,12 +62,33 @@ function mergeAIWorkouts(rulesWorkouts: Workout[], aiPlan: AIWorkoutPlan, traini
         const rulesEx = workout.exercises.find((e) => e.exerciseId === aiEx.exerciseId);
         const aiRecord = catalogById.get(aiEx.exerciseId);
         const slotRecord = catalogById.get(rulesSlot.exerciseId);
-        const invalidCategory = !!aiRecord && !!slotRecord && aiRecord.category !== slotRecord.category;
+        const invalidCategory =
+          !!aiRecord && !!slotRecord && aiRecord.category !== slotRecord.category;
         const invalidTrainingType =
-          trainingType === "calistenia" && !!aiRecord && aiRecord.trainingType !== "calistenia";
+          profile.trainingType === "calistenia" &&
+          !!aiRecord &&
+          aiRecord.trainingType !== "calistenia";
+        // A IA pode sugerir um exercício válido por categoria/tipo mas que exige
+        // equipamento que o aluno não tem em casa (ex: banco declinado, cabos) —
+        // a mesma checagem que já filtra o pool de exercícios das regras precisa
+        // valer aqui também, senão a IA "vaza" exercícios de academia pro treino em casa.
+        const invalidEquipment =
+          !!aiRecord &&
+          (!supportsProfileEquipment(aiRecord, profile) ||
+            !supportsEnvironment(aiRecord, environment));
+        // Mesma lógica: a IA não pode sugerir um exercício "avancado" pra quem é
+        // iniciante, mesmo que categoria/equipamento batam certinho.
+        const invalidLevel = !!aiRecord && !supportsProfileLevel(aiRecord, profile);
         const repeatedPattern = !!aiRecord && !canAddExerciseToSelection(acceptedRecords, aiRecord);
 
-        if (!aiRecord || invalidCategory || invalidTrainingType || repeatedPattern) {
+        if (
+          !aiRecord ||
+          invalidCategory ||
+          invalidTrainingType ||
+          invalidEquipment ||
+          invalidLevel ||
+          repeatedPattern
+        ) {
           if (slotRecord) acceptedRecords.push(slotRecord);
           return rulesSlot;
         }
@@ -89,93 +127,108 @@ export function useTrainingState(refreshKey = 0): TrainingStateWithAI {
   const [aiPlan, setAiPlanState] = useState<AIWorkoutPlan | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
 
-  const fetchAIPlan = useCallback(async (options: { regenerationId?: string; avoidExerciseIds?: string[] } = {}) => {
-    setAiLoading(true);
-    try {
-      const onboarding = loadOnboarding();
-      const profile = buildAthleteProfile(onboarding);
-      const environment = buildEnvironmentContextFromOnboarding(profile, onboarding);
-      const catalog = buildExerciseCatalog();
-      const body = buildBodyTrainingContext();
+  const fetchAIPlan = useCallback(
+    async (options: { regenerationId?: string; avoidExerciseIds?: string[] } = {}) => {
+      setAiLoading(true);
+      try {
+        const onboarding = loadOnboarding();
+        const profile = buildAthleteProfile(onboarding);
+        const environment = buildEnvironmentContextFromOnboarding(profile, onboarding);
+        const catalog = buildExerciseCatalog();
+        const body = buildBodyTrainingContext();
 
-      const { resolveWorkoutTemplates } = await import("@/domain/training/rules");
-      const resolvedTemplates = resolveWorkoutTemplates(profile);
-      const candidates = buildAIWorkoutCandidates(profile, environment, body, resolvedTemplates, catalog);
+        const { resolveWorkoutTemplates } = await import("@/domain/training/rules");
+        const resolvedTemplates = resolveWorkoutTemplates(profile);
+        const candidates = buildAIWorkoutCandidates(
+          profile,
+          environment,
+          body,
+          resolvedTemplates,
+          catalog,
+        );
 
-      const locale = getStoredLocale();
-      const memory = buildAthleteMemory();
-      const athleteMemory = serializeMemoryForAI(memory);
+        const locale = getStoredLocale();
+        const memory = buildAthleteMemory();
+        const athleteMemory = serializeMemoryForAI(memory);
 
-      const nutrition = buildNutritionTrainingContext();
-      const periodization = buildPeriodizationBlock(profile, body, nutrition, environment, locale);
-      const currentWeekData = periodization.weeks[periodization.currentWeek - 1];
-
-      const token = await getAuthToken();
-      const res = await fetch("/api/ai-workout", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
-          profile: {
-            goal: profile.goal,
-            level: profile.level,
-            sex: profile.sex,
-            location: profile.location,
-            trainingType: profile.trainingType,
-            availableDays: profile.availableDays.length || 3,
-            workoutDurationMin: profile.workoutDurationMin,
-            name: profile.name,
-            modality: periodization.modality,
-            currentWeek: periodization.currentWeek,
-            currentPhase: currentWeekData?.phase ?? "base",
-            phaseEmphasis: currentWeekData?.emphasis ?? "",
-            volumeBias: currentWeekData?.volumeBias ?? "moderado",
-            intensityBias: currentWeekData?.intensityBias ?? "moderada",
-            equipment: profile.equipment,
-            consistency: profile.consistency,
-            splitBias: periodization.adjustments.splitBias,
-            trackCycle: profile.trackCycle,
-            menstrualCyclePhase: profile.menstrualCyclePhase,
-            injuries: profile.injuries,
-            limitations: profile.limitations,
-            focusMuscles: profile.preferredFocus,
-            dietType: onboarding.dietType,
-            metabolismType: onboarding.metabolismType,
-          },
-          workoutCandidates: candidates,
+        const nutrition = buildNutritionTrainingContext();
+        const periodization = buildPeriodizationBlock(
+          profile,
+          body,
+          nutrition,
+          environment,
           locale,
-          athleteMemory,
-          regenerationId: options.regenerationId,
-          avoidExerciseIds: options.avoidExerciseIds ?? [],
-        }),
-      });
+        );
+        const currentWeekData = periodization.weeks[periodization.currentWeek - 1];
 
-      if (!res.ok) throw new Error(`${res.status}`);
+        const token = await getAuthToken();
+        const res = await fetch("/api/ai-workout", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({
+            profile: {
+              goal: profile.goal,
+              level: profile.level,
+              sex: profile.sex,
+              location: profile.location,
+              trainingType: profile.trainingType,
+              availableDays: profile.availableDays.length || 3,
+              workoutDurationMin: profile.workoutDurationMin,
+              name: profile.name,
+              modality: periodization.modality,
+              currentWeek: periodization.currentWeek,
+              currentPhase: currentWeekData?.phase ?? "base",
+              phaseEmphasis: currentWeekData?.emphasis ?? "",
+              volumeBias: currentWeekData?.volumeBias ?? "moderado",
+              intensityBias: currentWeekData?.intensityBias ?? "moderada",
+              equipment: profile.equipment,
+              consistency: profile.consistency,
+              splitBias: periodization.adjustments.splitBias,
+              trackCycle: profile.trackCycle,
+              menstrualCyclePhase: profile.menstrualCyclePhase,
+              injuries: profile.injuries,
+              limitations: profile.limitations,
+              focusMuscles: profile.preferredFocus,
+              dietType: onboarding.dietType,
+              metabolismType: onboarding.metabolismType,
+            },
+            workoutCandidates: candidates,
+            locale,
+            athleteMemory,
+            regenerationId: options.regenerationId,
+            avoidExerciseIds: options.avoidExerciseIds ?? [],
+          }),
+        });
 
-      const json = (await res.json()) as {
-        workouts: AIWorkoutPlan["workouts"];
-        scheduleReasons: string[];
-        weekFocus: string;
-      };
+        if (!res.ok) throw new Error(`${res.status}`);
 
-      const profileKey = buildProfileKey(profile, locale);
-      const plan: AIWorkoutPlan = {
-        workouts: json.workouts ?? [],
-        scheduleReasons: json.scheduleReasons ?? [],
-        weekFocus: json.weekFocus ?? "",
-        profileKey,
-        weekKey: 0,
-      };
+        const json = (await res.json()) as {
+          workouts: AIWorkoutPlan["workouts"];
+          scheduleReasons: string[];
+          weekFocus: string;
+        };
 
-      setAIWorkoutPlan(plan);
-      setAiPlanState(plan);
-    } catch {
-      // fallback to rules-based — no error shown
-    }
-    setAiLoading(false);
-  }, []);
+        const profileKey = buildProfileKey(profile, locale);
+        const plan: AIWorkoutPlan = {
+          workouts: json.workouts ?? [],
+          scheduleReasons: json.scheduleReasons ?? [],
+          weekFocus: json.weekFocus ?? "",
+          profileKey,
+          weekKey: 0,
+        };
+
+        setAIWorkoutPlan(plan);
+        setAiPlanState(plan);
+      } catch {
+        // fallback to rules-based — no error shown
+      }
+      setAiLoading(false);
+    },
+    [],
+  );
 
   useEffect(() => {
     const onboarding = loadOnboarding();
@@ -191,8 +244,8 @@ export function useTrainingState(refreshKey = 0): TrainingStateWithAI {
 
   const mergedWorkouts = useMemo(() => {
     if (!aiPlan) return base.workouts;
-    return mergeAIWorkouts(base.workouts, aiPlan, base.profile.trainingType);
-  }, [base.workouts, aiPlan, base.profile.trainingType]);
+    return mergeAIWorkouts(base.workouts, aiPlan, base.profile, base.environment);
+  }, [base.workouts, aiPlan, base.profile, base.environment]);
 
   const regenerate = useCallback(() => {
     const regenerationId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
