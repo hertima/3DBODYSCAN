@@ -289,15 +289,11 @@ export function resolveExerciseFamily(record: ExerciseCatalogRecord) {
   const name = normalizeName(record.name.pt).replace(/\s*\d{1,2}$/, "");
   const movement = normalizeName(getMovementPattern(record));
 
-  // "Agachamento Bulgaro" e "Agachamento Bulgaro Com Peso Corporal" são o
-  // mesmo movimento (peso corporal já é o padrão sem outro equipamento
-  // citado) — sem essa checagem, ficavam em famílias diferentes e podiam
-  // repetir os dois no mesmo treino. "Com Salto" é uma variação pliométrica
-  // genuinamente diferente, mantida como família à parte.
-  if (name.includes("agachamento bulgaro")) {
-    if (name.includes("salto")) return "pernas:agachamento_bulgaro_salto";
-    return "pernas:agachamento_bulgaro";
-  }
+  // Todas as variações de "Búlgaro" (com peso corporal, com salto, com
+  // barra, com halteres) são a mesma família pro aluno — mesmo mudando
+  // equipamento ou adicionando salto, repetir duas variantes no mesmo
+  // treino conta como o mesmo exercício duas vezes.
+  if (name.includes("bulgaro")) return "pernas:agachamento_bulgaro";
 
   if (name.includes("remada curvada")) return "costas:remada_curvada";
   if (name.includes("remada baixa")) return "costas:remada_baixa";
