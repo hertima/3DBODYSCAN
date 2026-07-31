@@ -722,10 +722,10 @@ function WorkoutDetailPage() {
                           type: "reorder_exercise",
                           workoutId: id,
                           exerciseId: exercise.id,
-                          newOrder: Math.max(index - 1, 0),
+                          // Circular: subir no primeiro manda ele pro final da lista.
+                          newOrder: index === 0 ? workout.exercises.length - 1 : index - 1,
                         })
                       }
-                      disabled={index === 0}
                       className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background/40 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground disabled:opacity-40"
                     >
                       <ArrowUp className="h-3.5 w-3.5" />
@@ -739,10 +739,10 @@ function WorkoutDetailPage() {
                           type: "reorder_exercise",
                           workoutId: id,
                           exerciseId: exercise.id,
-                          newOrder: Math.min(index + 1, workout.exercises.length - 1),
+                          // Circular: descer no último manda ele pro início da lista.
+                          newOrder: index === workout.exercises.length - 1 ? 0 : index + 1,
                         })
                       }
-                      disabled={index === workout.exercises.length - 1}
                       className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background/40 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground disabled:opacity-40"
                     >
                       <ArrowDown className="h-3.5 w-3.5" />
