@@ -6,6 +6,7 @@ export type FirestoreBodyScan = {
   date: string;
   analysis?: string;
   photoUrl?: string;
+  locale?: string;
   estimativas: {
     peitoCmEstimado: number;
     cinturaCmEstimada: number;

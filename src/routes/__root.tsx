@@ -6,6 +6,7 @@ import {
   Scripts,
   createRootRouteWithContext,
   useRouter,
+  useRouterState,
 } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { Toaster } from "sonner";
@@ -14,7 +15,7 @@ import { applyTheme, getStoredTheme } from "@/lib/theme";
 
 import appCss from "../styles.css?url";
 
-const siteUrl = "https://3dbodyscan.herculesacademiarv.workers.dev";
+const siteUrl = "https://3dbodyscanneer.com";
 const previewImage = `${siteUrl}/icon-512.png`;
 const seoTitle = "3D Body Scanner | Treino com IA para muscula\u00E7\u00E3o, calistenia e h\u00EDbrido";
 const seoDescription =
@@ -225,6 +226,10 @@ function useAppHeight() {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const MARKETING_PATHS = new Set(["/landing", "/privacidade", "/termos"]);
+  const normalizedPathname = pathname.length > 1 ? pathname.replace(/\/$/, "") : pathname;
+  const showInstallBanner = !MARKETING_PATHS.has(normalizedPathname);
   useAppHeight();
 
   useEffect(() => {
@@ -239,7 +244,7 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <Outlet />
-      <InstallBanner />
+      {showInstallBanner && <InstallBanner />}
       <Toaster
         position="bottom-center"
         toastOptions={{

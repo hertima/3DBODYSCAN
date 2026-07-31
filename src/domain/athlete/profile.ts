@@ -5,6 +5,7 @@ export const athleteGoals = [
   "ganho_massa",
   "definicao",
   "forca",
+  "resistencia",
   "performance",
   "saude",
 ] as const;
@@ -62,7 +63,7 @@ const goalMap: Record<NonNullable<OnboardingState["goal"]>, AthleteGoal> = {
   athletic: "performance",
   weight_loss: "perda_peso",
   definition: "definicao",
-  endurance: "performance",
+  endurance: "resistencia",
   wellness: "saude",
 };
 

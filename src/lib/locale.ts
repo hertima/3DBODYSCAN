@@ -10,12 +10,53 @@ export const SUPPORTED_LOCALES: Array<{
   countryLabel: string;
   flag: string;
   flagSrc: string;
+  emoji: string;
 }> = [
-  { code: "pt", label: "Portuguese", nativeLabel: "Portugu\u00EAs (Brasil)", countryLabel: "Brasil", flag: "BR", flagSrc: "https://flagcdn.com/w40/br.png" },
-  { code: "es", label: "Spanish", nativeLabel: "Espa\u00F1ol", countryLabel: "Espa\u00F1a", flag: "ES", flagSrc: "https://flagcdn.com/w40/es.png" },
-  { code: "en", label: "English", nativeLabel: "English", countryLabel: "United States", flag: "US", flagSrc: "https://flagcdn.com/w40/us.png" },
-  { code: "fr", label: "French", nativeLabel: "Fran\u00E7ais", countryLabel: "France", flag: "FR", flagSrc: "https://flagcdn.com/w40/fr.png" },
-  { code: "de", label: "German", nativeLabel: "Deutsch", countryLabel: "Deutschland", flag: "DE", flagSrc: "https://flagcdn.com/w40/de.png" },
+  {
+    code: "pt",
+    label: "Portuguese",
+    nativeLabel: "Portugu\u00EAs (Brasil)",
+    countryLabel: "Brasil",
+    flag: "BR",
+    flagSrc: "https://flagcdn.com/w40/br.png",
+    emoji: "\uD83C\uDDE7\uD83C\uDDF7",
+  },
+  {
+    code: "es",
+    label: "Spanish",
+    nativeLabel: "Espa\u00F1ol",
+    countryLabel: "Espa\u00F1a",
+    flag: "ES",
+    flagSrc: "https://flagcdn.com/w40/es.png",
+    emoji: "\uD83C\uDDEA\uD83C\uDDF8",
+  },
+  {
+    code: "en",
+    label: "English",
+    nativeLabel: "English",
+    countryLabel: "United States",
+    flag: "US",
+    flagSrc: "https://flagcdn.com/w40/us.png",
+    emoji: "\uD83C\uDDFA\uD83C\uDDF8",
+  },
+  {
+    code: "fr",
+    label: "French",
+    nativeLabel: "Fran\u00E7ais",
+    countryLabel: "France",
+    flag: "FR",
+    flagSrc: "https://flagcdn.com/w40/fr.png",
+    emoji: "\uD83C\uDDEB\uD83C\uDDF7",
+  },
+  {
+    code: "de",
+    label: "German",
+    nativeLabel: "Deutsch",
+    countryLabel: "Deutschland",
+    flag: "DE",
+    flagSrc: "https://flagcdn.com/w40/de.png",
+    emoji: "\uD83C\uDDE9\uD83C\uDDEA",
+  },
 ];
 
 const localeToHtmlLang: Record<AppLocale, string> = {
@@ -54,9 +95,10 @@ export function getDefaultLocale() {
 export function detectBrowserLocale(): AppLocale {
   if (typeof window === "undefined") return DEFAULT_LOCALE;
 
-  const candidates = Array.isArray(window.navigator.languages) && window.navigator.languages.length > 0
-    ? window.navigator.languages
-    : [window.navigator.language];
+  const candidates =
+    Array.isArray(window.navigator.languages) && window.navigator.languages.length > 0
+      ? window.navigator.languages
+      : [window.navigator.language];
 
   for (const candidate of candidates) {
     if (!candidate) continue;
@@ -82,4 +124,5 @@ export function setStoredLocale(locale: AppLocale) {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(LOCALE_KEY, locale);
   applyLocaleToDocument(locale);
+  window.dispatchEvent(new CustomEvent("zyrox-locale-change", { detail: locale }));
 }

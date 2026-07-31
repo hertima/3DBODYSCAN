@@ -1,0 +1,21 @@
+// 3D Body Scanner — Firebase Storage Security Rules
+// version: 1
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Bloqueio padrão — nenhum arquivo acessível por padrão
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+
+    // Cada usuário acessa apenas sua própria pasta
+    // Cobre: users/{uid}/bodyPhoto.jpg
+    //        users/{uid}/foodPhotos/{timestamp}.jpg
+    match /users/{userId}/{allPaths=**} {
+      allow read, write: if
+        request.auth != null &&
+        request.auth.uid == userId;
+    }
+  }
+}

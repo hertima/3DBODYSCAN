@@ -193,6 +193,7 @@ export function ExerciseMedia({ exerciseId, size = "card", className, muscle, sr
 
   const radius = size === "thumb" ? "rounded-xl" : size === "card" ? "rounded-2xl" : "rounded-3xl";
   const aspect = size === "thumb" ? "aspect-square" : "aspect-[4/3]";
+  const mediaFitClass = size === "thumb" ? "object-contain" : "object-cover";
   const style = muscleStyle[target] ?? muscleStyle.Core;
   const Icon = style.Icon;
 
@@ -210,7 +211,7 @@ export function ExerciseMedia({ exerciseId, size = "card", className, muscle, sr
               playsInline
               preload="metadata"
               onError={handleMediaError}
-              className="absolute inset-0 h-full w-full object-cover"
+              className={cn("absolute inset-0 h-full w-full", mediaFitClass)}
             />
             {size !== "thumb" && (
               <button
@@ -283,7 +284,7 @@ export function ExerciseMedia({ exerciseId, size = "card", className, muscle, sr
               loading="lazy"
               decoding="async"
               onError={handleMediaError}
-              className="absolute inset-0 h-full w-full object-cover"
+              className={cn("absolute inset-0 h-full w-full", mediaFitClass)}
             />
             {size === "thumb" ? (
               <div

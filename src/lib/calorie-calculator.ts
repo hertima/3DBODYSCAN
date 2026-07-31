@@ -89,7 +89,47 @@ export function getCaloriesFromOnboarding(state: {
   days?: number[];
   metabolismType?: "slow" | "balanced" | "fast";
   goal?: FitnessGoal;
+  calorieBmr?: number;
+  calorieTdee?: number;
+  calorieTarget?: number;
+  calorieProtein?: number;
+  calorieCarbs?: number;
+  calorieFat?: number;
 }): MacroProfile | null {
+  // Plano calórico congelado ao concluir o onboarding — usado em vez de recalcular,
+  // para que analytics/nutrição nunca divirjam entre si (ex: dias de treino
+  // alterados depois via "Reorganizar" não devem mudar o plano já fechado).
+  if (
+    state.calorieTarget != null &&
+    state.calorieBmr != null &&
+    state.calorieTdee != null &&
+    state.calorieProtein != null &&
+    state.calorieCarbs != null &&
+    state.calorieFat != null &&
+    state.goal
+  ) {
+    const surplusOrDeficit = state.calorieTarget - state.calorieTdee;
+    const label =
+      state.goal === "mass" ? "Superávit p/ hipertrofia"
+      : state.goal === "strength" ? "Superávit leve p/ força"
+      : state.goal === "hybrid" ? "Manutenção ativa"
+      : state.goal === "definition" ? "Déficit leve p/ definição"
+      : state.goal === "weight_loss" ? "Déficit calórico p/ emagrecimento"
+      : state.goal === "endurance" ? "Superávit p/ resistência"
+      : state.goal === "wellness" ? "Manutenção / bem-estar"
+      : "Manutenção / performance";
+    return {
+      bmr: state.calorieBmr,
+      tdee: state.calorieTdee,
+      target: state.calorieTarget,
+      protein: state.calorieProtein,
+      carbs: state.calorieCarbs,
+      fat: state.calorieFat,
+      surplusOrDeficit,
+      label,
+    };
+  }
+
   if (!state.weight || !state.height || !state.age || !state.gender || !state.goal || !state.metabolismType) return null;
   return calculateCalories({
     weight: state.weight,

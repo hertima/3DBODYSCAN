@@ -5,6 +5,7 @@ export { SessionSummaryVideo, type SessionSummaryVideoProps } from "./compositio
 export { ProfileEvolutionVideo, type ProfileEvolutionVideoProps } from "./compositions/ProfileEvolutionVideo";
 export { OnboardingCelebrationVideo, type OnboardingCelebrationVideoProps } from "./compositions/OnboardingCelebrationVideo";
 export { PaywallShowcaseVideo, type PaywallShowcaseVideoProps } from "./compositions/PaywallShowcaseVideo";
+export { MascotIdleVideo, type MascotIdleVideoProps } from "./compositions/MascotIdleVideo";
 export { ShareVideoButton } from "./ShareVideoButton";
 export { VideoPlayerModal } from "./VideoPlayerModal";
 export { VideoPreviewCard } from "./VideoPreviewCard";

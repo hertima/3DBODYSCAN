@@ -1,58 +1,18 @@
 // 3D Body Scanner — Firestore Security Rules
-// version: 3
+// version: 4
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Default deny — bloqueia tudo que não está explicitamente permitido
+    // Bloqueio padrão — nada acessível salvo o explicitamente permitido abaixo
     match /{document=**} {
       allow read, write: if false;
     }
 
-    // Cada usuário só acessa seus próprios dados
+    // Regra única: cobre data/, localState/, workouts/, customizations/,
+    // notifications/, bodyScanHistory/, foodScanHistory/ e qualquer
+    // subcoleção futura dentro de users/{uid}/
     match /users/{userId}/{document=**} {
-      allow read, write: if
-        request.auth != null &&
-        request.auth.uid == userId;
-    }
-
-    // Coleção de perfis (onboarding)
-    match /profiles/{userId} {
-      allow read, write: if
-        request.auth != null &&
-        request.auth.uid == userId;
-    }
-
-    // Estado local sincronizado (localStorage backup)
-    match /localState/{userId}/items/{item} {
-      allow read, write: if
-        request.auth != null &&
-        request.auth.uid == userId;
-    }
-
-    // Notificações e alarme
-    match /users/{userId}/notifications/{notifId} {
-      allow read, write: if
-        request.auth != null &&
-        request.auth.uid == userId;
-    }
-
-    // Workouts salvos
-    match /workouts/{userId}/history/{sessionId} {
-      allow read, write: if
-        request.auth != null &&
-        request.auth.uid == userId;
-    }
-
-    // Body scans
-    match /bodyScans/{userId}/scans/{scanId} {
-      allow read, write: if
-        request.auth != null &&
-        request.auth.uid == userId;
-    }
-
-    // Food scans
-    match /foodScans/{userId}/scans/{scanId} {
       allow read, write: if
         request.auth != null &&
         request.auth.uid == userId;

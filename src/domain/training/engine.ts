@@ -99,7 +99,13 @@ function resolveWorkoutTag(profile: AthleteProfile) {
 function resolveRestSeconds(
   category: OfficialMuscleCategory,
   intensity: "leve" | "moderada" | "pesada",
+  isResistanceFocus = false,
 ) {
+  // Resistência/condicionamento metabólico: descanso curto entre séries, mesmo pra
+  // pernas/compostos — é o próprio estímulo do objetivo (NSCA/ACSM: circuitos com
+  // descanso curto), não o descanso padrão de hipertrofia/força.
+  if (isResistanceFocus) return 30;
+
   if (category === "membros_inferiores_gluteos") return intensity === "pesada" ? 120 : 90;
   if (category === "peitoral" || category === "costas_trapezio" || category === "deltoides") {
     return intensity === "pesada" ? 90 : 75;
@@ -111,9 +117,13 @@ function resolveSetScheme(
   category: OfficialMuscleCategory,
   intensity: "leve" | "moderada" | "pesada",
   density: "alta" | "moderada" | "controlada",
+  isResistanceFocus = false,
 ): WorkoutSet[] {
-  const repsBase =
-    category === "abdomen_core"
+  // Resistência muscular/condicionamento metabólico: 15-20 reps com carga leve
+  // (<67% 1RM), conforme NSCA/ACSM — bem acima do range de hipertrofia/força.
+  const repsBase = isResistanceFocus
+    ? 18
+    : category === "abdomen_core"
       ? 15
       : category === "panturrilha"
         ? 18
@@ -185,7 +195,17 @@ function supportsTrainingType(
   environment: EnvironmentContext,
 ) {
   if (profile.trainingType === "calistenia") return record.trainingType === "calistenia";
-  if (profile.trainingType === "musculacao") return record.trainingType === "musculacao";
+  if (profile.trainingType === "musculacao") {
+    if (record.trainingType === "musculacao") return true;
+    // O catálogo de "musculação" não tem NENHUM exercício de peso corporal (0 de
+    // ~460) — aluno que treina em casa/ao ar livre sem equipamento de academia e
+    // escolheu "musculação" (não "calistenia") ficava com o treino inteiro vazio.
+    // Sem esse fallback, é uma tela em branco pro aluno.
+    if (record.trainingType === "calistenia" && (profile.location === "casa" || profile.location === "outdoor")) {
+      return true;
+    }
+    return false;
+  }
 
   if (profile.trainingType === "funcional") {
     if (record.trainingType === "calistenia") return true;
@@ -238,23 +258,54 @@ function getMovementPattern(record: ExerciseCatalogRecord) {
 }
 
 export function resolveExerciseFamily(record: ExerciseCatalogRecord) {
-  const name = normalizeName(record.name.pt);
+  // Vários vídeos do catálogo são "takes" duplicados do mesmo exercício, numerados no
+  // fim do nome (ex: "Rosca Direta 03", "Agachamento 03", "Abdução Máquina 02", e às
+  // vezes colado sem espaço: "Stiff02"). Sem remover esse número aqui, cada take virava
+  // uma família diferente e podia repetir no mesmo treino junto com a versão sem número.
+  const name = normalizeName(record.name.pt).replace(/\s*\d{1,2}$/, "");
   const movement = normalizeName(getMovementPattern(record));
 
   if (name.includes("remada curvada")) return "costas:remada_curvada";
   if (name.includes("remada baixa")) return "costas:remada_baixa";
   if (name.includes("remada unilateral")) return "costas:remada_unilateral";
-  if (name.includes("remada")) return `costas:${name.replace(/\b(pronada|supinada|aberta|fechada|neutra|pegada|com|no|na|cabo|halteres?)\b/g, "").replace(/\s+/g, "_")}`;
+  if (name.includes("remada")) return `costas:${name.replace(/\b(pronada|supinada|aberta|fechada|neutra|pegada|bilateral|barra|com|no|na|cabo|halteres?)\b/g, "").trim().replace(/\s+/g, "_")}`;
 
-  if (name.includes("puxada alta") || name.includes("pulldown") || name.includes("pulley")) return "costas:puxada_alta";
-  if (name.includes("barra fixa") || name.includes("pull up") || name.includes("chin up")) return "costas:barra_fixa";
+  // "Puxada Máquina" (sem "alta" no nome) é a mesma puxada alta/pulldown — sem essa
+  // checagem ficava numa família à parte e repetia com "Puxada Alta ...".
+  if (name.includes("puxada alta") || name.includes("puxada maquina") || name.includes("pulldown") || name.includes("pulley")) return "costas:puxada_alta";
+  if (name.includes("puxada unilateral")) return "costas:puxada_unilateral";
+  if (name.includes("puxada cruzada")) return "costas:puxada_cruzada";
+  // "Barra Fixa" tem ~16 variantes de calistenia bem diferentes entre si (iniciante
+  // assistido, avançado com peso, skills como L-sit/giro, e até um exercício de
+  // ativação escapular que nem é a barra fixa completa) — sem separar em subgrupos,
+  // o sistema nunca deixava 2 delas aparecerem juntas no mesmo treino, mesmo sendo
+  // complementares (ex: escapular como ativação + barra fixa com peso como principal).
+  // "Rosca na Barra Fixa" é bíceps (rosca suspensa), não costas — exclui antes de
+  // cair no grupo de barra fixa só por causa do nome do equipamento.
+  if ((name.includes("barra fixa") || name.includes("pull up") || name.includes("chin up")) && !name.includes("rosca")) {
+    if (name.includes("escapular")) return "costas:barra_fixa_escapular";
+    if (name.includes("assistid") || name.includes("salto")) return "costas:barra_fixa_assistida";
+    if (name.includes("com peso")) return "costas:barra_fixa_com_peso";
+    if (name.includes("arco") || name.includes("bracos alternados") || name.includes("giro") || name.includes("l sit") || name.includes("l-sit") || name.includes("cabeca para baixo")) {
+      return "costas:barra_fixa_skill";
+    }
+    return "costas:barra_fixa";
+  }
+
+  // "Encolhimento" (trapézio) tem várias cópias por equipamento (barra, halteres,
+  // máquina, smith, sentado) que sem essa checagem ficavam em famílias diferentes.
+  // "Atrás" (encolhimento atrás das costas) é mecanicamente distinto, mantido à parte.
+  if (name.includes("encolhimento")) {
+    if (name.includes("atras")) return "costas:encolhimento_atras";
+    return "costas:encolhimento";
+  }
 
   if (name.includes("rosca martelo")) return "biceps:rosca_martelo";
   if (name.includes("rosca scott")) return "biceps:rosca_scott";
   if (name.includes("rosca direta")) return "biceps:rosca_direta";
   if (name.includes("rosca unilateral")) return "biceps:rosca_unilateral";
   if (record.category === "biceps_antebraco" && (name.includes("rosca") || name.includes("curl"))) {
-    return `biceps:${name.replace(/\b(unilateral|bilateral|pronada|supinada|alternada|com|no|na|cabo|halteres?|barra)\b/g, "").replace(/\s+/g, "_")}`;
+    return `biceps:${name.replace(/\b(unilateral|bilateral|pronada|supinada|alternada|com|no|na|cabo|halteres?|barra)\b/g, "").trim().replace(/\s+/g, "_")}`;
   }
 
   if (record.category === "triceps") {
@@ -266,13 +317,36 @@ export function resolveExerciseFamily(record: ExerciseCatalogRecord) {
     if (name.includes("extensao") || movement.includes("extensao")) return "triceps:extensao";
   }
 
-  if (name.includes("supino reto")) return "peitoral:supino_reto";
-  if (name.includes("supino inclinado")) return "peitoral:supino_inclinado";
+  // "incliando" cobre um typo do catálogo de vídeos ("Supino incliando com halteres")
+  // que na prática é supino inclinado.
+  if (name.includes("supino inclinado") || name.includes("supino incliando")) return "peitoral:supino_inclinado";
   if (name.includes("supino declinado")) return "peitoral:supino_declinado";
+  // Pegada fechada e "canadense" mudam o ângulo/ênfase (mais tríceps) — mantidos como
+  // famílias próprias, distintas do supino reto plano.
+  if (name.includes("supino canadense")) return "peitoral:supino_canadense";
+  if (name.includes("supino fechado")) return "peitoral:supino_fechado";
+  // Qualquer outro "supino" (com/sem equipamento explícito: barra, halteres, máquina,
+  // smith) é o mesmo supino reto plano — sem isso, "Supino" e "Supino Barra" e "Supino
+  // Com Halteres" viravam famílias diferentes e podiam repetir no mesmo treino.
+  if (name.includes("supino")) return "peitoral:supino_reto";
   if (name.includes("crucifixo")) return "peitoral:crucifixo";
   if (name.includes("crossover")) return "peitoral:crossover";
 
-  return `${record.category}:${name.replace(/\b(pronada|supinada|aberta|fechada|neutra|pegada|unilateral|bilateral)\b/g, "").replace(/\s+/g, "_")}`;
+  // "Stiff" tem várias cópias no catálogo (com/sem halteres, takes numerados) que sem
+  // essa checagem caíam em famílias diferentes e podiam repetir no mesmo treino.
+  if (name.includes("stiff")) return "pernas:stiff";
+
+  // "Desenvolvimento" (catálogo de vídeos, pt) e "Military Press" (entrada cadastrada
+  // à parte, en) são o mesmo desenvolvimento de ombro — sem essa checagem, "Desenvolvimento
+  // No Smith" e "Desenvolvimento Militar"/"Military Press" ficavam em famílias diferentes
+  // e repetiam no mesmo treino.
+  if (name.includes("desenvolvimento") || name.includes("military press") || name.includes("press militar")) {
+    if (name.includes("nuca") || name.includes("atras")) return "ombros:desenvolvimento_nuca";
+    if (name.includes("unilateral")) return "ombros:desenvolvimento_unilateral";
+    return "ombros:desenvolvimento";
+  }
+
+  return `${record.category}:${name.replace(/\b(pronada|supinada|aberta|fechada|neutra|pegada|unilateral|bilateral)\b/g, "").trim().replace(/\s+/g, "_")}`;
 }
 
 export function resolveMovementBucket(record: ExerciseCatalogRecord) {
@@ -591,6 +665,11 @@ function pickDiverseRecords(
     if (picked.length >= count) break;
     if (picked.some((item) => item.id === candidate.id)) continue;
     if (working.some((item) => item.id === candidate.id)) continue;
+    // Mesmo no fallback de último recurso (catálogo disponível muito curto), nunca
+    // deixa duas variantes do mesmo exercício entrarem juntas (ex: "Pull Up" +
+    // "Barra Fixa") — prefere um treino com menos exercícios a um com repetição.
+    const candidateFamily = resolveExerciseFamily(candidate);
+    if (working.some((item) => resolveExerciseFamily(item) === candidateFamily)) continue;
 
     picked.push(candidate);
     working.push(candidate);
@@ -726,11 +805,12 @@ function buildWorkoutExercises(
   selected: ExerciseCatalogRecord[],
   intensity: "leve" | "moderada" | "pesada",
   density: "alta" | "moderada" | "controlada",
+  isResistanceFocus = false,
 ): WorkoutExercise[] {
   return selected.map((record, index) => ({
     exerciseId: record.id,
-    sets: resolveSetScheme(record.category, intensity, density),
-    rest: resolveRestSeconds(record.category, intensity),
+    sets: resolveSetScheme(record.category, intensity, density, isResistanceFocus),
+    rest: resolveRestSeconds(record.category, intensity, isResistanceFocus),
     tag:
       index === EXERCISES_PER_WORKOUT - 1 && record.category === "abdomen_core"
         ? "Rest-Pause"
@@ -813,7 +893,7 @@ export function buildGeneratedTrainingState(
   const periodization = buildPeriodizationBlock(profile, body, nutrition, resolvedEnvironment, locale);
   const intensity = applyMenstrualCycleIntensity(
     resolveAdaptiveIntensity(
-      resolveWorkoutIntensity(profile.level, profile.consistency, profile.goal),
+      resolveWorkoutIntensity(profile.level, profile.consistency, profile.goal, profile.age),
       nutrition,
     ),
     profile,
@@ -832,7 +912,7 @@ export function buildGeneratedTrainingState(
       body,
       index,
     );
-    const exercises = buildWorkoutExercises(selected, intensity, density);
+    const exercises = buildWorkoutExercises(selected, intensity, density, profile.goal === "resistencia");
 
     return {
       id: `${resolveTrainingSplit(profile)}-${index + 1}`,

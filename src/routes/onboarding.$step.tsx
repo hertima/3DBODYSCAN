@@ -161,9 +161,27 @@ function StepProfile({ state, update, copy }: StepProps) {
       .join("")
       .slice(0, 2) || "AZ";
 
-  const onAvatarChange = (event: ChangeEvent<HTMLInputElement>) => {
+  const onAvatarChange = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
+
+    try {
+      const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
+      const size = Math.min(bitmap.width, bitmap.height);
+      const sx = (bitmap.width - size) / 2;
+      const sy = bitmap.height > bitmap.width ? (bitmap.height - size) * 0.25 : (bitmap.height - size) / 2;
+      const canvas = document.createElement("canvas");
+      canvas.width = 512;
+      canvas.height = 512;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("no-canvas-ctx");
+      ctx.drawImage(bitmap, sx, sy, size, size, 0, 0, 512, 512);
+      update({ avatarUrl: canvas.toDataURL("image/jpeg", 0.9) });
+      return;
+    } catch {
+      // fallback for browsers without createImageBitmap orientation support
+    }
+
     const reader = new FileReader();
     reader.onload = () => {
       if (typeof reader.result === "string") update({ avatarUrl: reader.result });
@@ -183,7 +201,7 @@ function StepProfile({ state, update, copy }: StepProps) {
             className="grid h-28 w-28 shrink-0 place-items-center overflow-hidden rounded-[2rem] bg-gradient-primary text-3xl font-black text-primary-foreground shadow-glow-primary"
           >
             {state.avatarUrl ? (
-              <img src={state.avatarUrl} alt={previewName} className="h-full w-full object-cover" />
+              <img src={state.avatarUrl} alt={previewName} className="h-full w-full object-cover object-top" />
             ) : (
               initials
             )}
@@ -1089,7 +1107,32 @@ function Step11({ state, copy }: { state: OnboardingState; copy: CopyType }) {
     if (pct < 100 || completedRef.current) return;
     completedRef.current = true;
     const current = loadOnboarding();
-    saveOnboarding({ ...current, completedAt: new Date().toISOString() });
+    const macros =
+      current.weight && current.height && current.age && current.metabolismType && current.goal
+        ? calculateCalories({
+            weight: current.weight,
+            height: current.height,
+            age: current.age,
+            gender: current.gender ?? "male",
+            activityDays: current.days?.length ?? 4,
+            metabolismType: current.metabolismType,
+            goal: current.goal,
+          })
+        : null;
+    saveOnboarding({
+      ...current,
+      completedAt: new Date().toISOString(),
+      ...(macros
+        ? {
+            calorieBmr: macros.bmr,
+            calorieTdee: macros.tdee,
+            calorieTarget: macros.target,
+            calorieProtein: macros.protein,
+            calorieCarbs: macros.carbs,
+            calorieFat: macros.fat,
+          }
+        : {}),
+    });
     window.setTimeout(() => { window.location.href = "/paywall"; }, 600);
   }, [pct]);
 

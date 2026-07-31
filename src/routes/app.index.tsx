@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowRight, Flame, Trophy, Activity, Play, Zap, Utensils, ShieldCheck, X, ScanLine } from "lucide-react";
+import { ArrowRight, Flame, Trophy, Activity, Play, Zap, Utensils, ShieldCheck, X, ScanLine, Moon } from "lucide-react";
 import { loadMealPlan } from "@/lib/meal-plan";
 import { motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
@@ -12,7 +12,7 @@ import type { AppLocale } from "@/lib/locale";
 import { getExercise } from "@/data/library";
 import { getDashboardCopy, getNutritionCopy, getGamificationCopy } from "@/lib/app-copy";
 import { getStoredLocale } from "@/lib/locale";
-import { loadOnboarding } from "@/lib/onboarding";
+import { loadOnboarding, type OnboardingState } from "@/lib/onboarding";
 import { buildAthleteProfile } from "@/domain/athlete/profile";
 import { auth } from "@/lib/auth";
 import { loadProfileFromFirestore } from "@/lib/firestore-profile";
@@ -27,6 +27,14 @@ export const Route = createFileRoute("/app/")({
   }),
   component: Dashboard,
 });
+
+const REST_DAY_COPY: Record<AppLocale, { title: string; desc: string }> = {
+  pt: { title: "Dia de descanso", desc: "Sem treino programado hoje — aproveite pra recuperar." },
+  es: { title: "Día de descanso", desc: "Sin entrenamiento programado hoy — aprovecha para recuperarte." },
+  en: { title: "Rest day", desc: "No workout scheduled today — take time to recover." },
+  fr: { title: "Jour de repos", desc: "Aucun entraînement prévu aujourd'hui — profitez-en pour récupérer." },
+  de: { title: "Ruhetag", desc: "Heute ist kein Training geplant — nutze die Zeit zur Erholung." },
+};
 
 const PERIOD_COPY: Record<AppLocale, { blockTitle: (w: number) => string; blockSub: string; cycleTitle: string; cycleSub: string; recoveryAdj: string; volLabel: string }> = {
   pt: { blockTitle: (w) => `Bloco ${w}/12`, blockSub: "Leitura profissional do ciclo atual", cycleTitle: "Horizonte do ciclo", cycleSub: "Curto, médio e longo prazo ligados ao motor", recoveryAdj: "Ajuste de recuperação:", volLabel: "volume" },
@@ -267,7 +275,21 @@ function Dashboard() {
             </Link>
           </div>
         </motion.div>
-      ) : null}
+      ) : (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center gap-3 rounded-3xl border border-border bg-gradient-surface p-5 shadow-elevated"
+        >
+          <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-border bg-elevated/60">
+            <Moon className="h-5 w-5 text-muted-foreground" />
+          </div>
+          <div>
+            <h2 className="font-display text-lg font-bold">{(REST_DAY_COPY[locale] ?? REST_DAY_COPY.pt).title}</h2>
+            <p className="text-sm text-muted-foreground">{(REST_DAY_COPY[locale] ?? REST_DAY_COPY.pt).desc}</p>
+          </div>
+        </motion.div>
+      )}
 
       <div className="grid grid-cols-3 gap-2 rounded-3xl border border-border bg-surface p-3">
         <CompactPulseStat icon={Flame} label={dc.streakLabel} value={`${gamification.streakDays}d`} tone="#fb923c" />
@@ -589,7 +611,13 @@ function PlateauBreakerWidget({
 
   const locale = getStoredLocale();
   const uiCopy = PLATEAU_UI_COPY[locale] ?? PLATEAU_UI_COPY.pt;
-  const profile = loadOnboarding();
+  // loadOnboarding() só existe de verdade no cliente — chamar direto no corpo do
+  // componente causa mismatch de hydration (servidor sempre vê perfil vazio,
+  // cliente vê o real), que já quebrou outra tela hoje (paywall).
+  const [profile, setProfile] = useState<OnboardingState>({});
+  useEffect(() => {
+    setProfile(loadOnboarding());
+  }, []);
   const isFemale = profile.gender === "female" || (profile as Record<string, unknown>).sex === "feminino";
   const modality = resolveModalityCtx(profile);
   const techniques = getTechniques(modality, locale);

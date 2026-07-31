@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet, Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { House, Dumbbell, BookOpen, BarChart3, ScanLine, User, Flame, Loader2, RefreshCw, Sun, Moon } from "lucide-react";
 import { lazy, Suspense, useEffect, useLayoutEffect, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 import { Logo } from "@/components/Logo";
 import { LocaleSwitcher } from "@/components/LocaleSwitcher";
 import { SUPPORTED_LOCALES, getStoredLocale, setStoredLocale } from "@/lib/locale";
@@ -35,11 +35,64 @@ export const Route = createFileRoute("/app")({
 type NavItem = { to: string; label: string; icon: typeof House; exact?: boolean };
 
 const NAV_COPY = {
-  pt: ["Inicio", "Treinos", "Biblioteca", "Analytics", "3D Scan", "Perfil"],
-  es: ["Inicio", "Entrenos", "Biblioteca", "Analitica", "3D Scan", "Perfil"],
+  pt: ["Início", "Treinos", "Biblioteca", "Analytics", "3D Scan", "Perfil"],
+  es: ["Inicio", "Entrenos", "Biblioteca", "Analítica", "3D Scan", "Perfil"],
   en: ["Home", "Workouts", "Library", "Analytics", "3D Scan", "Profile"],
-  fr: ["Accueil", "Seances", "Bibliotheque", "Analytics", "3D Scan", "Profil"],
+  fr: ["Accueil", "Séances", "Bibliothèque", "Analytics", "3D Scan", "Profil"],
   de: ["Start", "Training", "Bibliothek", "Analytics", "3D Scan", "Profil"],
+} as const;
+
+const SHELL_COPY = {
+  pt: {
+    loading: "Preparando seu painel",
+    loadingHint: "Verificando sua sessão e sincronizando seus dados.",
+    authTimeout: "A autenticação está demorando mais que o normal. Você pode tentar novamente ou voltar para o login.",
+    retry: "Tentar novamente",
+    goToLogin: "Ir para login",
+    online: "Conexão restaurada · sincronizando dados...",
+    offline: "Sem internet · dados salvos localmente",
+    streakDays: "dias",
+  },
+  es: {
+    loading: "Preparando tu panel",
+    loadingHint: "Verificando tu sesión y sincronizando tus datos.",
+    authTimeout: "La autenticación está tardando más de lo normal. Puedes intentarlo de nuevo o volver al inicio de sesión.",
+    retry: "Intentar de nuevo",
+    goToLogin: "Ir al inicio de sesión",
+    online: "Conexión restaurada · sincronizando datos...",
+    offline: "Sin internet · datos guardados localmente",
+    streakDays: "días",
+  },
+  en: {
+    loading: "Setting up your dashboard",
+    loadingHint: "Verifying your session and syncing your data.",
+    authTimeout: "Authentication is taking longer than normal. You can try again or go back to login.",
+    retry: "Try again",
+    goToLogin: "Go to login",
+    online: "Connection restored · syncing data...",
+    offline: "No internet · data saved locally",
+    streakDays: "days",
+  },
+  fr: {
+    loading: "Préparation de votre tableau de bord",
+    loadingHint: "Vérification de votre session et synchronisation de vos données.",
+    authTimeout: "L'authentification prend plus de temps que prévu. Vous pouvez réessayer ou revenir à la connexion.",
+    retry: "Réessayer",
+    goToLogin: "Aller à la connexion",
+    online: "Connexion rétablie · synchronisation en cours...",
+    offline: "Pas d'internet · données sauvegardées localement",
+    streakDays: "jours",
+  },
+  de: {
+    loading: "Dashboard wird vorbereitet",
+    loadingHint: "Sitzung wird überprüft und Daten werden synchronisiert.",
+    authTimeout: "Die Authentifizierung dauert länger als erwartet. Du kannst es erneut versuchen oder zur Anmeldung zurückkehren.",
+    retry: "Erneut versuchen",
+    goToLogin: "Zur Anmeldung",
+    online: "Verbindung wiederhergestellt · Daten werden synchronisiert...",
+    offline: "Kein Internet · Daten lokal gespeichert",
+    streakDays: "Tage",
+  },
 } as const;
 
 function getNav(locale: keyof typeof NAV_COPY): NavItem[] {
@@ -86,7 +139,14 @@ function AppLayout() {
   const [authTimedOut, setAuthTimedOut] = useState(false);
   const [trainingRefresh, setTrainingRefresh] = useState(0);
   const [identity, setIdentity] = useState({ name: "Atleta 3D Body Scanner", avatarUrl: "" });
-  const [locale, setLocale] = useState<ReturnType<typeof getStoredLocale>>(getStoredLocale);
+  // getStoredLocale() só existe de verdade no cliente (localStorage) — usar como
+  // initializer do useState roda a função também durante o SSR, retornando o
+  // idioma padrão "pt" no servidor mas o idioma real no cliente. Isso causa
+  // mismatch de hydration nessa tela específica (o layout que envolve TODO o
+  // app autenticado) — suspeita forte de ser a causa do "Preparando painel"
+  // travado pra sempre em navegação real. Corrigido pro mesmo padrão já usado
+  // em paywall/configuracoes/corpo/analytics/index hoje.
+  const [locale, setLocale] = useState<ReturnType<typeof getStoredLocale>>("pt");
 
   // Otimismo: se onboarding está em localStorage, mostra o app imediatamente
   // Roda ANTES do primeiro paint (sem flash de loading para usuários retornando)
@@ -138,6 +198,13 @@ function AppLayout() {
         try {
           if (!user) {
             navigate({ to: "/" });
+            return;
+          }
+
+          // Bloquear acesso se e-mail ainda não verificado após novo cadastro
+          const pendingUid = localStorage.getItem("zyrox.emailPending");
+          if (pendingUid === user.uid) {
+            navigate({ to: "/email-pendente" });
             return;
           }
 
@@ -216,11 +283,20 @@ function AppLayout() {
     };
   }, [navigate]);
 
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const next = (e as CustomEvent<typeof locale>).detail;
+      setLocale(next);
+    };
+    window.addEventListener("zyrox-locale-change", handler);
+    return () => window.removeEventListener("zyrox-locale-change", handler);
+  }, []);
+
   const handleLocaleChange = (nextLocale: string) => {
     if (!SUPPORTED_LOCALES.some((item) => item.code === nextLocale)) return;
-    setStoredLocale(nextLocale as typeof locale);
-    setLocale(nextLocale as typeof locale);
-    window.location.reload();
+    const locale = nextLocale as ReturnType<typeof getStoredLocale>;
+    setLocale(locale);
+    setStoredLocale(locale);
   };
 
   if (!ready) return <AppLoadingFallback timedOut={authTimedOut} onLogin={() => navigate({ to: "/" })} />;
@@ -236,18 +312,17 @@ function AppLayout() {
 }
 
 function AppLoadingFallback({ timedOut, onLogin }: { timedOut: boolean; onLogin: () => void }) {
+  const sc = SHELL_COPY[getStoredLocale()] ?? SHELL_COPY.pt;
   return (
     <div className="grid min-h-screen place-items-center bg-background px-5 text-foreground">
       <div className="w-full max-w-sm text-center">
         <Logo size={54} className="mx-auto" />
         <div className="mt-8 flex items-center justify-center gap-2 text-sm font-semibold text-primary">
           <Loader2 className="h-4 w-4 animate-spin" />
-          Preparando seu painel
+          {sc.loading}
         </div>
         <p className="mt-3 text-sm leading-6 text-muted-foreground">
-          {timedOut
-            ? "A autenticação está demorando mais que o normal. Você pode tentar novamente ou voltar para o login."
-            : "Verificando sua sessão e sincronizando seus dados."}
+          {timedOut ? sc.authTimeout : sc.loadingHint}
         </p>
         {timedOut && (
           <div className="mt-6 flex justify-center gap-2">
@@ -257,14 +332,14 @@ function AppLoadingFallback({ timedOut, onLogin }: { timedOut: boolean; onLogin:
               className="inline-flex items-center gap-2 rounded-2xl border border-border bg-surface px-4 py-2.5 text-sm font-semibold text-foreground"
             >
               <RefreshCw className="h-4 w-4" />
-              Tentar novamente
+              {sc.retry}
             </button>
             <button
               type="button"
               onClick={onLogin}
               className="rounded-2xl bg-gradient-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground"
             >
-              Ir para login
+              {sc.goToLogin}
             </button>
           </div>
         )}
@@ -286,6 +361,7 @@ function ReadyAppLayout({
 }) {
   const loc = useLocation();
   const [showAiChat, setShowAiChat] = useState(false);
+  const sc = SHELL_COPY[locale] ?? SHELL_COPY.pt;
   const nav = getNav(locale);
   const trainingState = useTrainingState(trainingRefresh);
   const { gamification } = useGamification(trainingState);
@@ -309,7 +385,7 @@ function ReadyAppLayout({
     if ("requestIdleCallback" in window) {
       idleId = window.requestIdleCallback(schedule, { timeout: 2500 });
     } else {
-      timeoutId = window.setTimeout(schedule, 1800);
+      timeoutId = setTimeout(schedule, 1800) as unknown as number;
     }
     return () => {
       if (idleId !== null && "cancelIdleCallback" in window) window.cancelIdleCallback(idleId);
@@ -331,7 +407,7 @@ function ReadyAppLayout({
           }}
         >
           <span className={`h-1.5 w-1.5 rounded-full ${isOnline ? "bg-white" : "bg-white animate-pulse"}`} />
-          {isOnline ? "Conexão restaurada · sincronizando dados..." : "Sem internet · dados salvos localmente"}
+          {isOnline ? sc.online : sc.offline}
         </div>
       )}
       <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur" style={{ paddingTop: "env(safe-area-inset-top)" }}>
@@ -349,7 +425,7 @@ function ReadyAppLayout({
             </Link>
             {gamification.streakDays > 0 && (
               <div className="hidden items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1 text-xs font-semibold text-primary md:flex">
-                <Flame className="h-3.5 w-3.5" /> {gamification.streakDays} dias
+                <Flame className="h-3.5 w-3.5" /> {gamification.streakDays} {sc.streakDays}
               </div>
             )}
             <NotificationBell
@@ -381,19 +457,16 @@ function ReadyAppLayout({
           </nav>
         </aside>
         <main className="relative min-w-0 flex-1 pb-nav-safe pt-5 lg:pb-12 lg:pt-6">
-          <div className="pointer-events-none fixed left-0 top-0 h-[500px] w-[400px] -translate-x-1/2 -translate-y-1/4 rounded-full blur-[120px] opacity-30" style={{ background: "radial-gradient(circle,rgba(34,211,238,0.3) 0%,transparent 70%)" }} />
-          <div className="pointer-events-none fixed bottom-0 right-0 h-[500px] w-[400px] translate-x-1/2 translate-y-1/4 rounded-full blur-[120px] opacity-25" style={{ background: "radial-gradient(circle,rgba(251,146,60,0.3) 0%,transparent 70%)" }} />
-          <AnimatePresence mode="sync" initial={false}>
-            <motion.div
-              key={loc.pathname}
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.12, ease: "easeOut" }}
-            >
-              <Outlet />
-            </motion.div>
-          </AnimatePresence>
+          <div className="pointer-events-none fixed left-0 top-0 h-[400px] w-[300px] -translate-x-1/2 -translate-y-1/4 rounded-full blur-[80px] opacity-20" style={{ background: "radial-gradient(circle,rgba(34,211,238,0.3) 0%,transparent 70%)", willChange: "transform" }} />
+          <div className="pointer-events-none fixed bottom-0 right-0 h-[400px] w-[300px] translate-x-1/2 translate-y-1/4 rounded-full blur-[80px] opacity-15" style={{ background: "radial-gradient(circle,rgba(251,146,60,0.3) 0%,transparent 70%)", willChange: "transform" }} />
+          <motion.div
+            key={loc.pathname + "-" + locale}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.1, ease: "easeOut" }}
+          >
+            <Outlet />
+          </motion.div>
         </main>
       </div>
       {showAiChat && (
@@ -422,7 +495,7 @@ function ReadyAppLayout({
                   active ? "text-primary" : "text-muted-foreground hover:text-foreground",
                 )}
               >
-                <n.icon className={cn("h-5 w-5 transition-all", active && "drop-shadow-[0_0_8px_var(--primary)] scale-110")} />
+                <n.icon className={cn("h-5 w-5 transition-transform", active && "scale-110")} />
                 <span className="max-w-full truncate">{n.label}</span>
               </Link>
             );

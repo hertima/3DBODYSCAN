@@ -32,7 +32,8 @@ import { bodyScans, foodScans, formatScanDate, type BodyScan, type FoodScan } fr
 import { buildAthleteProfile } from "@/domain/athlete/profile";
 import { evaluateNutritionState } from "@/domain/nutrition/analysis";
 import { getStoredLocale } from "@/lib/locale";
-import { loadOnboarding } from "@/lib/onboarding";
+import { loadOnboarding, type OnboardingState } from "@/lib/onboarding";
+import { getCaloriesFromOnboarding } from "@/lib/calorie-calculator";
 import { buildUserContext, type AILocale, type DetectedMeasurements } from "@/lib/ai-service";
 import { auth, getAuthToken } from "@/lib/auth";
 import { saveFoodScanToFirestore, loadFoodScansFromFirestore, deleteFoodScanFromFirestore, type FirestoreFoodScan } from "@/lib/firestore-food-scans";
@@ -593,12 +594,18 @@ function MedidasTab({ copy }: { copy: (typeof COPY)[keyof typeof COPY] }) {
   useEffect(() => {
     const uid = auth.currentUser?.uid;
     if (!uid) return;
+    const currentLocale = getStoredLocale();
     loadMeasurementsFromFirestore(uid).then((data) => {
       if (data.photoUrl) setLastPhoto(data.photoUrl);
-      if (data.lastAnalysis) setBodySummary(data.lastAnalysis);
+      // lastAnalysis has no locale info — só usa se estiver em PT (padrão legado)
+      if (data.lastAnalysis && currentLocale === "pt") setBodySummary(data.lastAnalysis);
     }).catch(() => {});
     loadBodyScansFromFirestore(uid).then((scans) => {
-      if (scans[0]?.analysis) setBodySummary(scans[0].analysis);
+      const scan = scans[0];
+      if (!scan?.analysis) return;
+      const scanLocale = scan.locale ?? "pt";
+      if (scanLocale === currentLocale) setBodySummary(scan.analysis);
+      // locale mismatch → mantém copy.noHistoryYet (texto neutro já no idioma certo)
     }).catch(() => {});
   }, []);
 
@@ -681,7 +688,7 @@ function MedidasTab({ copy }: { copy: (typeof COPY)[keyof typeof COPY] }) {
         })}
       </div>
 
-      <ScanHistory kind="body" copy={copy} refreshTrigger={scanTrigger} />
+      <ScanHistory kind="body" copy={copy} refreshTrigger={scanTrigger} onAnalysisUpdated={(text) => setBodySummary(text)} />
     </div>
   );
 }
@@ -1291,34 +1298,23 @@ const MEAL_DEFS = [
 ];
 
 function NutricaoTab({ copy }: { copy: (typeof COPY)[keyof typeof COPY] }) {
-  const onb = loadOnboarding();
+  // loadOnboarding() só existe de verdade no cliente (localStorage) — chamar direto
+  // no corpo do componente causa mismatch de hydration (servidor sempre vê perfil
+  // vazio, cliente vê o real), que já quebrou outra tela hoje (paywall).
+  const [onb, setOnb] = useState<OnboardingState>({});
+  useEffect(() => {
+    setOnb(loadOnboarding());
+  }, []);
   const profile = buildAthleteProfile(onb);
 
-  // — Metas calóricas via Mifflin-St Jeor + objetivo do onboarding —
-  const kcalGoal = useMemo(() => {
-    const w = onb.weight ?? 75;
-    const h = onb.height ?? 175;
-    const a = onb.age ?? 30;
-    const male = onb.gender !== "female";
-    const bmr = male ? 10*w + 6.25*h - 5*a + 5 : 10*w + 6.25*h - 5*a - 161;
-    const mult = onb.consistency === "elite" ? 1.725 : onb.consistency === "regular" ? 1.55 : 1.375;
-    const tdee = bmr * mult;
-    if (onb.goal === "mass")        return Math.round(tdee + 400);
-    if (onb.goal === "strength" || onb.goal === "hybrid") return Math.round(tdee + 200);
-    if (onb.goal === "weight_loss") return Math.max(1200, Math.round(tdee - 400));
-    if (onb.goal === "definition")  return Math.max(1200, Math.round(tdee - 300));
-    return Math.round(tdee);
-  }, []);
-
-  const macroGoals = useMemo(() => {
-    const w = onb.weight ?? 75;
-    const isGain = ["mass","strength"].includes(onb.goal ?? "");
-    const isLoss = ["weight_loss","definition"].includes(onb.goal ?? "");
-    const protein = Math.round(w * (isGain ? 2.2 : isLoss ? 1.8 : 1.6));
-    const fat     = Math.round((kcalGoal * 0.25) / 9);
-    const carbs   = Math.max(0, Math.round((kcalGoal - protein * 4 - fat * 9) / 4));
-    return { protein, fat, carbs };
-  }, [kcalGoal]);
+  // Usa getCaloriesFromOnboarding — mesma fórmula do Analytics e da API do plano alimentar
+  const _macros = useMemo(() => getCaloriesFromOnboarding(onb), [onb]);
+  const kcalGoal = _macros?.target ?? 2000;
+  const macroGoals = useMemo(() => ({
+    protein: _macros?.protein ?? Math.round((onb.weight ?? 75) * 1.8),
+    fat:     _macros?.fat     ?? Math.round((kcalGoal * 0.25) / 9),
+    carbs:   _macros?.carbs   ?? Math.max(0, Math.round((kcalGoal - (_macros?.protein ?? 135) * 4 - (_macros?.fat ?? 56) * 9) / 4)),
+  }), [_macros, kcalGoal, onb.weight]);
 
   type LiveMeal = { id: string; time: string; name: string; kcal: number; goal: number };
 
@@ -1542,9 +1538,18 @@ function ScanCTA({
   const [guideOpen, setGuideOpen] = useState(false);
   const [guideStep, setGuideStep] = useState<0 | 1>(0);
   const [pending, setPending] = useState<PendingSource>(null);
-  const onb = loadOnboarding();
-  const [height, setHeight] = useState<string>(onb.height?.toString() ?? "178");
-  const [weight, setWeight] = useState<string>(onb.weight?.toString() ?? "78");
+  // loadOnboarding() só existe de verdade no cliente — usar o valor real direto no
+  // initializer do useState causa mismatch de hydration (servidor sempre vê o
+  // fallback, cliente vê o valor real). Começa com o default e atualiza depois de montar.
+  const [onb, setOnb] = useState<OnboardingState>({});
+  const [height, setHeight] = useState<string>("178");
+  const [weight, setWeight] = useState<string>("78");
+  useEffect(() => {
+    const loaded = loadOnboarding();
+    setOnb(loaded);
+    if (loaded.height) setHeight(loaded.height.toString());
+    if (loaded.weight) setWeight(loaded.weight.toString());
+  }, []);
   const [outfit, setOutfit] = useState<"justa" | "normal" | "larga">("normal");
   const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
   const [aiError, setAiError] = useState<string | null>(null);
@@ -1754,6 +1759,7 @@ function ScanCTA({
             id: scanId,
             date: now,
             analysis: result.analysis ?? "",
+            locale: getStoredLocale(),
             estimativas: {
               peitoCmEstimado:           m.peito       ?? 0,
               cinturaCmEstimada:         m.cintura      ?? 0,
@@ -1814,6 +1820,7 @@ function ScanCTA({
                 carbs: Math.round(m.carbs ?? 0),
                 fat: Math.round(m.fat ?? 0),
                 analysis: result.analysis ?? "",
+                locale: getStoredLocale(),
                 ...(thumb ? { photoUrl: thumb } : {}),
               };
               void saveFoodScanToFirestore(uid, foodScan).then(() => {
@@ -2739,11 +2746,74 @@ function BodySilhouette({ female = true, width = 120, height = 260, className }:
   );
 }
 
-function ScanHistory({ kind, copy, refreshTrigger = 0 }: { kind: ScanKind; copy: CopyType; refreshTrigger?: number }) {
+function ScanHistory({ kind, copy, refreshTrigger = 0, onAnalysisUpdated }: { kind: ScanKind; copy: CopyType; refreshTrigger?: number; onAnalysisUpdated?: (text: string) => void }) {
   const locale = getStoredLocale();
   const [loading, setLoading] = useState(true);
   const [bodyScansFs, setBodyScansFs] = useState<FirestoreBodyScan[]>([]);
   const [foodScansFs, setFoodScansFs] = useState<FirestoreFoodScan[]>([]);
+  const [retranslating, setRetranslating] = useState<Record<string, boolean>>({});
+
+  function photoPayload(photoUrl: string): Record<string, string> {
+    if (photoUrl.startsWith("https://")) return { imageUrl: photoUrl };
+    const b64 = photoUrl.includes("base64,") ? photoUrl.split("base64,")[1] : photoUrl;
+    return { imageBase64: b64 };
+  }
+
+  const retranslate = async (scan: FirestoreBodyScan, idx: number) => {
+    if (!scan.photoUrl) return;
+    setRetranslating((prev) => ({ ...prev, [`b${idx}`]: true }));
+    try {
+      const token = await getAuthToken();
+      const onb = loadOnboarding();
+      const userCtx = buildUserContext(onb);
+      const res = await fetch("/api/analyze-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ ...photoPayload(scan.photoUrl), userContext: userCtx, locale, kind: "body", height: onb.height, weight: onb.weight }),
+      });
+      if (res.ok) {
+        const { analysis } = (await res.json()) as { analysis: string };
+        if (analysis) {
+          const updated = { ...scan, analysis, locale };
+          setBodyScansFs((prev) => prev.map((s, i) => i === idx ? updated : s));
+          const uid = auth.currentUser?.uid;
+          if (uid) void saveBodyScanToFirestore(uid, updated).catch(() => {});
+          if (idx === 0) onAnalysisUpdated?.(analysis);
+        }
+      }
+    } catch (err) {
+      console.error("[retranslate]", err);
+    } finally {
+      setRetranslating((prev) => ({ ...prev, [`b${idx}`]: false }));
+    }
+  };
+
+  const retranslateFood = async (scan: FirestoreFoodScan, idx: number) => {
+    if (!scan.photoUrl) return;
+    setRetranslating((prev) => ({ ...prev, [`f${idx}`]: true }));
+    try {
+      const token = await getAuthToken();
+      const userCtx = buildUserContext(loadOnboarding());
+      const res = await fetch("/api/analyze-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ ...photoPayload(scan.photoUrl), userContext: userCtx, locale, kind: "food" }),
+      });
+      if (res.ok) {
+        const { analysis } = (await res.json()) as { analysis: string };
+        if (analysis) {
+          const updated = { ...scan, analysis, locale };
+          setFoodScansFs((prev) => prev.map((s, i) => i === idx ? updated : s));
+          const uid = auth.currentUser?.uid;
+          if (uid) void saveFoodScanToFirestore(uid, updated).catch(() => {});
+        }
+      }
+    } catch (err) {
+      console.error("[retranslateFood]", err);
+    } finally {
+      setRetranslating((prev) => ({ ...prev, [`f${idx}`]: false }));
+    }
+  };
 
   useEffect(() => {
     const uid = auth.currentUser?.uid;
@@ -2872,8 +2942,29 @@ function ScanHistory({ kind, copy, refreshTrigger = 0 }: { kind: ScanKind; copy:
                 </div>
 
                 {scan.analysis ? (
-                  <div className="border-t px-3 py-2.5 text-[11px] leading-relaxed text-muted-foreground" style={{ borderColor: "rgba(34,211,238,0.1)", background: "rgba(34,211,238,0.03)" }}>
-                    {scan.analysis}
+                  <div className="border-t px-3 py-2.5" style={{ borderColor: "rgba(34,211,238,0.1)", background: "rgba(34,211,238,0.03)" }}>
+                    <p className="text-[11px] leading-relaxed text-muted-foreground">{scan.analysis}</p>
+                    {scan.photoUrl && (scan.locale !== locale) && (
+                      <button
+                        onClick={() => void retranslate(scan, i)}
+                        disabled={retranslating[`b${i}`] ?? false}
+                        className="mt-2 flex items-center gap-1.5 rounded-full border border-cyan/30 bg-cyan/5 px-2.5 py-1 text-[10px] font-semibold text-cyan disabled:opacity-50"
+                      >
+                        {retranslating[`b${i}`] ? <Loader2 className="h-3 w-3 animate-spin" /> : <span>🌐</span>}
+                        {retranslating[`b${i}`] ? "..." : locale.toUpperCase()}
+                      </button>
+                    )}
+                  </div>
+                ) : scan.photoUrl && (scan.locale !== locale) ? (
+                  <div className="border-t px-3 py-2.5" style={{ borderColor: "rgba(34,211,238,0.1)" }}>
+                    <button
+                      onClick={() => void retranslate(scan, i)}
+                      disabled={retranslating[`b${i}`] ?? false}
+                      className="flex items-center gap-1.5 rounded-full border border-cyan/30 bg-cyan/5 px-2.5 py-1 text-[10px] font-semibold text-cyan disabled:opacity-50"
+                    >
+                      {retranslating[`b${i}`] ? <Loader2 className="h-3 w-3 animate-spin" /> : <span>🌐</span>}
+                      {retranslating[`b${i}`] ? "..." : locale.toUpperCase()}
+                    </button>
                   </div>
                 ) : null}
               </div>
@@ -2919,8 +3010,29 @@ function ScanHistory({ kind, copy, refreshTrigger = 0 }: { kind: ScanKind; copy:
                   </div>
                 </div>
                 {scan.analysis ? (
-                  <div className="border-t px-3 py-2.5 text-[11px] leading-relaxed text-muted-foreground" style={{ borderColor: "rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.02)" }}>
-                    {scan.analysis}
+                  <div className="border-t px-3 py-2.5" style={{ borderColor: "rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.02)" }}>
+                    <p className="text-[11px] leading-relaxed text-muted-foreground">{scan.analysis}</p>
+                    {scan.photoUrl && (scan.locale !== locale) && (
+                      <button
+                        onClick={() => void retranslateFood(scan, i)}
+                        disabled={retranslating[`f${i}`] ?? false}
+                        className="mt-2 flex items-center gap-1.5 rounded-full border border-cyan/30 bg-cyan/5 px-2.5 py-1 text-[10px] font-semibold text-cyan disabled:opacity-50"
+                      >
+                        {retranslating[`f${i}`] ? <Loader2 className="h-3 w-3 animate-spin" /> : <span>🌐</span>}
+                        {retranslating[`f${i}`] ? "..." : locale.toUpperCase()}
+                      </button>
+                    )}
+                  </div>
+                ) : scan.photoUrl && (scan.locale !== locale) ? (
+                  <div className="border-t px-3 py-2.5" style={{ borderColor: "rgba(255,255,255,0.06)" }}>
+                    <button
+                      onClick={() => void retranslateFood(scan, i)}
+                      disabled={retranslating[`f${i}`] ?? false}
+                      className="flex items-center gap-1.5 rounded-full border border-cyan/30 bg-cyan/5 px-2.5 py-1 text-[10px] font-semibold text-cyan disabled:opacity-50"
+                    >
+                      {retranslating[`f${i}`] ? <Loader2 className="h-3 w-3 animate-spin" /> : <span>🌐</span>}
+                      {retranslating[`f${i}`] ? "..." : locale.toUpperCase()}
+                    </button>
                   </div>
                 ) : null}
               </div>

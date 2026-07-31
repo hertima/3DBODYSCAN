@@ -7,6 +7,7 @@ export type FirestoreFoodScan = {
   fat: number;
   analysis: string;
   photoUrl?: string;
+  locale?: string;
 };
 
 const LS_KEY = "zyrox.foodScans";

@@ -15,7 +15,8 @@ export const Route = createFileRoute("/api/analyze-image")({
         if (!key) return new Response("API key not configured", { status: 500 });
 
         const body = (await request.json()) as {
-          imageBase64: string;
+          imageBase64?: string;
+          imageUrl?: string;
           userContext: string;
           locale: string;
           kind: "body" | "food";
@@ -25,8 +26,16 @@ export const Route = createFileRoute("/api/analyze-image")({
           age?: number;
         };
 
-        const imageBase64 = String(body.imageBase64 ?? "");
-        if (!imageBase64 || imageBase64.length > MAX_IMAGE_B64)
+        const imageBase64 = body.imageBase64 ? String(body.imageBase64) : "";
+        // Restrito ao bucket do Firebase Storage do próprio app — sem isso, qualquer
+        // usuário autenticado podia mandar QUALQUER URL https e usar essa rota como
+        // um "confused deputy" pra fazer a OpenAI buscar/descrever conteúdo arbitrário,
+        // além de pular o limite de tamanho que existe pro caminho base64.
+        const imageUrl =
+          typeof body.imageUrl === "string" && body.imageUrl.startsWith("https://firebasestorage.googleapis.com/")
+            ? body.imageUrl
+            : null;
+        if (!imageUrl && (!imageBase64 || imageBase64.length > MAX_IMAGE_B64))
           return new Response("Image too large or missing", { status: 400 });
 
         const userContext = String(body.userContext ?? "").slice(0, 3000);
@@ -96,7 +105,13 @@ Use visible body proportions and calibration data. Estimates must be realistic.`
                 {
                   role: "user",
                   content: [
-                    { type: "image_url", image_url: { url: `data:image/jpeg;base64,${imageBase64}`, detail: "high" } },
+                    {
+                      type: "image_url",
+                      image_url: {
+                        url: imageUrl ?? `data:image/jpeg;base64,${imageBase64}`,
+                        detail: "high",
+                      },
+                    },
                     { type: "text", text: userText },
                   ],
                 },

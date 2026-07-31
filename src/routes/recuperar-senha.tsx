@@ -1,12 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useEffect, type FormEvent } from "react";
-import { resetPassword } from "@/lib/auth";
+import { auth, resetPassword } from "@/lib/auth";
 import { motion } from "framer-motion";
 import { ArrowLeft, Mail } from "lucide-react";
 import { LocaleSwitcher } from "@/components/LocaleSwitcher";
 import logo from "@/assets/zyrox-logo.png";
 import { getAuthCopy } from "@/lib/app-copy";
 import { getStoredLocale, setStoredLocale, type AppLocale } from "@/lib/locale";
+
+const FIREBASE_LOCALE: Record<string, string> = { pt: "pt-BR", es: "es", en: "en", fr: "fr", de: "de" };
 
 export const Route = createFileRoute("/recuperar-senha")({
   head: () => ({
@@ -24,7 +26,7 @@ function RecoverPasswordPage() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const authCopy = getAuthCopy();
+  const authCopy = getAuthCopy(locale);
 
   useEffect(() => {
     setLocale(getStoredLocale());
@@ -43,14 +45,15 @@ function RecoverPasswordPage() {
 
     setLoading(true);
     try {
+      auth.languageCode = FIREBASE_LOCALE[locale] ?? "pt-BR";
       await resetPassword(sanitizedEmail);
-      setMessage("E-mail de recuperação enviado! Verifique sua caixa de entrada.");
+      setMessage(authCopy.recoverSent);
     } catch (err: unknown) {
       const code = (err as { code?: string }).code ?? "";
       if (code === "auth/user-not-found" || code === "auth/invalid-email") {
-        setError("Nenhuma conta encontrada com este e-mail.");
+        setError(authCopy.recoverUserNotFound);
       } else {
-        setError("Erro ao enviar e-mail. Tente novamente.");
+        setError(authCopy.recoverError);
       }
     } finally {
       setLoading(false);
@@ -60,7 +63,6 @@ function RecoverPasswordPage() {
   const handleLocaleChange = (nextLocale: AppLocale) => {
     setStoredLocale(nextLocale);
     setLocale(nextLocale);
-    window.location.reload();
   };
 
   return (
@@ -153,7 +155,7 @@ function RecoverPasswordPage() {
                 className="mt-2 flex w-full items-center justify-center gap-2 rounded-full py-3.5 text-base font-bold text-white transition disabled:opacity-40"
                 style={{ background: "linear-gradient(135deg,#ea580c,#fb923c,#fdba74)", boxShadow: "0 0 24px rgba(251,146,60,0.35), 0 4px 16px rgba(0,0,0,0.4)" }}
               >
-                {loading ? "Enviando..." : authCopy.recoverCta}
+                {loading ? authCopy.recoverSending : authCopy.recoverCta}
               </motion.button>
             </form>
           </div>

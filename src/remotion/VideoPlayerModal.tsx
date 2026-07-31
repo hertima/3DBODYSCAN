@@ -15,6 +15,7 @@ interface VideoPlayerModalProps {
   title?: string;
   shareLabel?: string;
   shareText?: string;
+  formatLabel?: string;
 }
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
@@ -149,65 +150,6 @@ async function buildPng(
   );
 }
 
-// ─── GIF ──────────────────────────────────────────────────────────────────────
-
-async function captureFrame(container: HTMLElement, outW: number, outH: number): Promise<HTMLCanvasElement> {
-  const { toPng } = await import("html-to-image");
-  const pixelRatio = Math.max(2, Math.ceil(outW / (container.offsetWidth || outW)));
-  const dataUrl = await toPng(container, { pixelRatio, cacheBust: false, style: { borderRadius: "0", overflow: "hidden" } });
-  const img = new Image();
-  img.src = dataUrl;
-  await new Promise<void>((res) => { img.onload = () => res(); });
-  const cv = document.createElement("canvas");
-  cv.width = outW; cv.height = outH;
-  cv.getContext("2d")!.drawImage(img, 0, 0, img.width, img.height, 0, 0, outW, outH);
-  return cv;
-}
-
-function loadGifJs(): Promise<new (opts: Record<string, unknown>) => {
-  addFrame(c: HTMLCanvasElement, opts: Record<string, unknown>): void;
-  render(): void;
-  on(e: "finished", cb: (b: Blob) => void): void;
-}> {
-  return new Promise((resolve, reject) => {
-    if ((window as unknown as Record<string, unknown>).GIF) {
-      resolve((window as unknown as Record<string, unknown>).GIF as never);
-      return;
-    }
-    const s = document.createElement("script");
-    s.src = "/gif.js";
-    s.onload = () => resolve((window as unknown as Record<string, unknown>).GIF as never);
-    s.onerror = reject;
-    document.head.appendChild(s);
-  });
-}
-
-async function buildGif(
-  container: HTMLElement,
-  player: PlayerRef,
-  durationInFrames: number,
-  fps: number,
-  onProgress: (n: number) => void,
-): Promise<Blob> {
-  const GIF = await loadGifJs();
-  const outW = 540, outH = 960;
-  const frameCount = 24;
-  const step = Math.max(1, Math.floor(durationInFrames / frameCount));
-  const delay = Math.round((step / fps) * 1000);
-  const gif = new GIF({ workers: 2, quality: 4, width: outW, height: outH, workerScript: "/gif.worker.js" });
-  player.pause();
-  for (let i = 0; i < frameCount; i++) {
-    player.seekTo(i * step);
-    await new Promise((r) => setTimeout(r, 300));
-    const canvas = await captureFrame(container, outW, outH);
-    gif.addFrame(canvas, { delay, copy: true });
-    onProgress(Math.round(((i + 1) / frameCount) * 90));
-  }
-  return new Promise((resolve) => {
-    gif.on("finished", (blob: Blob) => resolve(blob));
-    gif.render();
-  });
-}
 
 function triggerDownload(blob: Blob, name: string) {
   const url = URL.createObjectURL(blob);
@@ -227,8 +169,6 @@ export function VideoPlayerModal({
 }: VideoPlayerModalProps) {
   const playerRef = useRef<PlayerRef>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [progress, setProgress] = useState(0);
-  const [mode, setMode] = useState<"gif" | "png" | null>(null);
   const [generating, setGenerating] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [readyBlob, setReadyBlob] = useState<Blob | null>(null);
@@ -236,25 +176,17 @@ export function VideoPlayerModal({
 
   if (!open) return null;
 
-  const generate = async (type: "gif" | "png") => {
+  const generate = async () => {
     if (previewUrl) { URL.revokeObjectURL(previewUrl); setPreviewUrl(null); }
-    setMode(type);
     setGenerating(true);
-    setProgress(0);
     setErrorMsg(null);
     setReadyBlob(null);
     playerRef.current?.pause();
     try {
-      let blob: Blob;
-      if (type === "gif") {
-        if (!containerRef.current || !playerRef.current) return;
-        blob = await buildGif(containerRef.current, playerRef.current, durationInFrames, fps, setProgress);
-      } else {
-        if (!containerRef.current || !playerRef.current) return;
-        blob = await buildPng(containerRef.current, playerRef.current, compositionWidth, compositionHeight);
-      }
+      if (!containerRef.current || !playerRef.current) return;
+      const blob = await buildPng(containerRef.current, playerRef.current, compositionWidth, compositionHeight);
       setReadyBlob(blob);
-      if (type === "png") setPreviewUrl(URL.createObjectURL(blob));
+      setPreviewUrl(URL.createObjectURL(blob));
     } catch (e) {
       console.error("generate error:", e);
       setErrorMsg(`Erro: ${(e as Error)?.message ?? String(e)}`);
@@ -265,18 +197,16 @@ export function VideoPlayerModal({
   };
 
   const share = async () => {
-    if (!readyBlob || !mode) return;
-    const isGif = mode === "gif";
-    const fileName = isGif ? "evolucao.gif" : "evolucao.png";
-    const file = new File([readyBlob], fileName, { type: isGif ? "image/gif" : "image/png" });
+    if (!readyBlob) return;
+    const file = new File([readyBlob], "evolucao.png", { type: "image/png" });
     try {
       if (navigator.canShare?.({ files: [file] })) {
         await navigator.share({ files: [file], title: "3D Body Scanner", text: shareText });
       } else {
-        triggerDownload(readyBlob, fileName);
+        triggerDownload(readyBlob, "evolucao.png");
       }
     } catch (e: unknown) {
-      if ((e as Error)?.name !== "AbortError") triggerDownload(readyBlob, fileName);
+      if ((e as Error)?.name !== "AbortError") triggerDownload(readyBlob, "evolucao.png");
     }
   };
 
@@ -307,12 +237,6 @@ export function VideoPlayerModal({
       </div>
 
       <div style={{ flexShrink: 0, padding: "16px 20px 40px", display: "flex", flexDirection: "column", gap: 10 }} onClick={(e) => e.stopPropagation()}>
-        {generating && (
-          <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: 8, overflow: "hidden", height: 5 }}>
-            <div style={{ height: "100%", width: `${mode === "gif" ? progress : 60}%`, background: "linear-gradient(90deg,#22d3ee,#3b82f6)", transition: "width 0.3s", borderRadius: 8 }} />
-          </div>
-        )}
-
         {errorMsg && (
           <p style={{ fontSize: 13, color: "#f87171", textAlign: "center", margin: 0, padding: "10px 16px", background: "rgba(248,113,113,0.08)", borderRadius: 10 }}>
             {errorMsg}
@@ -320,24 +244,18 @@ export function VideoPlayerModal({
         )}
 
         {!readyBlob ? (
-          <>
-            <button onClick={() => generate("gif")} disabled={generating} style={{ ...btn, background: generating && mode === "gif" ? "rgba(34,211,238,0.12)" : "linear-gradient(135deg,#22d3ee,#3b82f6)", color: generating && mode === "gif" ? "#22d3ee" : "#060b14", border: generating && mode === "gif" ? "1px solid rgba(34,211,238,0.3)" : "none", cursor: generating ? "default" : "pointer" }}>
-              {generating && mode === "gif" ? <Loader2 size={20} className="animate-spin" /> : <Share2 size={20} />}
-              {generating && mode === "gif" ? `Gerando GIF… ${progress}%` : "GIF animado · WhatsApp"}
-            </button>
-            <button onClick={() => generate("png")} disabled={generating} style={{ ...btn, padding: "14px", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: generating && mode === "png" ? "#c084fc" : "#94a3b8", fontSize: 14, cursor: generating ? "default" : "pointer" }}>
-              {generating && mode === "png" ? <Loader2 size={18} className="animate-spin" /> : <Share2 size={18} />}
-              {generating && mode === "png" ? "Gerando imagem…" : "Imagem · Instagram / Stories"}
-            </button>
-          </>
+          <button onClick={generate} disabled={generating} style={{ ...btn, background: generating ? "rgba(34,211,238,0.12)" : "linear-gradient(135deg,#22d3ee,#3b82f6)", color: generating ? "#22d3ee" : "#060b14", border: generating ? "1px solid rgba(34,211,238,0.3)" : "none", cursor: generating ? "default" : "pointer" }}>
+            {generating ? <Loader2 size={20} className="animate-spin" /> : <Share2 size={20} />}
+            {generating ? "Gerando imagem…" : "Compartilhar imagem"}
+          </button>
         ) : (
           <>
             <div style={{ display: "flex", gap: 10 }}>
               <button onClick={share} style={{ ...btn, flex: 1, background: "linear-gradient(135deg,#4ade80,#22d3ee)", color: "#060b14" }}>
                 <Share2 size={20} />
-                {mode === "gif" ? "Compartilhar GIF" : "Compartilhar imagem"}
+                Compartilhar imagem
               </button>
-              <button onClick={() => triggerDownload(readyBlob!, mode === "gif" ? "evolucao.gif" : "evolucao.png")} title="Baixar" style={{ ...btn, width: "auto", padding: "18px 20px", flex: "none", background: "rgba(255,255,255,0.07)", color: "#94a3b8", border: "1px solid rgba(255,255,255,0.12)" }}>
+              <button onClick={() => triggerDownload(readyBlob!, "evolucao.png")} title="Baixar" style={{ ...btn, width: "auto", padding: "18px 20px", flex: "none", background: "rgba(255,255,255,0.07)", color: "#94a3b8", border: "1px solid rgba(255,255,255,0.12)" }}>
                 <Download size={20} />
               </button>
             </div>
@@ -350,7 +268,7 @@ export function VideoPlayerModal({
         )}
 
         <p style={{ fontSize: 11, color: "rgba(148,163,184,0.22)", textAlign: "center", margin: 0 }}>
-          {readyBlob ? "Pronto · toque para compartilhar ou baixar" : "GIF animado para WhatsApp · Imagem estática para Instagram"}
+          {readyBlob ? "Pronto · toque para compartilhar ou baixar" : "Imagem estática para Instagram / Stories"}
         </p>
       </div>
     </div>

@@ -170,7 +170,6 @@ function LoginPage() {
   const handleLocaleChange = (nextLocale: AppLocale) => {
     setStoredLocale(nextLocale);
     setLocale(nextLocale);
-    window.location.reload();
   };
 
   return (

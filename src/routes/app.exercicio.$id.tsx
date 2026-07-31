@@ -169,7 +169,7 @@ function Detail() {
   return (
     <div className="space-y-5">
       <div className="relative">
-        <ExerciseMedia exerciseId={ex.id} size="hero" className="border border-border" />
+        <ExerciseMedia exerciseId={ex.id} src={ex.gifUrl} size="hero" className="border border-border" />
         <button
           onClick={() => navigate({ to: "/app/exercicios" })}
           className="absolute left-3 top-3 grid h-10 w-10 place-items-center rounded-full bg-background/80 text-foreground backdrop-blur"

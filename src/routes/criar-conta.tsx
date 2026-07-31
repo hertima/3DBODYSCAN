@@ -115,8 +115,15 @@ function SignUpPage() {
       const cred = await signUp(trimmedEmail, password);
       saveProfileToFirestore(cred.user.uid, mergedProfile).catch(() => {});
       saveLocalStateToFirestore(cred.user.uid).catch(() => {});
-      if (isOnboarded()) navigate({ to: "/app" });
-      else navigate({ to: "/onboarding/$step", params: { step: "1" } });
+      // Marcar que este uid precisa verificar e-mail antes de continuar
+      localStorage.setItem("zyrox.emailPending", cred.user.uid);
+      cred.user.getIdToken().then((token) => {
+        fetch("/api/send-verification", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}`, "X-Locale": locale },
+        }).catch(() => {});
+      }).catch(() => {});
+      navigate({ to: "/email-pendente" });
     } catch (err: unknown) {
       signingUpRef.current = false;
       setLoading(false);
@@ -130,7 +137,6 @@ function SignUpPage() {
   const handleLocaleChange = (nextLocale: AppLocale) => {
     setStoredLocale(nextLocale);
     setLocale(nextLocale);
-    window.location.reload();
   };
 
   const inputStyle = {

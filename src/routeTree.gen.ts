@@ -9,9 +9,14 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as VerificarEmailRouteImport } from './routes/verificar-email'
+import { Route as TermosRouteImport } from './routes/termos'
 import { Route as RecuperarSenhaRouteImport } from './routes/recuperar-senha'
+import { Route as PrivacidadeRouteImport } from './routes/privacidade'
 import { Route as PaywallRouteImport } from './routes/paywall'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
+import { Route as LandingRouteImport } from './routes/landing'
+import { Route as EmailPendenteRouteImport } from './routes/email-pendente'
 import { Route as CriarContaRouteImport } from './routes/criar-conta'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
@@ -25,6 +30,9 @@ import { Route as AppExerciciosRouteImport } from './routes/app.exercicios'
 import { Route as AppCorpoRouteImport } from './routes/app.corpo'
 import { Route as AppConfiguracoesRouteImport } from './routes/app.configuracoes'
 import { Route as AppAnalyticsRouteImport } from './routes/app.analytics'
+import { Route as ApiVerifyEmailLinkRouteImport } from './routes/api/verify-email-link'
+import { Route as ApiVerifyCodeRouteImport } from './routes/api/verify-code'
+import { Route as ApiSendVerificationRouteImport } from './routes/api/send-verification'
 import { Route as ApiMealPlanRouteImport } from './routes/api/meal-plan'
 import { Route as ApiChatStreamRouteImport } from './routes/api/chat-stream'
 import { Route as ApiAnalyzeImageRouteImport } from './routes/api/analyze-image'
@@ -33,9 +41,24 @@ import { Route as AppTreinoIdRouteImport } from './routes/app.treino.$id'
 import { Route as AppHistoricoIdRouteImport } from './routes/app.historico.$id'
 import { Route as AppExercicioIdRouteImport } from './routes/app.exercicio.$id'
 
+const VerificarEmailRoute = VerificarEmailRouteImport.update({
+  id: '/verificar-email',
+  path: '/verificar-email',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermosRoute = TermosRouteImport.update({
+  id: '/termos',
+  path: '/termos',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RecuperarSenhaRoute = RecuperarSenhaRouteImport.update({
   id: '/recuperar-senha',
   path: '/recuperar-senha',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacidadeRoute = PrivacidadeRouteImport.update({
+  id: '/privacidade',
+  path: '/privacidade',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PaywallRoute = PaywallRouteImport.update({
@@ -46,6 +69,16 @@ const PaywallRoute = PaywallRouteImport.update({
 const OnboardingRoute = OnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LandingRoute = LandingRouteImport.update({
+  id: '/landing',
+  path: '/landing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EmailPendenteRoute = EmailPendenteRouteImport.update({
+  id: '/email-pendente',
+  path: '/email-pendente',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CriarContaRoute = CriarContaRouteImport.update({
@@ -113,6 +146,21 @@ const AppAnalyticsRoute = AppAnalyticsRouteImport.update({
   path: '/analytics',
   getParentRoute: () => AppRoute,
 } as any)
+const ApiVerifyEmailLinkRoute = ApiVerifyEmailLinkRouteImport.update({
+  id: '/api/verify-email-link',
+  path: '/api/verify-email-link',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiVerifyCodeRoute = ApiVerifyCodeRouteImport.update({
+  id: '/api/verify-code',
+  path: '/api/verify-code',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSendVerificationRoute = ApiSendVerificationRouteImport.update({
+  id: '/api/send-verification',
+  path: '/api/send-verification',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiMealPlanRoute = ApiMealPlanRouteImport.update({
   id: '/api/meal-plan',
   path: '/api/meal-plan',
@@ -153,13 +201,21 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
   '/criar-conta': typeof CriarContaRoute
+  '/email-pendente': typeof EmailPendenteRoute
+  '/landing': typeof LandingRoute
   '/onboarding': typeof OnboardingRouteWithChildren
   '/paywall': typeof PaywallRoute
+  '/privacidade': typeof PrivacidadeRoute
   '/recuperar-senha': typeof RecuperarSenhaRoute
+  '/termos': typeof TermosRoute
+  '/verificar-email': typeof VerificarEmailRoute
   '/api/ai-workout': typeof ApiAiWorkoutRoute
   '/api/analyze-image': typeof ApiAnalyzeImageRoute
   '/api/chat-stream': typeof ApiChatStreamRoute
   '/api/meal-plan': typeof ApiMealPlanRoute
+  '/api/send-verification': typeof ApiSendVerificationRoute
+  '/api/verify-code': typeof ApiVerifyCodeRoute
+  '/api/verify-email-link': typeof ApiVerifyEmailLinkRoute
   '/app/analytics': typeof AppAnalyticsRoute
   '/app/configuracoes': typeof AppConfiguracoesRoute
   '/app/corpo': typeof AppCorpoRoute
@@ -177,12 +233,20 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/criar-conta': typeof CriarContaRoute
+  '/email-pendente': typeof EmailPendenteRoute
+  '/landing': typeof LandingRoute
   '/paywall': typeof PaywallRoute
+  '/privacidade': typeof PrivacidadeRoute
   '/recuperar-senha': typeof RecuperarSenhaRoute
+  '/termos': typeof TermosRoute
+  '/verificar-email': typeof VerificarEmailRoute
   '/api/ai-workout': typeof ApiAiWorkoutRoute
   '/api/analyze-image': typeof ApiAnalyzeImageRoute
   '/api/chat-stream': typeof ApiChatStreamRoute
   '/api/meal-plan': typeof ApiMealPlanRoute
+  '/api/send-verification': typeof ApiSendVerificationRoute
+  '/api/verify-code': typeof ApiVerifyCodeRoute
+  '/api/verify-email-link': typeof ApiVerifyEmailLinkRoute
   '/app/analytics': typeof AppAnalyticsRoute
   '/app/configuracoes': typeof AppConfiguracoesRoute
   '/app/corpo': typeof AppCorpoRoute
@@ -202,13 +266,21 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
   '/criar-conta': typeof CriarContaRoute
+  '/email-pendente': typeof EmailPendenteRoute
+  '/landing': typeof LandingRoute
   '/onboarding': typeof OnboardingRouteWithChildren
   '/paywall': typeof PaywallRoute
+  '/privacidade': typeof PrivacidadeRoute
   '/recuperar-senha': typeof RecuperarSenhaRoute
+  '/termos': typeof TermosRoute
+  '/verificar-email': typeof VerificarEmailRoute
   '/api/ai-workout': typeof ApiAiWorkoutRoute
   '/api/analyze-image': typeof ApiAnalyzeImageRoute
   '/api/chat-stream': typeof ApiChatStreamRoute
   '/api/meal-plan': typeof ApiMealPlanRoute
+  '/api/send-verification': typeof ApiSendVerificationRoute
+  '/api/verify-code': typeof ApiVerifyCodeRoute
+  '/api/verify-email-link': typeof ApiVerifyEmailLinkRoute
   '/app/analytics': typeof AppAnalyticsRoute
   '/app/configuracoes': typeof AppConfiguracoesRoute
   '/app/corpo': typeof AppCorpoRoute
@@ -229,13 +301,21 @@ export interface FileRouteTypes {
     | '/'
     | '/app'
     | '/criar-conta'
+    | '/email-pendente'
+    | '/landing'
     | '/onboarding'
     | '/paywall'
+    | '/privacidade'
     | '/recuperar-senha'
+    | '/termos'
+    | '/verificar-email'
     | '/api/ai-workout'
     | '/api/analyze-image'
     | '/api/chat-stream'
     | '/api/meal-plan'
+    | '/api/send-verification'
+    | '/api/verify-code'
+    | '/api/verify-email-link'
     | '/app/analytics'
     | '/app/configuracoes'
     | '/app/corpo'
@@ -253,12 +333,20 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/criar-conta'
+    | '/email-pendente'
+    | '/landing'
     | '/paywall'
+    | '/privacidade'
     | '/recuperar-senha'
+    | '/termos'
+    | '/verificar-email'
     | '/api/ai-workout'
     | '/api/analyze-image'
     | '/api/chat-stream'
     | '/api/meal-plan'
+    | '/api/send-verification'
+    | '/api/verify-code'
+    | '/api/verify-email-link'
     | '/app/analytics'
     | '/app/configuracoes'
     | '/app/corpo'
@@ -277,13 +365,21 @@ export interface FileRouteTypes {
     | '/'
     | '/app'
     | '/criar-conta'
+    | '/email-pendente'
+    | '/landing'
     | '/onboarding'
     | '/paywall'
+    | '/privacidade'
     | '/recuperar-senha'
+    | '/termos'
+    | '/verificar-email'
     | '/api/ai-workout'
     | '/api/analyze-image'
     | '/api/chat-stream'
     | '/api/meal-plan'
+    | '/api/send-verification'
+    | '/api/verify-code'
+    | '/api/verify-email-link'
     | '/app/analytics'
     | '/app/configuracoes'
     | '/app/corpo'
@@ -303,22 +399,51 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
   CriarContaRoute: typeof CriarContaRoute
+  EmailPendenteRoute: typeof EmailPendenteRoute
+  LandingRoute: typeof LandingRoute
   OnboardingRoute: typeof OnboardingRouteWithChildren
   PaywallRoute: typeof PaywallRoute
+  PrivacidadeRoute: typeof PrivacidadeRoute
   RecuperarSenhaRoute: typeof RecuperarSenhaRoute
+  TermosRoute: typeof TermosRoute
+  VerificarEmailRoute: typeof VerificarEmailRoute
   ApiAiWorkoutRoute: typeof ApiAiWorkoutRoute
   ApiAnalyzeImageRoute: typeof ApiAnalyzeImageRoute
   ApiChatStreamRoute: typeof ApiChatStreamRoute
   ApiMealPlanRoute: typeof ApiMealPlanRoute
+  ApiSendVerificationRoute: typeof ApiSendVerificationRoute
+  ApiVerifyCodeRoute: typeof ApiVerifyCodeRoute
+  ApiVerifyEmailLinkRoute: typeof ApiVerifyEmailLinkRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/verificar-email': {
+      id: '/verificar-email'
+      path: '/verificar-email'
+      fullPath: '/verificar-email'
+      preLoaderRoute: typeof VerificarEmailRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/termos': {
+      id: '/termos'
+      path: '/termos'
+      fullPath: '/termos'
+      preLoaderRoute: typeof TermosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/recuperar-senha': {
       id: '/recuperar-senha'
       path: '/recuperar-senha'
       fullPath: '/recuperar-senha'
       preLoaderRoute: typeof RecuperarSenhaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacidade': {
+      id: '/privacidade'
+      path: '/privacidade'
+      fullPath: '/privacidade'
+      preLoaderRoute: typeof PrivacidadeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/paywall': {
@@ -333,6 +458,20 @@ declare module '@tanstack/react-router' {
       path: '/onboarding'
       fullPath: '/onboarding'
       preLoaderRoute: typeof OnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/landing': {
+      id: '/landing'
+      path: '/landing'
+      fullPath: '/landing'
+      preLoaderRoute: typeof LandingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/email-pendente': {
+      id: '/email-pendente'
+      path: '/email-pendente'
+      fullPath: '/email-pendente'
+      preLoaderRoute: typeof EmailPendenteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/criar-conta': {
@@ -425,6 +564,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/app/analytics'
       preLoaderRoute: typeof AppAnalyticsRouteImport
       parentRoute: typeof AppRoute
+    }
+    '/api/verify-email-link': {
+      id: '/api/verify-email-link'
+      path: '/api/verify-email-link'
+      fullPath: '/api/verify-email-link'
+      preLoaderRoute: typeof ApiVerifyEmailLinkRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/verify-code': {
+      id: '/api/verify-code'
+      path: '/api/verify-code'
+      fullPath: '/api/verify-code'
+      preLoaderRoute: typeof ApiVerifyCodeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/send-verification': {
+      id: '/api/send-verification'
+      path: '/api/send-verification'
+      fullPath: '/api/send-verification'
+      preLoaderRoute: typeof ApiSendVerificationRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/meal-plan': {
       id: '/api/meal-plan'
@@ -526,13 +686,21 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
   CriarContaRoute: CriarContaRoute,
+  EmailPendenteRoute: EmailPendenteRoute,
+  LandingRoute: LandingRoute,
   OnboardingRoute: OnboardingRouteWithChildren,
   PaywallRoute: PaywallRoute,
+  PrivacidadeRoute: PrivacidadeRoute,
   RecuperarSenhaRoute: RecuperarSenhaRoute,
+  TermosRoute: TermosRoute,
+  VerificarEmailRoute: VerificarEmailRoute,
   ApiAiWorkoutRoute: ApiAiWorkoutRoute,
   ApiAnalyzeImageRoute: ApiAnalyzeImageRoute,
   ApiChatStreamRoute: ApiChatStreamRoute,
   ApiMealPlanRoute: ApiMealPlanRoute,
+  ApiSendVerificationRoute: ApiSendVerificationRoute,
+  ApiVerifyCodeRoute: ApiVerifyCodeRoute,
+  ApiVerifyEmailLinkRoute: ApiVerifyEmailLinkRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

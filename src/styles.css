@@ -428,3 +428,21 @@
 .urgency-pulse {
   animation: urgencyPulse 2s ease-in-out infinite;
 }
+
+@media (max-height: 650px) {
+  .paywall-sticky-shell {
+    padding-top: 0.35rem !important;
+    padding-bottom: max(0.7rem, env(safe-area-inset-bottom)) !important;
+  }
+
+  .paywall-sticky-button {
+    padding-top: 0.625rem !important;
+    padding-bottom: 0.625rem !important;
+  }
+
+  .paywall-sticky-meta {
+    margin-bottom: 0.4rem !important;
+    font-size: 11px !important;
+    line-height: 1.2 !important;
+  }
+}

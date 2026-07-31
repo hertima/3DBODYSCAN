@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import type { WeekPlan } from "@/lib/meal-plan";
+import type { WeekPlan, Meal } from "@/lib/meal-plan";
 import { verifyFirebaseToken } from "@/lib/server-auth";
 import { OPENAI_MODEL } from "@/lib/openai-config";
 
@@ -13,6 +13,18 @@ type ProfileInput = {
   mealFrequency: string;
   metabolismType: string;
   name?: string;
+  trainingDays?: number;
+  experience?: string;
+  trainingType?: string;
+  focusMuscles?: string[];
+  trackCycle?: boolean;
+  menstrualCyclePhase?: string;
+  consistency?: string;
+  // plano calórico já fechado no onboarding — quando presente, usar em vez de recalcular
+  calorieTarget?: number;
+  calorieProtein?: number;
+  // divisão semanal de treino real (ex: "Mon: Peito (...), Tue: Costas (...)")
+  weeklySplit?: string;
 };
 
 type MealPlanRequest = {
@@ -23,14 +35,22 @@ type MealPlanRequest = {
 };
 
 const GOAL_LABEL: Record<string, string> = {
-  mass: "ganho de massa muscular",
-  strength: "força máxima",
-  hybrid: "hipertrofia + força",
-  athletic: "performance atlética",
-  weight_loss: "perda de peso",
-  definition: "definição muscular",
-  endurance: "resistência",
-  wellness: "saúde e bem-estar",
+  mass: "muscle mass gain",
+  strength: "maximum strength",
+  hybrid: "hypertrophy + strength",
+  athletic: "athletic performance",
+  weight_loss: "weight loss",
+  definition: "muscle definition / cutting",
+  endurance: "endurance",
+  wellness: "health and wellness",
+};
+
+const FOOD_CULTURE: Record<string, string> = {
+  pt: "Brazil — affordable everyday foods: arroz branco, feijão preto/carioca, frango grelhado, carne moída, ovos, batata doce, mandioca, tapioca, pão integral, iogurte natural, banana, mamão, brócolis, espinafre, azeite, sardinha enlatada — avoid salmon, shrimp, premium seafood",
+  es: "Latin America — affordable everyday foods: arroz, frijoles, pollo asado, carne molida, huevos, plátano, yuca, papa, tortilla integral, tomate, lechuga, frutas locales (mango, piña, naranja), aceite vegetal, atún en lata, yogur natural — avoid shrimp, salmon",
+  en: "USA/UK — affordable everyday foods: oats, whole grain bread, brown rice, sweet potato, chicken breast, eggs, Greek yogurt, cottage cheese, canned tuna, black beans, broccoli, spinach, carrots, olive oil, peanut butter, apple, banana — avoid salmon, shrimp, premium fish",
+  fr: "France/francophone — affordable everyday foods: pain complet, riz, pâtes complètes, poulet, oeufs, yaourt nature, fromage blanc, lentilles, haricots verts, carottes, épinards, huile d'olive, sardines en boîte, thon en boîte, fruits de saison — éviter saumon, crevettes",
+  de: "Germany/DACH — affordable everyday foods: Vollkornbrot, Haferflocken, Hähnchen, Kartoffeln, Eier, Magerquark, Linsen, Brokkoli, Karotten, Spinat, Olivenöl, Thunfisch aus der Dose, Beeren, Nüsse, Hüttenkäse — kein Lachs, keine Meeresfrüchte",
 };
 
 export const Route = createFileRoute("/api/meal-plan")({
@@ -48,15 +68,47 @@ export const Route = createFileRoute("/api/meal-plan")({
     const key = process.env.OPENAI_API_KEY;
 
     const goalLabel = GOAL_LABEL[profile.goal] ?? profile.goal;
+
+    // Mifflin-St Jeor (same formula as calorie-calculator.ts)
     const bmr =
       profile.gender === "female"
-        ? 655 + 9.6 * profile.weight + 1.8 * profile.height - 4.7 * profile.age
-        : 88.4 + 13.4 * profile.weight + 4.8 * profile.height - 5.7 * profile.age;
-    const tdee = Math.round(bmr * 1.55);
+        ? 10 * profile.weight + 6.25 * profile.height - 5 * profile.age - 161
+        : 10 * profile.weight + 6.25 * profile.height - 5 * profile.age + 5;
+
+    const activityDays = profile.trainingDays ?? 4;
+    const activityMult =
+      activityDays <= 1 ? 1.2
+      : activityDays <= 3 ? 1.375
+      : activityDays <= 5 ? 1.55
+      : 1.725;
+
+    const metAdj =
+      profile.metabolismType === "slow" || profile.metabolismType === "lento" ? 0.95
+      : profile.metabolismType === "fast" || profile.metabolismType === "rápido" ? 1.05
+      : 1.0;
+
+    const tdee = Math.round(bmr * activityMult * metAdj);
+
+    const surplusOrDeficit =
+      profile.goal === "mass" ? 350
+      : profile.goal === "strength" ? 200
+      : profile.goal === "hybrid" ? 100
+      : profile.goal === "definition" ? -200
+      : profile.goal === "weight_loss" ? -500
+      : profile.goal === "endurance" ? 150
+      : 0;
+
+    const targetCalories = profile.calorieTarget ?? Math.max(1200, tdee + surplusOrDeficit);
+
+    const proteinTarget = profile.calorieProtein ?? Math.round(profile.weight * (
+      profile.goal === "weight_loss" || profile.goal === "definition" ? 2.4
+      : profile.goal === "mass" ? 2.2
+      : 1.8
+    ));
 
     const variationSeed = regenerationId ?? crypto.randomUUID();
     const avoidList = avoidFoods.slice(0, 35).join(", ");
-    const fallbackPlan = () => buildFallbackMealPlan(profile, locale, variationSeed);
+    const fallbackPlan = () => buildFallbackMealPlan(profile, locale, variationSeed, tdee, targetCalories);
 
     if (!key) {
       return jsonResponse(fallbackPlan());
@@ -67,95 +119,116 @@ export const Route = createFileRoute("/api/meal-plan")({
     };
     const mealLang = LANGUAGE_NAME[locale] ?? LANGUAGE_NAME.pt;
 
-    const prompt = `Create a personalized 12-week meal plan. This is nutrition ONLY — no workouts.
+    const foodCulture = FOOD_CULTURE[locale] ?? FOOD_CULTURE.pt;
 
-CRITICAL LANGUAGE RULE: ALL text content in the JSON response (weekFocus, strategy, tip, meal names, food items, hydrationTarget, mealTiming, adherenceGoal, calorieAdjustment, macroStrategy, groceryFocus, swapOptions) MUST be written in ${mealLang}. Never use Portuguese if the target language is not Portuguese.
+    const prompt = `OUTPUT LANGUAGE: ${mealLang}
+MANDATORY: Every single text value in the JSON MUST be written in ${mealLang}. Zero exceptions. Never use Portuguese if the target language is not Portuguese.
 
-PERFIL:
-- Objetivo: ${goalLabel}
-- Peso: ${profile.weight}kg | Altura: ${profile.height}cm | Idade: ${profile.age} anos
-- Gênero: ${profile.gender === "female" ? "Feminino" : profile.gender === "male" ? "Masculino" : "Outro"}
-- Tipo de dieta: ${profile.dietType || "onívoro"}
-- Metabolismo: ${profile.metabolismType || "balanceado"}
-- TDEE estimado: ${tdee} kcal/dia
-${profile.name ? `- Nome: ${profile.name}` : ""}
-- Seed obrigatório de variação: ${variationSeed}
-${avoidList ? `- Evite repetir estes alimentos do plano anterior, exceto se forem essenciais: ${avoidList}` : ""}
+Create a personalized 12-week nutrition plan. Nutrition only — no workouts, no training references.
 
-REGRAS:
-- Semanas 1-4: fase de adaptação (calorias base)
-- Semanas 5-8: fase de desenvolvimento (+5-10% calorias se ganho de massa, -5% se perda)
-- Semanas 9-12: fase de otimização/pico
-- Proteína: mínimo 1.8g/kg de peso corporal
-- O plano deve parecer uma prescrição profissional de nutricionista: estratégia, ajuste calórico, timing, hidratação, adesão, lista de compras e substituições.
-- Cada refeição deve ter nome criativo, 2-5 alimentos, calorias e macros
-- O "tip" deve ser uma dica prática e específica para aquela semana
-- Cada semana deve ter 7 dias com refeições diferentes. Não use o mesmo cardápio de segunda a domingo.
-- Varie fontes de proteína, carboidratos, gorduras e vegetais entre os dias e entre as semanas.
-- Não repita a mesma combinação de alimentos em dias seguidos.
-- Ao regenerar, crie um plano visivelmente diferente usando o seed de variação.
-- "weekFocus" deve falar de nutrição, exemplo: calorias, proteína, hidratação, adesão alimentar.
-- "tip" deve ser uma dica alimentar prática. Nunca dica de treino.
+PROFILE:
+- Goal: ${goalLabel}
+- Weight: ${profile.weight}kg | Height: ${profile.height}cm | Age: ${profile.age} years
+- Gender: ${profile.gender === "female" ? "Female" : profile.gender === "male" ? "Male" : "Other"}
+- Diet type: ${profile.dietType || "omnivore"}
+- Metabolism: ${profile.metabolismType || "balanced"}
+- Training days per week: ${activityDays}
+${profile.weeklySplit ? `- Actual weekly training split (align meal timing/pre-workout carbs with training days, lighter on rest days): ${profile.weeklySplit}` : ""}
+- BMR (resting): ${Math.round(bmr)} kcal/day
+- TDEE (active): ${tdee} kcal/day
+- Caloric target: ${targetCalories} kcal/day (${surplusOrDeficit > 0 ? `+${surplusOrDeficit}` : surplusOrDeficit} kcal ${surplusOrDeficit >= 0 ? "surplus" : "deficit"})
+- Protein target: ${proteinTarget}g/day (${profile.weight}kg × ${profile.goal === "weight_loss" || profile.goal === "definition" ? "2.4" : profile.goal === "mass" ? "2.2" : "1.8"}g/kg)
+- Meal frequency: ${profile.mealFrequency || "5 meals/day"}
+${profile.experience ? `- Fitness experience: ${profile.experience}` : ""}
+${profile.trainingType ? `- Training type: ${profile.trainingType}` : ""}
+${profile.focusMuscles && profile.focusMuscles.length > 0 ? `- Muscle focus: ${profile.focusMuscles.join(", ")}` : ""}
+${profile.trackCycle && profile.gender === "female" && profile.menstrualCyclePhase ? `- Menstrual cycle phase: ${profile.menstrualCyclePhase} (adapt nutrition accordingly: carb cycling, iron intake, bloating management)` : ""}
+${profile.consistency ? `- Training consistency: ${profile.consistency}` : ""}
+${profile.name ? `- Name: ${profile.name}` : ""}
+- Variation seed (use this to produce a different plan on each regeneration): ${variationSeed}
+${avoidList ? `- Do NOT repeat these foods from the previous plan unless nutritionally essential: ${avoidList}` : ""}
 
-Responda SOMENTE com JSON válido neste formato exato:
+REGIONAL FOOD CULTURE: ${foodCulture}
+Prioritize these culturally appropriate, affordable everyday foods. Name all food items using local terminology in ${mealLang}. Use AFFORDABLE, ACCESSIBLE ingredients only — no salmon, shrimp, or premium seafood.
+
+RULES:
+- ALL 12 weeks use EXACTLY ${targetCalories} kcal/day — do NOT change the daily calorie total between phases
+- Weeks 1-4 (adaptacao): simpler meals, build consistency, straightforward food choices
+- Weeks 5-8 (desenvolvimento): increase variety, refine meal timing, optimize nutrient quality
+- Weeks 9-12 (otimizacao): peak adherence, advanced food quality, precise macro distribution
+- Protein: minimum 1.8g/kg body weight per day
+- The plan must read like a professional nutritionist's prescription: include strategy, caloric adjustment, meal timing, hydration, adherence, shopping focus, and food swaps
+- Each meal must have a creative local name (in ${mealLang}), 3 to 5 SPECIFIC foods with quantities, calories and macros — never list only 2 foods
+- Breakfast must contain eggs and/or dairy (e.g., eggs, Greek yogurt, cottage, ricotta, cheese) — NEVER ground beef, fish, or chicken for breakfast
+- Morning snack: light, portable (fruit + dairy or nuts)
+- Lunch: the largest meal with protein + carb + vegetables + healthy fat
+- Pre-workout: 2-3 hours before training — carb-focused + moderate protein, easy to digest
+- Dinner: lean protein + vegetables + moderate carbs
+- Use ONLY popular, affordable, everyday foods from the regional food culture above
+- "weekFocus" must address nutrition (e.g., caloric intake, protein distribution, hydration, adherence)
+- "tip" must be a practical nutrition tip — never a workout tip
+- Use the variation seed to ensure a visibly different plan on each regeneration
+
+Respond ONLY with valid JSON in this exact format (no markdown, no text outside JSON):
 {
   "weeks": [
     {
       "week": 1,
       "phase": "adaptacao",
-      "weekFocus": "string curta (ex: Adaptação e controle calórico)",
-      "strategy": "estratégia nutricional profissional da semana em 1 frase",
-      "dailyCalories": número,
-      "calorieAdjustment": "ex: manutenção técnica, déficit leve, superávit controlado",
-      "macros": {"protein": número, "carbs": número, "fat": número},
-      "macroStrategy": "como distribuir proteína, carboidrato e gordura ao longo do dia",
-      "breakfast": {"name": "string", "foods": ["alimento1","alimento2","alimento3"], "calories": número, "protein": número, "carbs": número, "fat": número},
-      "morningSnack": {"name": "string", "foods": ["alimento1","alimento2"], "calories": número, "protein": número, "carbs": número, "fat": número},
-      "lunch": {"name": "string", "foods": ["alimento1","alimento2","alimento3","alimento4"], "calories": número, "protein": número, "carbs": número, "fat": número},
-      "preWorkout": {"name": "string", "foods": ["alimento1","alimento2"], "calories": número, "protein": número, "carbs": número, "fat": número},
-      "dinner": {"name": "string", "foods": ["alimento1","alimento2","alimento3"], "calories": número, "protein": número, "carbs": número, "fat": número},
-      "tip": "string",
-      "hydrationTarget": "meta prática de água/eletrólitos da semana",
-      "mealTiming": "orientação de horários e pré/pós-treino",
-      "adherenceGoal": "meta simples de adesão da semana",
-      "groceryFocus": ["item de compra 1","item de compra 2","item de compra 3","item de compra 4"],
-      "swapOptions": ["troca alimentar 1","troca alimentar 2","troca alimentar 3"],
-      "days": [
-        {
-          "day": 0,
-          "breakfast": {"name": "string", "foods": ["alimento1","alimento2"], "calories": número, "protein": número, "carbs": número, "fat": número},
-          "morningSnack": {"name": "string", "foods": ["alimento1","alimento2"], "calories": número, "protein": número, "carbs": número, "fat": número},
-          "lunch": {"name": "string", "foods": ["alimento1","alimento2","alimento3"], "calories": número, "protein": número, "carbs": número, "fat": número},
-          "preWorkout": {"name": "string", "foods": ["alimento1","alimento2"], "calories": número, "protein": número, "carbs": número, "fat": número},
-          "dinner": {"name": "string", "foods": ["alimento1","alimento2","alimento3"], "calories": número, "protein": número, "carbs": número, "fat": número}
-        }
-      ]
+      "weekFocus": "<short nutrition focus string in ${mealLang}>",
+      "strategy": "<professional nutritional strategy for this week, 1 sentence, in ${mealLang}>",
+      "dailyCalories": <number>,
+      "calorieAdjustment": "<caloric approach in ${mealLang}, e.g.: controlled surplus, technical maintenance, light deficit>",
+      "macros": {"protein": <number>, "carbs": <number>, "fat": <number>},
+      "macroStrategy": "<how to distribute protein, carbs and fat throughout the day, in ${mealLang}>",
+      "breakfast": {"name": "<creative meal name in ${mealLang}>", "foods": ["food1","food2","food3"], "calories": <number>, "protein": <number>, "carbs": <number>, "fat": <number>},
+      "morningSnack": {"name": "<snack name in ${mealLang}>", "foods": ["food1","food2"], "calories": <number>, "protein": <number>, "carbs": <number>, "fat": <number>},
+      "lunch": {"name": "<meal name in ${mealLang}>", "foods": ["food1","food2","food3","food4"], "calories": <number>, "protein": <number>, "carbs": <number>, "fat": <number>},
+      "preWorkout": {"name": "<meal name in ${mealLang}>", "foods": ["food1","food2"], "calories": <number>, "protein": <number>, "carbs": <number>, "fat": <number>},
+      "dinner": {"name": "<meal name in ${mealLang}>", "foods": ["food1","food2","food3"], "calories": <number>, "protein": <number>, "carbs": <number>, "fat": <number>},
+      "tip": "<practical nutrition tip for this week in ${mealLang}>",
+      "hydrationTarget": "<practical hydration goal for the week in ${mealLang}>",
+      "mealTiming": "<meal timing and pre/post-workout nutrition guidance in ${mealLang}>",
+      "adherenceGoal": "<simple weekly adherence goal in ${mealLang}>",
+      "groceryFocus": ["<key grocery item 1 in ${mealLang}>","<item 2>","<item 3>","<item 4>"],
+      "swapOptions": ["<food swap option 1 in ${mealLang}>","<swap 2>","<swap 3>"]
     }
   ]
 }
-Gere as 12 semanas completas. Se couber, em cada semana, "days" deve ter exatamente 7 itens, com day de 0 a 6.`;
+IMPORTANT: Do NOT include a "days" array inside any week — only the 12 weekly summaries above.
+Generate all 12 weeks. Vary meals, proteins, carbs, and fats across all weeks.
+FINAL REMINDER: ALL text values MUST be in ${mealLang}. No Portuguese if the target language is not Portuguese.`;
 
     try {
-      const res = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${key}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: OPENAI_MODEL,
-          messages: [
-            {
-              role: "system",
-              content: `You are an elite sports nutritionist. Respond ONLY with valid JSON, no markdown, no explanations. CRITICAL: ALL text values in the JSON (weekFocus, strategy, tip, meal names, food items, hydrationTarget, mealTiming, adherenceGoal, calorieAdjustment, macroStrategy, groceryFocus, swapOptions) MUST be written in ${mealLang}. Never use Portuguese if the target language is not Portuguese.`,
-            },
-            { role: "user", content: prompt },
-          ],
-          max_tokens: 7000,
-          temperature: 0.95,
-          response_format: { type: "json_object" },
-        }),
-      });
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 25000);
+
+      let res: Response;
+      try {
+        res = await fetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${key}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: OPENAI_MODEL,
+            messages: [
+              {
+                role: "system",
+                content: `You are an elite sports nutritionist. Respond ONLY with valid JSON — no markdown, no text outside the JSON object. OUTPUT LANGUAGE IS ${mealLang}. This is non-negotiable: every text value in the JSON (weekFocus, strategy, tip, meal names, food items, hydrationTarget, mealTiming, adherenceGoal, calorieAdjustment, macroStrategy, groceryFocus, swapOptions) MUST be written exclusively in ${mealLang}. If ${mealLang} is not Portuguese, do NOT use a single Portuguese word anywhere in the response.`,
+              },
+              { role: "user", content: prompt },
+            ],
+            max_tokens: 5000,
+            temperature: 0.9,
+            response_format: { type: "json_object" },
+          }),
+          signal: controller.signal,
+        });
+      } finally {
+        clearTimeout(timeoutId);
+      }
 
       if (!res.ok) {
         return jsonResponse(fallbackPlan());
@@ -167,8 +240,14 @@ Gere as 12 semanas completas. Se couber, em cada semana, "days" deve ter exatame
         return jsonResponse(fallbackPlan());
       }
 
-      const parsed = JSON.parse(content) as { weeks?: WeekPlan[]; workouts?: unknown };
-      const weeks = normalizeMealPlanWeeks(parsed.weeks, profile, variationSeed);
+      let parsed: { weeks?: WeekPlan[]; workouts?: unknown };
+      try {
+        parsed = JSON.parse(content) as { weeks?: WeekPlan[]; workouts?: unknown };
+      } catch {
+        return jsonResponse(fallbackPlan());
+      }
+
+      const weeks = normalizeMealPlanWeeks(parsed.weeks, profile, variationSeed, targetCalories);
       if (parsed.workouts || !isValidMealPlanWeeks(weeks)) {
         return jsonResponse(fallbackPlan());
       }
@@ -223,32 +302,41 @@ function cloneMeal(meal: WeekPlan["breakfast"]): WeekPlan["breakfast"] {
   };
 }
 
+// Proteínas para café da manhã: apenas ovos, laticínios, frango desfiado
+const breakfastProteinRotations = [
+  ["ovos mexidos", "iogurte grego", "omelete", "cottage", "claras mexidas"],
+  ["ovo frito", "iogurte natural", "ricota", "queijo minas frescal", "ovos cozidos"],
+  ["omelete de 3 ovos", "iogurte proteico", "frango desfiado", "cottage cremoso", "claras"],
+  ["ovos estrelados", "iogurte com granola", "frango cozido desfiado", "queijo cottage", "omelete de claras"],
+];
+
+// Proteínas para almoço, pré-treino e jantar
 const proteinRotations = [
-  ["ovos", "iogurte grego", "frango grelhado", "tilapia", "patinho moido"],
-  ["claras", "cottage", "atum", "salmão", "tofu"],
-  ["whey protein", "queijo minas", "peru", "carne magra", "lentilha"],
-  ["omelete", "kefir", "frango desfiado", "merluza", "grão-de-bico"],
+  ["frango grelhado", "carne moída refogada", "peito de frango", "ovos cozidos", "feijão cozido"],
+  ["frango assado", "filé de frango", "peito de frango fatiado", "cottage", "lentilha cozida"],
+  ["frango desfiado", "carne bovina grelhada", "frango temperado", "iogurte grego", "grão-de-bico cozido"],
+  ["peito de peru fatiado", "frango cozido", "carne magra grelhada", "queijo minas", "feijão preto"],
 ];
 
 const carbRotations = [
-  ["aveia", "banana", "arroz integral", "batata doce", "mandioca"],
-  ["pão integral", "mamão", "quinoa", "inhame", "macarrão integral"],
-  ["tapioca", "maçã", "feijão", "abóbora", "cuscuz"],
-  ["granola sem açúcar", "morango", "arroz parboilizado", "batata inglesa", "lentilha"],
+  ["arroz branco", "banana", "batata doce", "aveia", "pão integral"],
+  ["arroz integral", "mamão", "mandioca cozida", "granola natural", "tapioca"],
+  ["batata inglesa cozida", "maçã", "macarrão integral", "inhame cozido", "cuscuz nordestino"],
+  ["pão de forma integral", "laranja", "quinoa cozida", "batata doce assada", "arroz parboilizado"],
 ];
 
 const fatRotations = [
-  ["pasta de amendoim", "castanhas", "azeite de oliva", "abacate", "sementes"],
-  ["chia", "nozes", "azeite extra virgem", "tahine", "linhaça"],
-  ["queijo cottage", "amêndoas", "azeitonas", "gema de ovo", "castanha-do-pará"],
-  ["iogurte natural", "amendoim", "óleo de coco", "sardinha", "gergelim"],
+  ["pasta de amendoim", "castanhas mistas", "azeite de oliva", "abacate", "amendoim torrado"],
+  ["chia", "nozes", "azeite extra virgem", "pasta de amendoim integral", "linhaça moída"],
+  ["amêndoas", "óleo de coco", "sementes de girassol", "queijo minas frescal", "gergelim"],
+  ["amendoim", "castanha-do-pará", "azeite", "guacamole", "mix de castanhas"],
 ];
 
 const vegetableRotations = [
-  ["brócolis", "salada verde", "abobrinha", "cenoura"],
-  ["espinafre", "rúcula", "pepino", "tomate"],
-  ["couve", "aspargos", "berinjela", "beterraba"],
-  ["vagem", "alface", "repolho", "chuchu"],
+  ["brócolis cozido", "salada verde", "abobrinha grelhada", "cenoura ralada"],
+  ["espinafre refogado", "rúcula", "pepino fatiado", "tomate cereja"],
+  ["couve refogada", "alface americana", "berinjela assada", "beterraba cozida"],
+  ["vagem cozida", "mix de folhas verdes", "pimentão", "repolho refogado"],
 ];
 
 function hashString(value: string) {
@@ -270,6 +358,7 @@ function buildMealVariant(
   day: number,
   seed: number,
 ): WeekPlan["breakfast"] {
+  const bfProtein = pickRotation(breakfastProteinRotations, seed + week, day);
   const protein = pickRotation(proteinRotations, seed + week, day);
   const carbs = pickRotation(carbRotations, seed + week * 3, day);
   const fats = pickRotation(fatRotations, seed + week * 5, day);
@@ -277,19 +366,19 @@ function buildMealVariant(
   const shift = (week + day + seed) % 5;
 
   const foodsByMeal = {
-    breakfast: [protein[shift % protein.length], carbs[0], fats[0]],
-    morningSnack: [protein[1], carbs[1], fats[1]],
+    breakfast: [bfProtein[shift % bfProtein.length], carbs[0], fats[0]],
+    morningSnack: [bfProtein[(shift + 1) % bfProtein.length], carbs[1], fats[1]],
     lunch: [protein[2], carbs[2], veggies[day % veggies.length], fats[2]],
-    preWorkout: [carbs[3], protein[3]],
+    preWorkout: [carbs[3], protein[3], carbs[0]],
     dinner: [protein[3], veggies[(day + 1) % veggies.length], carbs[4], fats[3]],
   };
 
   const mealNames = {
-    breakfast: ["Café Proteico", "Manhã de Energia", "Base Matinal", "Início Forte"],
-    morningSnack: ["Snack Leve", "Pausa Proteica", "Lanche Funcional", "Reforço da Manhã"],
-    lunch: ["Almoço Completo", "Prato de Performance", "Almoço Equilibrado", "Base do Dia"],
-    preWorkout: ["Combustível Pré-Treino", "Energia Sustentada", "Pré-Treino Leve", "Carga de Energia"],
-    dinner: ["Jantar de Recuperação", "Noite Leve", "Final Nutritivo", "Jantar Equilibrado"],
+    breakfast: ["Café Proteico", "Manhã Energética", "Café da Manhã Completo", "Início Forte"],
+    morningSnack: ["Lanche da Manhã", "Pausa Proteica", "Lanche Funcional", "Reforço Matinal"],
+    lunch: ["Almoço Completo", "Prato de Performance", "Almoço Equilibrado", "Prato do Dia"],
+    preWorkout: ["Combustível Pré-Treino", "Energia para o Treino", "Pré-Treino Leve", "Carga de Energia"],
+    dinner: ["Jantar de Recuperação", "Noite Leve e Nutritiva", "Jantar Completo", "Jantar Equilibrado"],
   };
 
   return {
@@ -369,19 +458,28 @@ function completeProfessionalFields(week: WeekPlan, profile: ProfileInput): Week
   };
 }
 
-function buildFallbackMealPlan(profile: ProfileInput, locale: string, seedText: string) {
-  const bmr =
-    profile.gender === "female"
-      ? 655 + 9.6 * profile.weight + 1.8 * profile.height - 4.7 * profile.age
-      : 88.4 + 13.4 * profile.weight + 4.8 * profile.height - 5.7 * profile.age;
-  const tdee = Math.round(bmr * 1.55);
+function buildFallbackMealPlan(profile: ProfileInput, locale: string, seedText: string, tdeeInput?: number, targetCaloriesInput?: number) {
+  const bmr = tdeeInput
+    ? 0
+    : profile.gender === "female"
+      ? 10 * profile.weight + 6.25 * profile.height - 5 * profile.age - 161
+      : 10 * profile.weight + 6.25 * profile.height - 5 * profile.age + 5;
+  const actDays = profile.trainingDays ?? 4;
+  const actMult = actDays <= 1 ? 1.2 : actDays <= 3 ? 1.375 : actDays <= 5 ? 1.55 : 1.725;
+  const metA = profile.metabolismType === "slow" || profile.metabolismType === "lento" ? 0.95
+    : profile.metabolismType === "fast" || profile.metabolismType === "rápido" ? 1.05 : 1.0;
+  const tdee = tdeeInput ?? Math.round(bmr * actMult * metA);
+  const targetCalories = targetCaloriesInput ?? tdee;
   const seed = hashString(`${seedText}|${profile.goal}|${profile.dietType}|${profile.metabolismType}`);
+
+  const proteinMultiplier = profile.goal === "weight_loss" || profile.goal === "definition" ? 2.4
+    : profile.goal === "mass" ? 2.2 : 1.8;
 
   const weeks = Array.from({ length: 12 }, (_, index) => {
     const weekNumber = index + 1;
     const phase = resolvePhase(weekNumber);
-    const dailyCalories = resolveDailyCalories(tdee, profile.goal, weekNumber);
-    const protein = Math.max(Math.round(profile.weight * 1.9), 110);
+    const dailyCalories = resolveDailyCalories(tdee, targetCalories, weekNumber);
+    const protein = Math.max(Math.round(profile.weight * proteinMultiplier), 110);
     const fat = Math.max(Math.round((dailyCalories * 0.25) / 9), 45);
     const carbs = Math.max(Math.round((dailyCalories - protein * 4 - fat * 9) / 4), 90);
     const macros = { protein, carbs, fat };
@@ -428,32 +526,22 @@ function buildFallbackMealPlan(profile: ProfileInput, locale: string, seedText: 
   };
 }
 
-function resolveDailyCalories(tdee: number, goal: string, week: number) {
-  if (goal === "weight_loss" || goal === "definition") {
-    const deficit = week <= 4 ? 300 : week <= 8 ? 400 : 350;
-    return Math.max(1500, tdee - deficit);
-  }
-  if (goal === "mass") {
-    const surplus = week <= 4 ? 150 : week <= 8 ? 250 : 200;
-    return tdee + surplus;
-  }
-  if (goal === "strength" || goal === "hybrid" || goal === "athletic") {
-    return tdee + (week <= 4 ? 0 : week <= 8 ? 120 : 80);
-  }
-  return tdee;
+function resolveDailyCalories(_tdee: number, targetCalories: number, _week: number) {
+  return Math.max(1200, targetCalories);
 }
 
 function buildBaseMeals(macros: WeekPlan["macros"], dailyCalories: number, week: number, seed: number) {
+  const bfProtein = pickRotation(breakfastProteinRotations, seed + week, 0);
   const protein = pickRotation(proteinRotations, seed + week, 0);
   const carbs = pickRotation(carbRotations, seed + week * 3, 0);
   const fats = pickRotation(fatRotations, seed + week * 5, 0);
   const veggies = pickRotation(vegetableRotations, seed + week * 7, 0);
 
   return {
-    breakfast: buildMeal("Café da Manhã Proteico", [protein[0], carbs[0], fats[0]], dailyCalories, macros, 0.22),
-    morningSnack: buildMeal("Lanche de Sustentação", [protein[1], carbs[1]], dailyCalories, macros, 0.1),
+    breakfast: buildMeal("Café da Manhã Proteico", [bfProtein[0], carbs[0], fats[0]], dailyCalories, macros, 0.22),
+    morningSnack: buildMeal("Lanche da Manhã", [bfProtein[1], carbs[1], fats[1]], dailyCalories, macros, 0.1),
     lunch: buildMeal("Almoço Completo", [protein[2], carbs[2], veggies[0], fats[2]], dailyCalories, macros, 0.3),
-    preWorkout: buildMeal("Combustível Pré-Treino", [carbs[3], protein[3]], dailyCalories, macros, 0.14),
+    preWorkout: buildMeal("Combustível Pré-Treino", [carbs[3], protein[3], carbs[0]], dailyCalories, macros, 0.14),
     dinner: buildMeal("Jantar de Recuperação", [protein[4] ?? protein[3], veggies[1], carbs[4], fats[3]], dailyCalories, macros, 0.24),
   };
 }
@@ -532,12 +620,10 @@ function resolveSwapOptions(dietType: string) {
 function isBaseWeekPlan(value: unknown, index: number): value is WeekPlan {
   if (!value || typeof value !== "object") return false;
   const item = value as WeekPlan;
-  const textFields = [item.weekFocus, item.tip].filter((field): field is string => typeof field === "string");
 
   return (
     item.week === index + 1 &&
     typeof item.weekFocus === "string" &&
-    !textFields.some(containsTrainingText) &&
     isNumber(item.dailyCalories) &&
     item.macros != null &&
     isNumber(item.macros.protein) &&
@@ -561,16 +647,46 @@ function hasValidDays(week: WeekPlan) {
   );
 }
 
+function enforceCalorieTarget(week: WeekPlan, targetCalories: number): WeekPlan {
+  if (week.dailyCalories === targetCalories) return week;
+  const ratio = week.dailyCalories > 0 ? targetCalories / week.dailyCalories : 1;
+
+  const scaleMeal = (meal: Meal): Meal => ({
+    ...meal,
+    calories: Math.round(meal.calories * ratio),
+    protein: Math.round(meal.protein * ratio),
+    carbs: Math.round(meal.carbs * ratio),
+    fat: Math.round(meal.fat * ratio),
+  });
+
+  return {
+    ...week,
+    dailyCalories: targetCalories,
+    macros: {
+      protein: Math.round(week.macros.protein * ratio),
+      carbs: Math.round(week.macros.carbs * ratio),
+      fat: Math.round(week.macros.fat * ratio),
+    },
+    breakfast: scaleMeal(week.breakfast),
+    morningSnack: scaleMeal(week.morningSnack),
+    lunch: scaleMeal(week.lunch),
+    preWorkout: scaleMeal(week.preWorkout),
+    dinner: scaleMeal(week.dinner),
+  };
+}
+
 function normalizeMealPlanWeeks(
   weeks: unknown,
   profile: ProfileInput,
   seedText: string,
+  targetCalories: number,
 ): WeekPlan[] | null {
   if (!Array.isArray(weeks) || weeks.length !== 12) return null;
 
   return weeks.map((week, index): WeekPlan | null => {
     if (!isBaseWeekPlan(week, index)) return null;
-    const completed = completeProfessionalFields(week, profile);
+    const calibrated = enforceCalorieTarget(week, targetCalories);
+    const completed = completeProfessionalFields(calibrated, profile);
     return {
       ...completed,
       days: hasValidDays(completed) ? completed.days : buildFallbackDays(completed, profile, seedText),

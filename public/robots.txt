@@ -1,4 +1,4 @@
 ﻿User-agent: *
 Allow: /
 
-Sitemap: https://zyrox.app/sitemap.xml
+Sitemap: https://3dbodyscanner.app/sitemap.xml

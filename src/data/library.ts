@@ -277,6 +277,10 @@ const corePathOverrides = [
 ] as const;
 
 const catalogOverrides = [
+  // Existe em duplicidade sob pasta de Costas e sob pasta bônus de Ombro — fixado como
+  // Costas pra ficar consistente (remada = puxada horizontal, classificado como costas
+  // no resto do catálogo).
+  { match: "remada alta com halteres", muscle: backMuscle, type: strengthType, equipment: "Halteres" },
   { match: "cadeira flex", muscle: legsMuscle, type: strengthType, equipment: "Maquina" },
   { match: "avanco", muscle: legsMuscle, type: strengthType, equipment: "Halteres" },
   { match: "agachamento pes afastados", muscle: legsMuscle, type: strengthType, equipment: "Barra" },
@@ -406,6 +410,12 @@ function inferMuscleFromCatalog(path: string): MuscleGroup {
   if (normalizedName.includes("escapula")) {
     return normalizedName.includes("flexao") ? chestMuscle : backMuscle;
   }
+
+  // "Abdução Máquina" (sem sufixo) é a variante de ombro/deltóides — distinta de
+  // "Abdução Máquina 02" (quadril/glúteos). Sem essa checagem exata, a regra abaixo
+  // (nome sem "ombro" = glúteos) classificava as duas como glúteos e misturava o
+  // aparelho de deltóides em treinos de perna.
+  if (normalizedName === "abducao maquina") return shouldersMuscle;
 
   // Nome tem prioridade sobre pasta para exercícios que podem estar na pasta errada
   if (normalizedName.includes("abducao") && !normalizedName.includes("ombro")) return glutesMuscle;

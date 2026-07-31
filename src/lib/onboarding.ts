@@ -47,6 +47,14 @@ export type OnboardingState = {
   duration?: number;
   result?: string;
   completedAt?: string;
+  // plano calórico final — calculado uma vez ao concluir o onboarding (perfil completo)
+  // e reutilizado em todas as telas (analytics, nutrição) para evitar divergência
+  calorieBmr?: number;
+  calorieTdee?: number;
+  calorieTarget?: number;
+  calorieProtein?: number;
+  calorieCarbs?: number;
+  calorieFat?: number;
 };
 
 const KEY = "zyrox.onboarding";

@@ -59,11 +59,11 @@ const muscleOrder = strengthMuscles;
 type MuscleFilter = typeof allMuscle | (typeof muscleOrder)[number];
 
 const COPY = {
-  pt: { engine: "Biblioteca global", title: "Biblioteca Global 500+ GIFs", subtitle: "Exercícios organizados para montar treinos de musculação, funcional e calistenia.", exercises: "Exercícios", search: "Buscar exercício, equipamento ou movimento...", organized: "Exercícios por modalidade", noResults: "Nenhum exercício encontrado", adjustFilters: "Troque a modalidade, o grupo muscular ou refine a busca.", cataloged: "exercícios disponíveis", thisGroup: "neste grupo", all: "Todos", showing: "exibindo", global: "Para alunos no mundo inteiro", strength: "Musculação", functional: "Funcional", calisthenics: "Calistenia" },
-  es: { engine: "Biblioteca global", title: "Biblioteca Global 500+ GIFs", subtitle: "Ejercicios organizados para crear entrenamientos de musculación, funcional y calistenia.", exercises: "Ejercicios", search: "Buscar ejercicio, equipamiento o movimiento...", organized: "Ejercicios por modalidad", noResults: "No se encontraron ejercicios", adjustFilters: "Cambia la modalidad, el grupo muscular o ajusta la búsqueda.", cataloged: "ejercicios disponibles", thisGroup: "en este grupo", all: "Todos", showing: "mostrando", global: "Para alumnos de todo el mundo", strength: "Musculación", functional: "Funcional", calisthenics: "Calistenia" },
-  en: { engine: "Global library", title: "Global 500+ GIF Library", subtitle: "Exercises organized for strength, functional, and calisthenics workout generation.", exercises: "Exercises", search: "Search exercise, equipment, or movement...", organized: "Exercises by modality", noResults: "No exercises found", adjustFilters: "Change the modality, muscle group, or refine the search.", cataloged: "available exercises", thisGroup: "in this group", all: "All", showing: "showing", global: "For students worldwide", strength: "Strength", functional: "Functional", calisthenics: "Calisthenics" },
-  fr: { engine: "Bibliotheque globale", title: "Bibliotheque Globale 500+ GIFs", subtitle: "Exercices organises pour generer des seances de musculation, fonctionnel et callisthenie.", exercises: "Exercices", search: "Rechercher exercice, equipement ou mouvement...", organized: "Exercices par modalite", noResults: "Aucun exercice trouve", adjustFilters: "Changez la modalite, le groupe musculaire ou affinez la recherche.", cataloged: "exercices disponibles", thisGroup: "dans ce groupe", all: "Tous", showing: "affichage", global: "Pour des eleves dans le monde entier", strength: "Musculation", functional: "Fonctionnel", calisthenics: "Callisthenie" },
-  de: { engine: "Globale Bibliothek", title: "Globale 500+ GIF Bibliothek", subtitle: "Ubungen fur Trainingsplane in Krafttraining, funktionellem Training und Calisthenics.", exercises: "Ubungen", search: "Suche nach Ubung, Equipment oder Bewegung...", organized: "Ubungen nach Modalitat", noResults: "Keine Ubungen gefunden", adjustFilters: "Wechsle Modalitat, Muskelgruppe oder verfeinere die Suche.", cataloged: "verfugbare Ubungen", thisGroup: "in dieser Gruppe", all: "Alle", showing: "anzeige", global: "Fur Schuler weltweit", strength: "Krafttraining", functional: "Funktionell", calisthenics: "Calisthenics" },
+  pt: { engine: "Biblioteca global", title: "Biblioteca Global 500+ GIFs", subtitle: "Exercícios organizados para montar treinos de musculação, funcional e calistenia.", exercises: "Exercícios", search: "Buscar exercício, equipamento ou movimento...", organized: "Exercícios por modalidade", noResults: "Nenhum exercício encontrado", adjustFilters: "Troque a modalidade, o grupo muscular ou refine a busca.", cataloged: "exercícios disponíveis", thisGroup: "neste grupo", all: "Todos", showing: "exibindo", global: "Para alunos no mundo inteiro", strength: "Musculação", functional: "Funcional", calisthenics: "Calistenia", showMore: "Ver mais" },
+  es: { engine: "Biblioteca global", title: "Biblioteca Global 500+ GIFs", subtitle: "Ejercicios organizados para crear entrenamientos de musculación, funcional y calistenia.", exercises: "Ejercicios", search: "Buscar ejercicio, equipamiento o movimiento...", organized: "Ejercicios por modalidad", noResults: "No se encontraron ejercicios", adjustFilters: "Cambia la modalidad, el grupo muscular o ajusta la búsqueda.", cataloged: "ejercicios disponibles", thisGroup: "en este grupo", all: "Todos", showing: "mostrando", global: "Para alumnos de todo el mundo", strength: "Musculación", functional: "Funcional", calisthenics: "Calistenia", showMore: "Ver más" },
+  en: { engine: "Global library", title: "Global 500+ GIF Library", subtitle: "Exercises organized for strength, functional, and calisthenics workout generation.", exercises: "Exercises", search: "Search exercise, equipment, or movement...", organized: "Exercises by modality", noResults: "No exercises found", adjustFilters: "Change the modality, muscle group, or refine the search.", cataloged: "available exercises", thisGroup: "in this group", all: "All", showing: "showing", global: "For students worldwide", strength: "Strength", functional: "Functional", calisthenics: "Calisthenics", showMore: "Show more" },
+  fr: { engine: "Bibliothèque globale", title: "Bibliothèque Globale 500+ GIFs", subtitle: "Exercices organisés pour générer des séances de musculation, fonctionnel et callisthénie.", exercises: "Exercices", search: "Rechercher exercice, équipement ou mouvement...", organized: "Exercices par modalité", noResults: "Aucun exercice trouvé", adjustFilters: "Changez la modalité, le groupe musculaire ou affinez la recherche.", cataloged: "exercices disponibles", thisGroup: "dans ce groupe", all: "Tous", showing: "affichage", global: "Pour des élèves dans le monde entier", strength: "Musculation", functional: "Fonctionnel", calisthenics: "Callisthénie", showMore: "Voir plus" },
+  de: { engine: "Globale Bibliothek", title: "Globale 500+ GIF Bibliothek", subtitle: "Übungen für Trainingspläne in Krafttraining, funktionellem Training und Calisthenics.", exercises: "Übungen", search: "Suche nach Übung, Equipment oder Bewegung...", organized: "Übungen nach Modalität", noResults: "Keine Übungen gefunden", adjustFilters: "Wechsle Modalität, Muskelgruppe oder verfeinere die Suche.", cataloged: "verfügbare Übungen", thisGroup: "in dieser Gruppe", all: "Alle", showing: "Anzeige", global: "Für Schüler weltweit", strength: "Krafttraining", functional: "Funktionell", calisthenics: "Calisthenics", showMore: "Mehr anzeigen" },
 } as const;
 
 const normalize = (value: string) => normalizeText(value);
@@ -358,20 +358,13 @@ function Library() {
               ) : null}
 
               {section.groups.map((group) => (
-                <div key={`${section.type}-${group.muscle}`} className="space-y-3">
-                  <div>
-                    <h3 className="font-display text-base font-semibold">{getMuscleGroupSectionLabel(group.muscle, locale)}</h3>
-                    <p className="text-xs text-muted-foreground">
-                      {group.items.length} {copy.exercises.toLowerCase()} {copy.thisGroup}
-                    </p>
-                  </div>
-
-                  <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                    {group.items.map((exercise) => (
-                      <ExerciseCard key={exercise.id} exercise={exercise} locale={locale} />
-                    ))}
-                  </div>
-                </div>
+                <MuscleGroupSection
+                  key={`${section.type}-${group.muscle}`}
+                  sectionType={section.type}
+                  group={group}
+                  locale={locale}
+                  copy={copy}
+                />
               ))}
             </div>
           ))}
@@ -413,6 +406,49 @@ function TopStat({
   );
 }
 
+const GROUP_LIMIT = 9;
+
+function MuscleGroupSection({
+  sectionType,
+  group,
+  locale,
+  copy,
+}: {
+  sectionType: string;
+  group: { muscle: string; items: Exercise[] };
+  locale: AppLocale;
+  copy: (typeof COPY)[keyof typeof COPY];
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const visible = expanded ? group.items : group.items.slice(0, GROUP_LIMIT);
+  const remaining = group.items.length - GROUP_LIMIT;
+
+  return (
+    <div key={`${sectionType}-${group.muscle}`} className="space-y-3">
+      <div>
+        <h3 className="font-display text-base font-semibold">{getMuscleGroupSectionLabel(group.muscle, locale)}</h3>
+        <p className="text-xs text-muted-foreground">
+          {group.items.length} {copy.exercises.toLowerCase()} {copy.thisGroup}
+        </p>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        {visible.map((exercise) => (
+          <ExerciseCard key={exercise.id} exercise={exercise} locale={locale} />
+        ))}
+      </div>
+      {!expanded && remaining > 0 && (
+        <button
+          type="button"
+          onClick={() => setExpanded(true)}
+          className="w-full rounded-2xl border border-border bg-surface py-3 text-sm font-semibold text-muted-foreground transition hover:border-primary/40 hover:text-foreground"
+        >
+          {copy.showMore} ({remaining})
+        </button>
+      )}
+    </div>
+  );
+}
+
 function ExerciseCard({ exercise, locale }: { exercise: Exercise; locale: AppLocale }) {
   return (
     <Link
@@ -421,7 +457,7 @@ function ExerciseCard({ exercise, locale }: { exercise: Exercise; locale: AppLoc
       className="group overflow-hidden rounded-3xl border border-border bg-surface transition hover:border-primary/35 hover:shadow-elevated active:scale-[0.99]"
     >
       <div className="relative">
-        <ExerciseMedia exerciseId={exercise.id} size="card" className="rounded-none" />
+        <ExerciseMedia exerciseId={exercise.id} src={exercise.gifUrl} size="card" className="rounded-none" />
         <button
           type="button"
           onClick={(event) => {

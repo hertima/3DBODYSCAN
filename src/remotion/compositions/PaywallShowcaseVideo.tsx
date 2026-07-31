@@ -15,88 +15,101 @@ const FEATURES = [
   { icon: "🔥", title: "Gamificação", desc: "XP, streaks e conquistas" },
 ];
 
+// Layout (1080×1920):
+// 0–90    BrandOverlay top
+// 90–530  Hero: mascote + título
+// 530–1750 Features (6 itens flex, sem espaço vazio)
+// 1750–1840 CTA
+// 1840–1920 BrandOverlay bottom
+const FEATURES_TOP = 530;
+const FEATURES_BOTTOM = 1750;
+const FEATURES_GAP = 14;
+const ITEM_HEIGHT = (FEATURES_BOTTOM - FEATURES_TOP - FEATURES_GAP * (FEATURES.length - 1)) / FEATURES.length;
+
 export function PaywallShowcaseVideo({ planName = "Pro" }: PaywallShowcaseVideoProps) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  const logoScale = spring({ frame, fps, config: { damping: 11, stiffness: 90 } });
-  const titleOpacity = interpolate(frame, [10, 30], [0, 1], { extrapolateRight: "clamp" });
+  const mascoteScale = spring({ frame, fps, config: { damping: 11, stiffness: 90 } });
+  const headerOpacity = interpolate(frame, [8, 25], [0, 1], { extrapolateRight: "clamp" });
 
   return (
     <AbsoluteFill style={{ fontFamily: "sans-serif" }}>
       <GradientBackground variant="dark" />
       <BrandOverlay position="top" />
 
-      {/* Hero */}
-      <div style={{ position: "absolute", top: 145, left: 0, right: 0, display: "flex", flexDirection: "column", alignItems: "center" }}>
-        <div style={{ transform: `scale(${logoScale})`, marginBottom: 12 }}>
+      {/* Hero: mascote grande + título */}
+      <div style={{ position: "absolute", top: 90, left: 0, right: 0, display: "flex", flexDirection: "column", alignItems: "center" }}>
+        <div style={{ transform: `scale(${mascoteScale})` }}>
           <img
-            src="/mascote-05.png"
+            src="/MASCOTE SEM FUNDO.png"
             style={{
-              width: 380, height: 380, objectFit: "contain",
-              filter: "drop-shadow(0 0 60px rgba(34,211,238,0.5)) drop-shadow(0 0 30px rgba(251,146,60,0.4))",
+              width: 320, height: 320, objectFit: "contain",
+              filter: "drop-shadow(0 0 50px rgba(34,211,238,0.55)) drop-shadow(0 0 25px rgba(251,146,60,0.45))",
             }}
           />
         </div>
-
-        <div style={{ opacity: titleOpacity, textAlign: "center" }}>
-          <div style={{ fontSize: 15, color: "rgba(148,163,184,0.6)", letterSpacing: 4, textTransform: "uppercase" }}>Plano {planName}</div>
+        <div style={{ opacity: headerOpacity, textAlign: "center", marginTop: 4 }}>
+          <div style={{ fontSize: 13, color: "rgba(148,163,184,0.55)", letterSpacing: 5, textTransform: "uppercase" }}>
+            Plano {planName}
+          </div>
           <div style={{
-            fontSize: 40, fontWeight: 900, letterSpacing: -1, marginTop: 6,
+            fontSize: 36, fontWeight: 900, letterSpacing: -1, marginTop: 4,
             background: "linear-gradient(90deg,#22d3ee,#ffffff,#fb923c)",
             WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
           }}>
             3D Body Scanner
           </div>
-          <div style={{ fontSize: 15, color: "rgba(148,163,184,0.5)", marginTop: 8 }}>
-            Treine como um atleta profissional
+        </div>
+      </div>
+
+      {/* Features: preenchem todo o espaço entre o hero e o CTA */}
+      {FEATURES.map((f, i) => {
+        const top = FEATURES_TOP + i * (ITEM_HEIGHT + FEATURES_GAP);
+        const fOpacity = interpolate(frame, [18 + i * 7, 34 + i * 7], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+        const fX = interpolate(frame, [18 + i * 7, 34 + i * 7], [28, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+
+        return (
+          <div key={i} style={{
+            position: "absolute", top, left: 48, right: 48,
+            height: ITEM_HEIGHT,
+            opacity: fOpacity, transform: `translateX(${fX}px)`,
+            display: "flex", alignItems: "center", gap: 24,
+            background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.09)",
+            borderRadius: 24, padding: "0 28px",
+            boxSizing: "border-box",
+          }}>
+            <div style={{
+              width: 72, height: 72, borderRadius: 20, flexShrink: 0,
+              background: "rgba(34,211,238,0.12)", border: "1px solid rgba(34,211,238,0.22)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 36,
+            }}>
+              {f.icon}
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 22, fontWeight: 800, color: "#e2e8f0", lineHeight: 1.2 }}>{f.title}</div>
+              <div style={{ fontSize: 17, color: "rgba(148,163,184,0.65)", marginTop: 6 }}>{f.desc}</div>
+            </div>
+            <div style={{
+              width: 44, height: 44, borderRadius: 12, flexShrink: 0,
+              background: "rgba(34,211,238,0.15)", border: "1px solid rgba(34,211,238,0.3)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              color: "#22d3ee", fontSize: 22, fontWeight: 900,
+            }}>✓</div>
           </div>
-        </div>
-      </div>
-
-      {/* Features */}
-      <div style={{ position: "absolute", top: 350, left: 48, right: 48 }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          {FEATURES.map((f, i) => {
-            const fOpacity = interpolate(frame, [25 + i * 10, 45 + i * 10], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
-            const fX = interpolate(frame, [25 + i * 10, 45 + i * 10], [40, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
-            const fScale = spring({ frame: frame - 25 - i * 10, fps, config: { damping: 14, stiffness: 130 } });
-
-            return (
-              <div key={i} style={{
-                opacity: fOpacity, transform: `translateX(${fX}px) scale(${fScale})`,
-                display: "flex", alignItems: "center", gap: 18,
-                background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)",
-                borderRadius: 18, padding: "14px 18px",
-              }}>
-                <div style={{
-                  width: 46, height: 46, borderRadius: 14,
-                  background: "rgba(34,211,238,0.12)", border: "1px solid rgba(34,211,238,0.2)",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 22, flexShrink: 0,
-                }}>
-                  {f.icon}
-                </div>
-                <div>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: "#e2e8f0" }}>{f.title}</div>
-                  <div style={{ fontSize: 12, color: "rgba(148,163,184,0.55)", marginTop: 2 }}>{f.desc}</div>
-                </div>
-                <div style={{ marginLeft: "auto", color: "#22d3ee", fontSize: 18 }}>✓</div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
+        );
+      })}
 
       {/* CTA */}
-      <Sequence from={100}>
-        <div style={{ position: "absolute", bottom: 130, left: 48, right: 48 }}>
+      <Sequence from={75}>
+        <div style={{ position: "absolute", top: FEATURES_BOTTOM + 10, left: 48, right: 48 }}>
           <div style={{
             background: "linear-gradient(135deg,#22d3ee,#3b82f6)",
-            borderRadius: 20, padding: "18px", textAlign: "center",
+            borderRadius: 22, padding: "22px", textAlign: "center",
             boxShadow: "0 0 40px rgba(34,211,238,0.3)",
           }}>
-            <div style={{ fontSize: 18, fontWeight: 900, color: "#060b14", letterSpacing: 1 }}>
+            <div style={{ fontSize: 22, fontWeight: 900, color: "#060b14", letterSpacing: 0.5 }}>
               Comece sua transformação
             </div>
           </div>

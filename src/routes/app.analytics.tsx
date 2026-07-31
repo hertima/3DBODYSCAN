@@ -4,7 +4,7 @@ import { lazy, Suspense, useState, useEffect, useMemo } from "react";
 import { Flame } from "lucide-react";
 import { buildTrainingAnalytics } from "@/domain/training/analytics";
 import { useTrainingState } from "@/hooks/use-training-state";
-import { loadOnboarding } from "@/lib/onboarding";
+import { loadOnboarding, type OnboardingState } from "@/lib/onboarding";
 import { loadWorkoutsFromFirestore } from "@/lib/firestore-workouts";
 import { auth } from "@/lib/firebase";
 import { getCaloriesFromOnboarding } from "@/lib/calorie-calculator";
@@ -259,7 +259,15 @@ function Analytics() {
   const analytics = buildTrainingAnalytics(trainingState, undefined, locale);
   const { periodization } = trainingState;
   const currentWeek = periodization.weeks[periodization.currentWeek - 1];
-  const onboarding = loadOnboarding();
+  // loadOnboarding() só existe de verdade no cliente — chamar direto no corpo do
+  // componente causa mismatch de hydration (servidor sempre vê perfil vazio,
+  // cliente vê o real), que já quebrou outra tela hoje (paywall) e provavelmente
+  // é a causa da lentidão/travamento geral (React descarta e re-renderiza a árvore
+  // inteira quando a hydration falha).
+  const [onboarding, setOnboarding] = useState<OnboardingState>({});
+  useEffect(() => {
+    setOnboarding(loadOnboarding());
+  }, []);
   const macros = getCaloriesFromOnboarding(onboarding);
 
   const [realWorkouts, setRealWorkouts] = useState<SavedWorkout[]>(() => getWorkoutHistory());

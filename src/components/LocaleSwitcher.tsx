@@ -75,7 +75,7 @@ export function LocaleSwitcher({ value, onChange, compact = false, tiny = false,
           return (
             <DropdownMenuItem
               key={item.code}
-              onClick={() => onChange(item.code)}
+              onSelect={() => onChange(item.code)}
               className={cn("rounded-xl px-3 py-3 focus:bg-elevated focus:text-foreground", selected && "bg-elevated")}
             >
               <FlagBadge src={item.flagSrc} alt={item.nativeLabel} />

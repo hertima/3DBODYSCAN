@@ -1,5 +1,12 @@
 import { chromium } from 'playwright';
 
+const loginEmail = process.env.PW_LOGIN_EMAIL;
+const loginPassword = process.env.PW_LOGIN_PASSWORD;
+
+if (!loginEmail || !loginPassword) {
+  throw new Error('Defina PW_LOGIN_EMAIL e PW_LOGIN_PASSWORD antes de rodar este script.');
+}
+
 const browser = await chromium.launch({ headless: true });
 const context = await browser.newContext({ storageState: undefined });
 const page = await context.newPage();
@@ -8,8 +15,8 @@ await page.setViewportSize({ width: 390, height: 844 });
 await page.goto('http://localhost:8081', { waitUntil: 'load' });
 await page.waitForTimeout(2000);
 
-await page.fill('input[type="email"]', 'herculesacademiarv@gmail.com');
-await page.fill('input[type="password"]', '123456');
+await page.fill('input[type="email"]', loginEmail);
+await page.fill('input[type="password"]', loginPassword);
 await page.click('button[type="submit"]');
 await page.waitForTimeout(5000);
 console.log('URL após login:', page.url());

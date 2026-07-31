@@ -6,8 +6,8 @@ import { doc, getDoc } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import { LocaleSwitcher } from "@/components/LocaleSwitcher";
 import { getSettingsCopy } from "@/lib/app-copy";
-import { SUPPORTED_LOCALES, getStoredLocale, setStoredLocale } from "@/lib/locale";
-import { loadOnboarding } from "@/lib/onboarding";
+import { SUPPORTED_LOCALES, getStoredLocale, setStoredLocale, type AppLocale } from "@/lib/locale";
+import { loadOnboarding, type OnboardingState } from "@/lib/onboarding";
 import { type AppTheme, getStoredTheme, setStoredTheme } from "@/lib/theme";
 
 type ConnStatus = "checking" | "ok" | "error";
@@ -49,16 +49,23 @@ export const Route = createFileRoute("/app/configuracoes")({
 
 function ConfiguracoesPage() {
   const navigate = useNavigate();
-  const profile = loadOnboarding();
+  // loadOnboarding() só existe de verdade no cliente (localStorage) — chamar direto
+  // no corpo do componente causa mismatch de hydration (servidor sempre vê perfil
+  // vazio, cliente vê o real), que já quebrou outra tela hoje (paywall).
+  const [profile, setProfile] = useState<OnboardingState>({});
+  useEffect(() => {
+    setProfile(loadOnboarding());
+  }, []);
   const hasCameraSetup = Boolean(profile.height || profile.weight);
-  const currentLocale = getStoredLocale();
-  const copy = getSettingsCopy();
+  const [currentLocale, setCurrentLocale] = useState<AppLocale>(() => getStoredLocale());
+  const copy = getSettingsCopy(currentLocale);
   const { auth_status, firestore_status } = useFirebaseStatus();
 
   const handleLocaleChange = (nextLocale: string) => {
     if (!SUPPORTED_LOCALES.some((item) => item.code === nextLocale)) return;
-    setStoredLocale(nextLocale as typeof currentLocale);
-    window.location.reload();
+    const locale = nextLocale as AppLocale;
+    setCurrentLocale(locale);
+    setStoredLocale(locale);
   };
 
   return (

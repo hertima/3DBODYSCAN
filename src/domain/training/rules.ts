@@ -34,6 +34,7 @@ function resolveGoalBias(goal: AthleteGoal) {
   if (goal === "perda_peso") return "densidade";
   if (goal === "definicao") return "recomposicao";
   if (goal === "forca") return "forca";
+  if (goal === "resistencia") return "resistencia";
   return "performance";
 }
 
@@ -70,7 +71,12 @@ function resolveRegenerationIndex() {
 
 function resolveRotationIndex(profile: AthleteProfile, variants: number) {
   if (variants <= 1) return 0;
-  return (resolveBlockIndex(profile) + resolveRegenerationIndex()) % variants;
+  // resolveBlockIndex fica em 0 nas primeiras 12 semanas de conta nova, e
+  // resolveRegenerationIndex também começa igual (sem seed no localStorage ainda) —
+  // sem um componente por aluno, toda conta nova cai na mesma rotação (ex: todo
+  // treino feminino com "Segunda e Sexta = Perna" pro app inteiro ao mesmo tempo).
+  const userSeed = hashString(`${profile.name ?? ""}|${profile.goal ?? ""}|${profile.sex ?? ""}`);
+  return (resolveBlockIndex(profile) + resolveRegenerationIndex() + userSeed) % variants;
 }
 
 export function resolveTrainingSplit(profile: AthleteProfile): TrainingSplit {
@@ -295,10 +301,16 @@ function buildFemaleLower(): WorkoutTemplate[] {
 function buildStrengthClassicTemplates(profile: AthleteProfile, trainingDays: number, variant: "A" | "B"): WorkoutTemplate[] {
   if (trainingDays <= 2) return [buildFullBodyA(), buildFullBodyB()];
 
+  // Decide se o treino começa empurrando (Peito) ou puxando (Costas) com base num seed
+  // por aluno (nome+objetivo+sexo) — não pode depender só da semana civil, ou todo
+  // aluno que faz onboarding na mesma semana cai na mesma variante (segunda sempre
+  // Peito ou sempre Costas pra todo mundo ao mesmo tempo).
+  const startsWithPull = hashString(`${profile.name ?? ""}|${profile.goal ?? ""}|${profile.sex ?? ""}|split-start`) % 2 === 1;
+
   if (trainingDays === 3) {
-    return variant === "A"
-      ? [buildPushA(), buildPullA(), buildLegsA()]
-      : [buildPullB(), buildPushB(), buildLegsB()];
+    return startsWithPull
+      ? [buildPullB(), buildPushB(), buildLegsB()]
+      : [buildPushA(), buildPullA(), buildLegsA()];
   }
 
   if (trainingDays === 4) {
@@ -306,8 +318,13 @@ function buildStrengthClassicTemplates(profile: AthleteProfile, trainingDays: nu
     return [buildUpperA(split), buildLowerA(split), buildUpperB(split), buildLowerB(split)];
   }
 
-  return [buildPushA(), buildPullA(), buildLegsA(), buildPushB(), buildPullB(), buildLegsB()]
-    .slice(0, Math.min(6, trainingDays));
+  // Alterna o dia inicial (Peito/Empurrar vs Costas/Puxar) por aluno — sem isso, a
+  // segunda-feira era sempre Peito pra todo mundo.
+  return (
+    !startsWithPull
+      ? [buildPushA(), buildPullA(), buildLegsA(), buildPushB(), buildPullB(), buildLegsB()]
+      : [buildPullA(), buildPushA(), buildLegsA(), buildPushB(), buildPullB(), buildLegsB()]
+  ).slice(0, Math.min(6, trainingDays));
 }
 
 function buildStrengthCrossPairTemplates(trainingDays: number): WorkoutTemplate[] {
@@ -781,8 +798,23 @@ export function resolveWorkoutDensity(profile: AthleteProfile) {
   const goalBias = resolveGoalBias(profile.goal);
   const duration = profile.workoutDurationMin;
 
-  if (goalBias === "densidade" || duration <= 40) return "alta";
+  // Terceira idade (60+): mais tempo de descanso entre séries, nunca densidade alta —
+  // prioriza recuperação articular e cardiovascular sobre volume por minuto.
+  if (profile.age != null && profile.age >= 60) {
+    return profile.age >= 70 ? "controlada" : "moderada";
+  }
+
+  // Resistência/condicionamento metabólico pede densidade alta (descanso curto,
+  // quase circuito) por definição do objetivo — não é sobre nível/duração.
+  if (goalBias === "densidade" || goalBias === "resistencia" || duration <= 40) return "alta";
   if (profile.level === "avancado" || profile.consistency === "elite") return "moderada";
+
+  // Mulheres recuperam força mais rápido entre séries que homens (evidência: até
+  // 25-50% menos tempo de recuperação necessário — maior % de fibras tipo I, menor
+  // acidose metabólica), então toleram um degrau de densidade acima da linha de
+  // base conservadora usada por padrão.
+  if (profile.sex === "feminino") return "moderada";
+
   return "controlada";
 }
 
@@ -790,13 +822,28 @@ export function resolveWorkoutIntensity(
   level: AthleteLevel,
   consistency: AthleteConsistency,
   goal?: AthleteGoal,
+  age?: number | null,
 ) {
   // Força sempre usa intensidade maior, independente do nível
-  if (goal === "forca") {
-    if (level === "iniciante") return "moderada";
-    return "pesada";
-  }
-  if (level === "avancado" && consistency === "elite") return "pesada";
-  if (level === "intermediario") return "moderada";
-  return "leve";
+  const base = ((): "leve" | "moderada" | "pesada" => {
+    if (goal === "forca") {
+      if (level === "iniciante") return "moderada";
+      return "pesada";
+    }
+    // Resistência muscular usa carga leve por definição (<67% 1RM, NSCA/ACSM) —
+    // mesmo pra avançado, já que o estímulo é reps altas, não carga alta.
+    if (goal === "resistencia") return "leve";
+    if (level === "avancado" && consistency === "elite") return "pesada";
+    // Sem essa linha, avançado com consistência "regular"/"ocasional" (não "elite")
+    // caía direto pra "leve" — mesma intensidade de um iniciante.
+    if (level === "avancado" || level === "intermediario") return "moderada";
+    return "leve";
+  })();
+
+  // Terceira idade: nunca treino pesado (60+) e prioriza carga leve/controlada a
+  // partir dos 70, independente de nível/consistência — segurança articular acima
+  // de progressão de carga.
+  if (age != null && age >= 70) return "leve";
+  if (age != null && age >= 60 && base === "pesada") return "moderada";
+  return base;
 }
