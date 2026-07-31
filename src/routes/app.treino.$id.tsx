@@ -403,7 +403,9 @@ function WorkoutDetailPage() {
       id: historyId,
       workoutId: workout.id,
       name: workout.name,
-      date: new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" }),
+      // ISO — precisa ser parseável por `new Date(w.date)` (Analytics, streak,
+      // gamificação real). Formatar pro usuário só na exibição, nunca aqui.
+      date: new Date().toISOString(),
       duration: workout.duration,
       calories: estimatedCalories,
       completedSets: completedSets.size,

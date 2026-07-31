@@ -14,6 +14,24 @@ export const Route = createFileRoute("/app/historico/$id")({
   component: HistoryDetail,
 });
 
+const INTL_LOCALE: Record<string, string> = {
+  pt: "pt-BR",
+  es: "es-ES",
+  en: "en-US",
+  fr: "fr-FR",
+  de: "de-DE",
+};
+
+function formatSavedDate(isoDate: string, locale: string): string {
+  const parsed = new Date(isoDate);
+  if (Number.isNaN(parsed.getTime())) return isoDate;
+  return parsed.toLocaleDateString(INTL_LOCALE[locale] ?? "pt-BR", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
 function HistoryDetail() {
   const { id } = Route.useParams();
   const hc = getHistoricoCopy();
@@ -35,7 +53,7 @@ function HistoryDetail() {
         </Link>
 
         <div className="rounded-2xl border border-border bg-surface p-5">
-          <div className="text-xs uppercase tracking-widest text-muted-foreground">{saved.date}</div>
+          <div className="text-xs uppercase tracking-widest text-muted-foreground">{formatSavedDate(saved.date, locale)}</div>
           <h1 className="mt-1 font-display text-2xl font-bold text-gradient-brand">{saved.name}</h1>
           <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
             <Stat icon={<Clock className="h-3.5 w-3.5" />} label={hc.labelDuration} value={`${saved.duration}min`} />
