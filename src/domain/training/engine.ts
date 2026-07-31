@@ -1,5 +1,5 @@
 import { getExercise, type Workout, type WorkoutExercise, type WorkoutSet } from "@/data/library";
-import { buildAthleteProfile, type AthleteProfile } from "@/domain/athlete/profile";
+import { buildAthleteProfile, type AthleteProfile, type AthleteSex } from "@/domain/athlete/profile";
 import { buildBodyTrainingContext, type BodyTrainingContext } from "@/domain/body/state";
 import {
   buildEnvironmentContextFromOnboarding,
@@ -19,6 +19,7 @@ import {
   resolveWorkoutIntensity,
   resolveWorkoutTemplates,
   type WorkoutTemplate,
+  type WorkoutCategoryTemplate,
 } from "@/domain/training/rules";
 import { buildPeriodizationBlock, type TwelveWeekBlock } from "@/domain/training/periodization";
 import {
@@ -498,7 +499,7 @@ export function canAddExerciseToSelection(
   return bucketCount < getMovementBucketLimit(candidateBucket);
 }
 
-function scoreExerciseQuality(record: ExerciseCatalogRecord) {
+function scoreExerciseQuality(record: ExerciseCatalogRecord, profile: AthleteProfile) {
   let score = 0;
   const name = normalizeName(record.name.pt);
   const movement = normalizeName(getMovementPattern(record));
@@ -545,6 +546,16 @@ function scoreExerciseQuality(record: ExerciseCatalogRecord) {
     movement.includes("hip hinge")
   ) {
     score += 4;
+  }
+
+  // Peso livre (barra/halteres) exige mais estabilização e recruta mais
+  // musculatura acessória que máquina/cabo pro mesmo padrão de movimento —
+  // mas só faz sentido priorizar isso pra quem já é avançado (pede mais
+  // controle/técnica); iniciante/intermediário se beneficiam mais da
+  // estabilidade guiada da máquina.
+  if (profile.level === "avancado") {
+    if (record.equipment === "barra") score += 5;
+    else if (record.equipment === "halteres") score += 3;
   }
 
   return score;
@@ -855,6 +866,74 @@ function scoreFocusFit(record: ExerciseCatalogRecord, profile: AthleteProfile) {
   return score;
 }
 
+// Sexo entra sempre como foco padrão (junto com o que a pessoa marcar
+// explicitamente) — mulher prioriza inferiores/glúteos, homem prioriza
+// superiores, refletindo a preferência mais comum de cada perfil.
+const SEX_DEFAULT_FOCUS_CATEGORIES: Partial<Record<AthleteSex, OfficialMuscleCategory[]>> = {
+  feminino: ["membros_inferiores_gluteos"],
+  masculino: ["peitoral", "costas_trapezio", "deltoides"],
+};
+
+function getFocusCategories(profile: AthleteProfile): Set<OfficialMuscleCategory> {
+  const categories = new Set<OfficialMuscleCategory>();
+
+  if (profile.sex) {
+    for (const category of SEX_DEFAULT_FOCUS_CATEGORIES[profile.sex] ?? []) {
+      categories.add(category);
+    }
+  }
+
+  if (profile.preferredFocus.length) {
+    const focusNormalized = profile.preferredFocus.map((f) => normalizeName(f));
+    for (const entry of FOCUS_CATEGORY_MAP) {
+      if (entry.labels.some((label) => focusNormalized.includes(normalizeName(label)))) {
+        categories.add(entry.category);
+      }
+    }
+  }
+
+  return categories;
+}
+
+// Dá mais espaço no treino pros grupos marcados como foco no onboarding — tira
+// 1 slot de cada categoria fora do foco (nunca zera, o grupo continua no
+// treino) e distribui esses slots extras entre as categorias de foco. Se o
+// template não tiver NENHUMA categoria de foco (ex: dia dedicado de Peito pra
+// quem não marcou peito), não mexe em nada — evita esvaziar um split
+// dedicado.
+function applyFocusPriority(
+  categories: WorkoutCategoryTemplate[],
+  profile: AthleteProfile,
+): WorkoutCategoryTemplate[] {
+  const focusCategories = getFocusCategories(profile);
+  if (focusCategories.size === 0) return categories;
+
+  const matchesFocus = (rule: WorkoutCategoryTemplate) =>
+    focusCategories.has(rule.primary) || (!!rule.secondary && focusCategories.has(rule.secondary));
+
+  const matchingRules = categories.filter(matchesFocus);
+  if (matchingRules.length === 0) return categories;
+
+  const adjusted = categories.map((rule) => ({ ...rule }));
+  let extraSlots = 0;
+  for (const rule of adjusted) {
+    if (!matchesFocus(rule) && rule.slots > 1) {
+      rule.slots -= 1;
+      extraSlots += 1;
+    }
+  }
+
+  let cursor = 0;
+  const matchingAdjusted = adjusted.filter(matchesFocus);
+  while (extraSlots > 0 && matchingAdjusted.length > 0) {
+    matchingAdjusted[cursor % matchingAdjusted.length].slots += 1;
+    extraSlots -= 1;
+    cursor += 1;
+  }
+
+  return adjusted;
+}
+
 function getBodyPriorityScore(record: ExerciseCatalogRecord, body: BodyTrainingContext) {
   const priorityIndex = body.muscularPriorities.indexOf(record.category);
   if (priorityIndex === -1) return 0;
@@ -987,10 +1066,9 @@ function selectExercisesForTemplate(
   templateIndex: number = 0,
 ) {
   const selected: ExerciseCatalogRecord[] = [];
+  const categoryRules = applyFocusPriority(template.categories, profile);
   const allowedCategories = new Set(
-    template.categories.flatMap((rule) =>
-      rule.secondary ? [rule.primary, rule.secondary] : [rule.primary],
-    ),
+    categoryRules.flatMap((rule) => (rule.secondary ? [rule.primary, rule.secondary] : [rule.primary])),
   );
   const available = catalog
     .filter((record) => record.status === "active")
@@ -1002,13 +1080,13 @@ function selectExercisesForTemplate(
   const rankRecords = (records: ExerciseCatalogRecord[]) =>
     [...records].sort(
       (left, right) =>
-        scoreExerciseQuality(right) +
+        scoreExerciseQuality(right, profile) +
         scoreTemplateFit(right, template, profile) +
         scoreEnvironmentFit(right, environment) +
         getBodyPriorityScore(right, body) +
         scoreGenderFit(right, profile) +
         scoreFocusFit(right, profile) -
-        (scoreExerciseQuality(left) +
+        (scoreExerciseQuality(left, profile) +
           scoreTemplateFit(left, template, profile) +
           scoreEnvironmentFit(left, environment) +
           getBodyPriorityScore(left, body) +
@@ -1020,7 +1098,7 @@ function selectExercisesForTemplate(
   const userSeed = getUserSeed(profile);
   let slotSeed = userSeed ^ (weekOfYear * 0x9e3779b9) ^ (templateIndex * 0x517cc1b7);
 
-  for (const categoryRule of template.categories) {
+  for (const categoryRule of categoryRules) {
     const candidates = rankRecords(
       available.filter(
         (record) =>
@@ -1087,11 +1165,11 @@ export function buildAIWorkoutCandidates(
         .filter((r) => r.category === categoryRule.primary || r.category === categoryRule.secondary)
         .sort(
           (a, b) =>
-            scoreExerciseQuality(b) +
+            scoreExerciseQuality(b, profile) +
             scoreTemplateFit(b, template, profile) +
             getBodyPriorityScore(b, body) +
             scoreGenderFit(b, profile) -
-            (scoreExerciseQuality(a) +
+            (scoreExerciseQuality(a, profile) +
               scoreTemplateFit(a, template, profile) +
               getBodyPriorityScore(a, body) +
               scoreGenderFit(a, profile)),

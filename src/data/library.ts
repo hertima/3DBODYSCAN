@@ -1093,6 +1093,15 @@ const equipmentAnchorOverrides = [
   // "Graviton" é uma máquina de assistência (barra/paralelas assistidas) — nunca
   // o equipamento portátil de paralelas/barra fixa.
   { match: "graviton", equipment: "Maquina" },
+  // A palavra genérica "remada" (mais abaixo, em gymCableOverrides) captura
+  // essas 3 variações de remada invertida como Cabos — mas elas usam mesa,
+  // argolas ou TRX, não cabo de academia.
+  { match: "remada invertida na mesa", equipment: "Peso corporal" },
+  // Argolas não é uma categoria própria de equipamento — quem seleciona
+  // "Argolas" no onboarding libera exercícios marcados "Paralelas" (ver
+  // equipmentMap em engine.ts), então esse é o valor correto aqui.
+  { match: "remada invertida com argolas", equipment: "Paralelas" },
+  { match: "remada invertida trx", equipment: "TRX" },
   // "dip" genérico abaixo captura qualquer variação com "dip" no nome como
   // Paralelas — mas essas duas usam apoio no banco/cadeira com pés no chão,
   // não são o mergulho em paralelas de verdade.
@@ -1947,7 +1956,9 @@ const muscleOrder: MuscleGroup[] = [
   fullBodyMuscle,
 ];
 
-musculacaoPrincipalCatalog.forEach((path) => {
+const VIDEO_OR_GIF_EXTENSION = /\.(mp4|webm|mov|gif)$/i;
+
+musculacaoPrincipalCatalog.filter((path) => VIDEO_OR_GIF_EXTENSION.test(path)).forEach((path) => {
   const name = extractCatalogName(path);
   const sourceGroup = extractCatalogSourceGroup(path);
   const muscle = inferMuscleFromCatalog(path);
@@ -1969,7 +1980,7 @@ musculacaoPrincipalCatalog.forEach((path) => {
   });
 });
 
-calistheniaPuraCatalog.forEach((path) => {
+calistheniaPuraCatalog.filter((path) => VIDEO_OR_GIF_EXTENSION.test(path)).forEach((path) => {
   const name = extractCatalogName(path);
   const muscle = inferMuscleFromCatalog(path);
 
